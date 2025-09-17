@@ -1,0 +1,9 @@
+{
+  "/creator/upload/page": "app/creator/upload/page.js",
+  "/creator/editor/page": "app/creator/editor/page.js",
+  "/creator/dashboard/page": "app/creator/dashboard/page.js",
+  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
+  "/page": "app/page.js",
+  "/work/[id]/page": "app/work/[id]/page.js",
+  "/api/works/route": "app/api/works/route.js"
+}

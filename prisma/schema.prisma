@@ -1,0 +1,175 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// User model
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  username    String   @unique
+  displayName String?
+  bio         String?
+  avatar      String?
+  verified    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  authorProfile Author?
+  subscriptions Subscription[]
+  bookmarks     Bookmark[]
+  likes         Like[]
+  readingHistory ReadingHistory[]
+
+  @@map("users")
+}
+
+// Author model (extends User for content creators)
+model Author {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  socialLinks  String?  // JSON string
+  verified     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  works         Work[]
+  subscriptions Subscription[]
+
+  @@map("authors")
+}
+
+// Work model (main content - novels, articles, comics, etc.)
+model Work {
+  id             String   @id @default(cuid())
+  title          String
+  description    String
+  authorId       String
+  formatType     String   // 'novel', 'article', 'comic', 'hybrid'
+  coverImage     String?
+  status         String   @default("draft") // 'draft', 'ongoing', 'completed', 'hiatus'
+  maturityRating String   @default("PG")    // 'G', 'PG', 'PG-13', 'R', 'NC-17'
+  genres         String   // JSON array
+  tags           String   // JSON array
+  statistics     String   // JSON object
+  glossary       String?  // JSON array
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  author          Author           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  sections        Section[]
+  bookmarks       Bookmark[]
+  likes           Like[]
+  readingHistory  ReadingHistory[]
+  glossaryEntries GlossaryEntry[]
+
+  @@map("works")
+}
+
+// Section model (chapters, articles sections, comic issues, etc.)
+model Section {
+  id          String    @id @default(cuid())
+  workId      String
+  title       String
+  content     String    // JSON object for different content types
+  wordCount   Int?
+  status      String    @default("draft") // 'draft', 'published', 'archived'
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  work           Work             @relation(fields: [workId], references: [id], onDelete: Cascade)
+  readingHistory ReadingHistory[]
+
+  @@map("sections")
+}
+
+// Subscription model
+model Subscription {
+  id                   String   @id @default(cuid())
+  userId               String
+  authorId             String
+  notificationsEnabled Boolean  @default(true)
+  subscribedAt         DateTime @default(now())
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  author Author @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, authorId])
+  @@map("subscriptions")
+}
+
+// Like model
+model Like {
+  id      String   @id @default(cuid())
+  userId  String
+  workId  String
+  likedAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  work Work @relation(fields: [workId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workId])
+  @@map("likes")
+}
+
+// Bookmark model
+model Bookmark {
+  id           String   @id @default(cuid())
+  userId       String
+  workId       String
+  bookmarkedAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  work Work @relation(fields: [workId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workId])
+  @@map("bookmarks")
+}
+
+// Reading History model
+model ReadingHistory {
+  id         String   @id @default(cuid())
+  userId     String
+  workId     String
+  sectionId  String?
+  progress   Float    @default(0) // 0.0 to 100.0 percentage
+  lastReadAt DateTime @default(now())
+
+  // Relations
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  work    Work     @relation(fields: [workId], references: [id], onDelete: Cascade)
+  section Section? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, workId])
+  @@map("reading_history")
+}
+
+// Glossary Entry model
+model GlossaryEntry {
+  id         String   @id @default(cuid())
+  workId     String
+  term       String
+  definition String
+  createdAt  DateTime @default(now())
+
+  // Relations
+  work Work @relation(fields: [workId], references: [id], onDelete: Cascade)
+
+  @@map("glossary_entries")
+}

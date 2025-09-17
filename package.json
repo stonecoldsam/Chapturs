@@ -1,0 +1,56 @@
+{
+  "name": "chapturs",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:seed": "tsx prisma/seed.ts"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@heroicons/react": "^2.2.0",
+    "@prisma/client": "^6.16.2",
+    "@tiptap/extension-bubble-menu": "^3.4.4",
+    "@tiptap/extension-character-count": "^3.4.4",
+    "@tiptap/extension-color": "^3.4.4",
+    "@tiptap/extension-floating-menu": "^3.4.4",
+    "@tiptap/extension-font-family": "^3.4.4",
+    "@tiptap/extension-image": "^3.4.4",
+    "@tiptap/extension-link": "^3.4.4",
+    "@tiptap/extension-placeholder": "^3.4.4",
+    "@tiptap/extension-text-align": "^3.4.4",
+    "@tiptap/extension-text-style": "^3.4.4",
+    "@tiptap/extension-typography": "^3.4.4",
+    "@tiptap/pm": "^3.4.4",
+    "@tiptap/react": "^3.4.4",
+    "@tiptap/starter-kit": "^3.4.4",
+    "@types/next-auth": "^3.13.0",
+    "@types/pg": "^8.15.5",
+    "lucide-react": "^0.544.0",
+    "next": "^14.2.32",
+    "next-auth": "^5.0.0-beta.29",
+    "pg": "^8.16.3",
+    "prisma": "^6.16.2",
+    "react": "^18",
+    "react-dom": "^18",
+    "reactflow": "^11.11.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/line-clamp": "^0.4.4",
+    "@types/node": "^20",
+    "@types/react": "^18.3.24",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.12",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "tsx": "^4.20.5",
+    "typescript": "^5"
+  }
+}
