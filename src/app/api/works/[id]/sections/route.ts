@@ -3,13 +3,14 @@ import { auth } from '../../../../../../auth'
 import PrismaService from '../../../../../lib/database/PrismaService'
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 // POST /api/works/[id]/sections - Create new section/chapter
-export async function POST(request: NextRequest, { params }: RouteParams) {
+export async function POST(request: NextRequest, props: RouteParams) {
+  const params = await props.params;
   try {
     const session = await auth()
     if (!session?.user?.id) {
@@ -62,7 +63,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 }
 
 // GET /api/works/[id]/sections - Get work sections
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(request: NextRequest, props: RouteParams) {
+  const params = await props.params;
   try {
     const session = await auth()
     if (!session?.user?.id) {
