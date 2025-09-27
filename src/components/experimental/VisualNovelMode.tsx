@@ -200,7 +200,7 @@ export default function VisualNovelMode({ data, onChange, preview }: VisualNovel
         {activeTab === 'scenes' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Visual Novel Scenes</h3>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Visual Novel Toolkit</h3>
               <button
                 onClick={addScene}
                 className="flex items-center px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"

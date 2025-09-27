@@ -36,25 +36,28 @@ export default function CreatorEditorPage() {
   
   // URL parameters
   const workId = params?.workId as string | undefined
+  const draftId = searchParams?.get('draftId') || undefined
   const chapterId = params?.chapterId as string | undefined
   const formatType = (searchParams?.get('format') || 'novel') as ContentFormat
   const mode = searchParams?.get('mode') === 'edit' ? 'edit' : 'create'
 
-  console.log('Editor page loaded with:', { formatType, mode, workId })
+  console.log('Editor page loaded with:', { formatType, mode, workId, draftId })
   console.log('Should use experimental editor?', formatType === 'experimental')
 
   // UI State
   const [editorMode, setEditorMode] = useState<EditorMode>({ type: 'editor' })
   const [showSettings, setShowSettings] = useState(false)
   const [currentWork, setCurrentWork] = useState({
-    id: workId,
+    id: workId || draftId,
     title: '',
     description: '',
     formatType,
-    status: 'draft' as 'draft' | 'ongoing' | 'completed',
+    status: mode === 'create' ? 'unpublished' : 'draft' as 'draft' | 'ongoing' | 'completed' | 'unpublished',
     chaptersCount: 0,
     wordsCount: 0,
-    subscribers: 0
+    subscribers: 0,
+    isDraft: Boolean(draftId), // Track if this is working with a draft
+    hasContent: false // Track if work has any content yet
   })
 
   // Project statistics
@@ -77,27 +80,63 @@ export default function CreatorEditorPage() {
   })
 
   useEffect(() => {
-    // Load work data if in edit mode
+    // Load work data if in edit mode, or draft data if working with a draft
     if (mode === 'edit' && workId) {
       loadWorkData(workId)
+    } else if (mode === 'create' && draftId) {
+      loadDraftData(draftId)
     }
-  }, [mode, workId])
+  }, [mode, workId, draftId])
 
   const loadWorkData = async (workId: string) => {
-    // In production, this would fetch from API
-    console.log('Loading work data for:', workId)
-    // Mock data loading
-    setCurrentWork(prev => ({
-      ...prev,
-      title: 'Sample Novel',
-      description: 'A thrilling adventure story',
-      chaptersCount: 5,
-      wordsCount: 12500
-    }))
+    try {
+      const response = await fetch(`/api/works/${workId}`)
+      if (response.ok) {
+        const result = await response.json()
+        console.log('Loading work data:', result)
+        setCurrentWork(prev => ({
+          ...prev,
+          title: result.work.title,
+          description: result.work.description,
+          chaptersCount: result.work.sections?.length || 0,
+          wordsCount: result.work.statistics?.wordCount || 0,
+          hasContent: (result.work.sections?.length || 0) > 0
+        }))
+      }
+    } catch (error) {
+      console.error('Error loading work data:', error)
+    }
+  }
+
+  const loadDraftData = async (draftId: string) => {
+    try {
+      const response = await fetch(`/api/works/drafts`)
+      if (response.ok) {
+        const result = await response.json()
+        const draft = result.drafts.find((d: any) => d.id === draftId)
+        if (draft) {
+          console.log('Loading draft data:', draft)
+          setCurrentWork(prev => ({
+            ...prev,
+            title: draft.title,
+            description: draft.description,
+            hasContent: false // Drafts start with no content
+          }))
+        }
+      }
+    } catch (error) {
+      console.error('Error loading draft data:', error)
+    }
   }
 
   const handleSave = async (data: any) => {
     console.log('Saving:', data)
+    
+    // Update content tracking
+    if (data.content && data.content.trim().length > 100) { // Require meaningful content
+      setCurrentWork(prev => ({ ...prev, hasContent: true }))
+    }
+    
     setProjectStats(prev => ({
       ...prev,
       lastSaved: new Date(),
@@ -107,15 +146,53 @@ export default function CreatorEditorPage() {
 
   const handlePublish = async (data: any) => {
     console.log('Publishing:', data)
-    // In production, this would call the publish API
-    alert('Chapter published successfully!')
+    
+    // Check if work has content before publishing
+    if (!currentWork.hasContent) {
+      alert('Cannot publish work without content. Please add at least one chapter or section first.')
+      return
+    }
+
+    // If this is a draft, we need to convert it to a published work
+    if (currentWork.isDraft && draftId) {
+      try {
+        const response = await fetch(`/api/works/publish`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            draftId: draftId,
+            publishData: data
+          })
+        })
+
+        if (response.ok) {
+          const result = await response.json()
+          alert('Work submitted for review! It will appear in the library once approved.')
+          // Redirect to the new published work
+          window.location.href = `/work/${result.workId}`
+        } else {
+          const error = await response.json()
+          alert(`Failed to publish: ${error.error}`)
+        }
+      } catch (error) {
+        console.error('Error publishing work:', error)
+        alert('Failed to publish work. Please try again.')
+      }
+    } else {
+      // For existing works, just update the content
+      alert('Content saved and updated!')
+    }
   }
 
   const handleUploadComplete = (results: any[]) => {
     console.log('Upload completed:', results)
-    // Switch to editor mode to edit uploaded content
+    
+    // Track if content was uploaded
     if (results.length > 0 && results[0].sections?.length > 0) {
-      setEditorMode({ type: 'editor' })
+      setCurrentWork(prev => ({ ...prev, hasContent: true }))
+      setEditorMode({ type: 'editor' }) // Switch to editor mode to edit uploaded content
     }
   }
 
@@ -155,9 +232,19 @@ export default function CreatorEditorPage() {
                 <div>
                   <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
                     {mode === 'create' ? `New ${formatType}` : currentWork.title || 'Untitled Work'}
+                    {currentWork.isDraft && (
+                      <span className="ml-2 px-2 py-1 text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded-full">
+                        DRAFT
+                      </span>
+                    )}
                   </h1>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {mode === 'create' ? 'Create your next masterpiece' : `${currentWork.chaptersCount} chapters • ${currentWork.wordsCount.toLocaleString()} words`}
+                    {mode === 'create' 
+                      ? currentWork.isDraft 
+                        ? 'Working on draft - not published yet' 
+                        : 'Create your next masterpiece'
+                      : `${currentWork.chaptersCount} chapters • ${currentWork.wordsCount.toLocaleString()} words`
+                    }
                   </p>
                 </div>
               </div>
@@ -192,6 +279,27 @@ export default function CreatorEditorPage() {
 
               {/* Quick Actions */}
               <div className="flex items-center space-x-2">
+                {/* Publish Button - only show for drafts with content */}
+                {currentWork.isDraft && currentWork.hasContent && (
+                  <button
+                    onClick={() => handlePublish({ 
+                      content: 'current_content', // This would be the actual content from the editor
+                      readyForReview: true 
+                    })}
+                    className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center space-x-1"
+                  >
+                    <Upload size={16} />
+                    <span>Publish Work</span>
+                  </button>
+                )}
+                
+                {/* Content Warning for empty drafts */}
+                {currentWork.isDraft && !currentWork.hasContent && (
+                  <div className="px-3 py-2 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 rounded-lg text-sm">
+                    Add content to enable publishing
+                  </div>
+                )}
+
                 <button
                   onClick={() => setQuickActions(prev => ({ ...prev, autoSave: !prev.autoSave }))}
                   className={`p-2 rounded-lg transition-colors ${
@@ -294,10 +402,10 @@ export default function CreatorEditorPage() {
                   🧪 FORCING EXPERIMENTAL EDITOR - FORMAT: {formatType}
                 </h1>
                 <ExperimentalEditor
-                  workId={workId}
+                  workId={draftId || workId} // Use draftId for new drafts, workId for existing works
                   onSave={async (content: string, data: any) => {
                     // Adapt the ExperimentalEditor save format to our handleSave function
-                    await handleSave({ content, experimentalData: data })
+                    await handleSave({ content, experimentalData: data, wordCount: content.split(' ').length })
                   }}
                 />
               </div>
@@ -316,7 +424,7 @@ export default function CreatorEditorPage() {
 
                 <AdvancedUploader
                   formatType={formatType}
-                  workId={workId}
+                  workId={draftId || workId} // Use draftId for new drafts, workId for existing works
                   onUploadComplete={handleUploadComplete}
                   maxFileSize={100} // 100MB
                 />

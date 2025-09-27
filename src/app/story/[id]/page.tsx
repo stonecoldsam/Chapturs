@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import AppLayout from '@/components/AppLayout'
-import { Story, Chapter } from '@/types'
-import { mockStories, mockChapters } from '@/lib/mockData'
+import { Work } from '@/types'
 import { 
   BookmarkIcon as BookmarkOutline,
   HeartIcon as HeartOutline,
@@ -22,45 +22,179 @@ import Image from 'next/image'
 export default function StoryPage() {
   const params = useParams()
   const storyId = params?.id as string
+  const { data: session } = useSession()
   
-  const [story, setStory] = useState<Story | null>(null)
-  const [chapters, setChapters] = useState<Chapter[]>([])
+  const [story, setStory] = useState<Work | null>(null)
   const [isBookmarked, setIsBookmarked] = useState(false)
   const [isLiked, setIsLiked] = useState(false)
+  const [isSubscribed, setIsSubscribed] = useState(false)
   const [showFullDescription, setShowFullDescription] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // Find story by ID
-    const foundStory = mockStories.find(s => s.id === storyId)
-    if (foundStory) {
-      setStory(foundStory)
-      
-      // Get chapters for this story
-      const storyChapters = mockChapters.filter(c => c.storyId === storyId)
-      setChapters(storyChapters)
-    }
-  }, [storyId])
+    const fetchStoryData = async () => {
+      if (!storyId) return
 
-  const handleBookmark = () => {
-    setIsBookmarked(!isBookmarked)
+      try {
+        setLoading(true)
+        setError(null)
+
+        // Fetch the work/story data
+        const workResponse = await fetch(`/api/works/${storyId}`)
+        if (!workResponse.ok) {
+          throw new Error('Failed to fetch story data')
+        }
+        const workData = await workResponse.json()
+        setStory(workData)
+
+        // If user is logged in, fetch their interaction status
+        if (session?.user?.id) {
+          // Check bookmark status
+          const bookmarkResponse = await fetch(`/api/bookmarks?userId=${session.user.id}&workId=${storyId}`)
+          if (bookmarkResponse.ok) {
+            const bookmarkData = await bookmarkResponse.json()
+            setIsBookmarked(bookmarkData.isBookmarked)
+          }
+
+          // Check like status
+          const likeResponse = await fetch(`/api/likes?userId=${session.user.id}&workId=${storyId}`)
+          if (likeResponse.ok) {
+            const likeData = await likeResponse.json()
+            setIsLiked(likeData.isLiked)
+          }
+
+          // Check subscription status
+          if (workData.author?.id) {
+            const subscriptionResponse = await fetch(`/api/subscriptions?userId=${session.user.id}&authorId=${workData.author.id}`)
+            if (subscriptionResponse.ok) {
+              const subscriptionData = await subscriptionResponse.json()
+              setIsSubscribed(subscriptionData.isSubscribed)
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching story data:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load story')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchStoryData()
+  }, [storyId, session?.user?.id])
+
+  const handleBookmark = async () => {
+    if (!session?.user?.id || !story) return
+
+    try {
+      const response = await fetch('/api/bookmarks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          workId: story.id,
+          userId: session.user.id
+        })
+      })
+
+      if (response.ok) {
+        setIsBookmarked(!isBookmarked)
+      }
+    } catch (error) {
+      console.error('Error toggling bookmark:', error)
+    }
   }
 
-  const handleLike = () => {
-    setIsLiked(!isLiked)
+  const handleLike = async () => {
+    if (!session?.user?.id || !story) return
+
+    try {
+      const response = await fetch('/api/likes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          workId: story.id,
+          userId: session.user.id
+        })
+      })
+
+      if (response.ok) {
+        setIsLiked(!isLiked)
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error)
+    }
+  }
+
+  const handleSubscribe = async () => {
+    if (!session?.user?.id || !story?.author?.id) return
+
+    try {
+      const response = await fetch('/api/subscriptions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          authorId: story.author.id,
+          userId: session.user.id
+        })
+      })
+
+      if (response.ok) {
+        setIsSubscribed(!isSubscribed)
+      }
+    } catch (error) {
+      console.error('Error toggling subscription:', error)
+    }
   }
 
   const startReading = () => {
-    if (chapters.length > 0) {
-      // Navigate to first chapter
-      window.location.href = `/story/${storyId}/chapter/${chapters[0].id}`
+    if (story?.sections && story.sections.length > 0) {
+      // Navigate to first section/chapter
+      window.location.href = `/story/${storyId}/chapter/${story.sections[0].id}`
     }
   }
 
   const continueReading = () => {
-    // In a real app, this would determine the user's last read chapter
-    if (chapters.length > 0) {
-      window.location.href = `/story/${storyId}/chapter/${chapters[0].id}`
+    // In a real app, this would determine the user's last read section
+    if (story?.sections && story.sections.length > 0) {
+      window.location.href = `/story/${storyId}/chapter/${story.sections[0].id}`
     }
+  }
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        </div>
+      </AppLayout>
+    )
+  }
+
+  if (error) {
+    return (
+      <AppLayout>
+        <div className="flex flex-col justify-center items-center h-64 text-center">
+          <div className="text-6xl mb-4">😕</div>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+            Something went wrong
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </AppLayout>
+    )
   }
 
   if (!story) {
@@ -222,17 +356,31 @@ export default function StoryPage() {
                 <div className="flex flex-col sm:flex-row gap-3">
                   <button
                     onClick={startReading}
-                    className="flex items-center justify-center space-x-2 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex-1"
+                    disabled={!story.sections || story.sections.length === 0}
+                    className="flex items-center justify-center space-x-2 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <PlayIcon className="w-5 h-5" />
                     <span>Start Reading</span>
                   </button>
                   <button
                     onClick={continueReading}
-                    className="flex items-center justify-center space-x-2 px-6 py-3 border border-blue-500 text-blue-500 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex-1"
+                    disabled={!story.sections || story.sections.length === 0}
+                    className="flex items-center justify-center space-x-2 px-6 py-3 border border-blue-500 text-blue-500 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <span>Continue Reading</span>
                   </button>
+                  {session?.user?.id && story.author?.id && (
+                    <button
+                      onClick={handleSubscribe}
+                      className={`flex items-center justify-center space-x-2 px-6 py-3 rounded-lg transition-colors ${
+                        isSubscribed
+                          ? 'bg-green-500 text-white hover:bg-green-600'
+                          : 'border border-green-500 text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20'
+                      }`}
+                    >
+                      <span>{isSubscribed ? 'Subscribed' : 'Subscribe'}</span>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -243,42 +391,42 @@ export default function StoryPage() {
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              Chapters ({chapters.length})
+              Chapters ({story.sections?.length || 0})
             </h2>
           </div>
           
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
-            {chapters.length === 0 ? (
+            {!story.sections || story.sections.length === 0 ? (
               <div className="p-8 text-center text-gray-500 dark:text-gray-400">
                 <div className="text-4xl mb-3">📝</div>
                 <h3 className="text-lg font-medium mb-2">No chapters yet</h3>
                 <p className="text-sm">Check back later for new content from this author.</p>
               </div>
             ) : (
-              chapters.map((chapter, index) => (
+              story.sections.map((section, index) => (
                 <div
-                  key={chapter.id}
+                  key={section.id}
                   className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
-                  onClick={() => window.location.href = `/story/${storyId}/chapter/${chapter.id}`}
+                  onClick={() => window.location.href = `/story/${storyId}/chapter/${section.id}`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">
-                        Chapter {chapter.chapterNumber}: {chapter.title}
+                        Chapter {index + 1}: {section.title}
                       </h3>
                       <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
                         <div className="flex items-center space-x-1">
                           <ClockIcon className="w-4 h-4" />
-                          <span>{new Date(chapter.publishedAt).toLocaleDateString()}</span>
+                          <span>{section.publishedAt ? new Date(section.publishedAt).toLocaleDateString() : 'Draft'}</span>
                         </div>
                         <div className="flex items-center space-x-1">
                           <EyeIcon className="w-4 h-4" />
-                          <span>{chapter.wordCount} words</span>
+                          <span>{section.wordCount} words</span>
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      {chapter.isPublished ? (
+                      {(section as any).status === 'published' ? (
                         <span className="text-xs text-green-600 bg-green-100 dark:bg-green-900 dark:text-green-200 px-2 py-1 rounded">
                           Published
                         </span>

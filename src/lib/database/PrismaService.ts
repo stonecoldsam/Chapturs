@@ -10,6 +10,13 @@ export class DatabaseService {
   // Works Operations
   static async getAllWorks(): Promise<Work[]> {
     const works = await prisma.work.findMany({
+      where: {
+        // Only include published, ongoing, completed, or pending_review works
+        // Exclude 'unpublished' drafts
+        status: {
+          in: ['published', 'ongoing', 'completed', 'pending_review']
+        }
+      },
       include: {
         author: {
           include: {
@@ -66,7 +73,18 @@ export class DatabaseService {
             ]
           },
           filters.format ? { formatType: filters.format } : {},
-          { status: 'ongoing' } // Only show published works
+          // Only show published works that have content
+          { 
+            status: { 
+              in: ['published', 'ongoing', 'completed'] 
+            } 
+          },
+          // Ensure the work has at least one section (content)
+          {
+            sections: {
+              some: {}
+            }
+          }
         ]
       },
       include: {

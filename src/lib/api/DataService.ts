@@ -151,12 +151,16 @@ export class DataService {
     return response.json()
   }
 
-  static async getUserWorks(userId: string): Promise<Work[]> {
+  static async getUserWorks(userId: string): Promise<{ published: Work[], drafts: Work[] }> {
     const response = await fetch(`/api/works/user/${userId}`)
     if (!response.ok) {
       throw new Error('Failed to fetch user works')
     }
-    return response.json()
+    const data = await response.json()
+    return {
+      published: data.works || [],
+      drafts: data.drafts || []
+    }
   }
 
   // Analytics - API call to analytics endpoint

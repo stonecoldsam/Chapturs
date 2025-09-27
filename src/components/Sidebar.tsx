@@ -14,7 +14,9 @@ import {
   MoonIcon,
   ArrowRightOnRectangleIcon,
   ArrowLeftOnRectangleIcon,
-  BookmarkIcon
+  BookmarkIcon,
+  DocumentTextIcon,
+  FolderIcon
 } from '@heroicons/react/24/outline'
 
 interface SidebarProps {
@@ -47,6 +49,8 @@ export default function Sidebar({ currentHub, onHubChange, theme, onThemeChange 
   const creatorItems = [
     { icon: PencilIcon, label: 'Upload', href: '/creator/upload' },
     { icon: ChartBarIcon, label: 'Dashboard', href: '/creator/dashboard' },
+    { icon: DocumentTextIcon, label: 'Manage Stories', href: '/creator/dashboard?tab=published' },
+    { icon: FolderIcon, label: 'Draft Management', href: '/creator/dashboard?tab=drafts' },
     { icon: CogIcon, label: 'Analytics', href: '/creator/analytics' },
     { icon: UserIcon, label: 'Profile', href: '/creator/profile' },
   ]

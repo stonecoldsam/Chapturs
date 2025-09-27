@@ -11,6 +11,8 @@ import ReactFlow, {
   Connection,
   Edge,
   Node,
+  NodeChange,
+  EdgeChange,
   Position,
   ReactFlowProvider,
 } from 'reactflow'
@@ -129,24 +131,29 @@ export default function BranchingStoryMode({ data, onChange, preview }: Branchin
     nodes: []
   }
 
-  // Stable callbacks that don't cause re-renders
+  // Simple function to update data
+  const updateData = (updates: Partial<BranchingStoryData>) => {
+    onChange({ ...currentData, ...updates })
+  }
+
+  // Memoized delete function
   const deleteNode = useCallback((nodeId: string) => {
     const nodes = currentData.nodes.filter(node => node.id !== nodeId)
-    // Also remove any choices that target this deleted node
     const cleanedNodes = nodes.map(node => ({
       ...node,
       choices: node.choices.filter(choice => choice.targetNodeId !== nodeId)
     }))
-    onChange({ ...currentData, nodes: cleanedNodes })
-  }, [currentData, onChange])
+    updateData({ nodes: cleanedNodes })
+  }, [])
 
+  // Memoized edit function  
   const handleEditNode = useCallback((node: StoryNode) => {
     setEditingNode(node)
   }, [])
 
-  // Convert story data to React Flow format directly (no useState needed)
-  const flowNodes: Node[] = useMemo(() => 
-    currentData.nodes.map(node => ({
+  // Convert story nodes to React Flow nodes
+  const reactFlowNodes = useMemo(() => {
+    return currentData.nodes.map(node => ({
       id: node.id,
       type: 'storyNode',
       position: node.position,
@@ -155,12 +162,14 @@ export default function BranchingStoryMode({ data, onChange, preview }: Branchin
         onEdit: handleEditNode,
         onDelete: deleteNode,
       },
-    })), [currentData.nodes, handleEditNode, deleteNode])
+    }))
+  }, [currentData.nodes, handleEditNode, deleteNode])
 
-  const flowEdges: Edge[] = useMemo(() => 
-    currentData.nodes.flatMap(node =>
+  // Convert story choices to React Flow edges
+  const reactFlowEdges = useMemo(() => {
+    return currentData.nodes.flatMap(node =>
       node.choices
-        .filter(choice => choice.targetNodeId) // Only include choices with targets
+        .filter(choice => choice.targetNodeId)
         .map(choice => ({
           id: `${node.id}-${choice.id}`,
           source: node.id,
@@ -169,22 +178,33 @@ export default function BranchingStoryMode({ data, onChange, preview }: Branchin
           type: 'smoothstep',
           style: { stroke: '#3b82f6' },
         }))
-    ), [currentData.nodes])
+    )
+  }, [currentData.nodes])
 
-  // Use React Flow's built-in state management
-  const [nodes, setNodes, onNodesChange] = useNodesState(flowNodes)
-  const [edges, setEdges, onEdgesChange] = useEdgesState(flowEdges)
+  // Simple handlers that don't cause re-renders
+  const handleNodesChange = useCallback((changes: NodeChange[]) => {
+    changes.forEach(change => {
+      if (change.type === 'position' && change.position) {
+        const nodeIndex = currentData.nodes.findIndex(n => n.id === change.id)
+        if (nodeIndex >= 0) {
+          const updatedNodes = [...currentData.nodes]
+          updatedNodes[nodeIndex] = {
+            ...updatedNodes[nodeIndex],
+            position: change.position
+          }
+          updateData({ nodes: updatedNodes })
+        }
+      }
+    })
+  }, [currentData.nodes])
 
-  // Sync React Flow state when our data changes
-  useEffect(() => {
-    setNodes(flowNodes)
-    setEdges(flowEdges)
-  }, [flowNodes, flowEdges, setNodes, setEdges])
+  const handleEdgesChange = useCallback((changes: EdgeChange[]) => {
+    // Handle edge changes if needed in the future
+  }, [])
 
-  const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
-    [setEdges]
-  )
+  const handleConnect = useCallback((params: Connection) => {
+    // Handle new connections if needed in the future
+  }, [])
 
   function addNewNode() {
     const existingNodes = currentData.nodes
@@ -338,11 +358,11 @@ export default function BranchingStoryMode({ data, onChange, preview }: Branchin
       <div className="h-full relative">
         <ReactFlowProvider>
           <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
+            nodes={reactFlowNodes}
+            edges={reactFlowEdges}
+            onNodesChange={handleNodesChange}
+            onEdgesChange={handleEdgesChange}
+            onConnect={handleConnect}
             nodeTypes={nodeTypes}
             fitView
             className="bg-gray-50 dark:bg-gray-900"
