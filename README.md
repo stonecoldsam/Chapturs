@@ -72,12 +72,26 @@ src/
    npm install
    ```
 
-2. **Run Development Server**
+2. **Environment Setup**
+   ```bash
+   cp .env.example .env.local
+   ```
+   Then edit `.env.local` with your actual values:
+   - Get Google OAuth credentials from [Google Cloud Console](https://console.developers.google.com/)
+   - Generate a secure NextAuth secret
+
+3. **Database Setup**
+   ```bash
+   npx prisma generate
+   npx prisma db push
+   ```
+
+4. **Run Development Server**
    ```bash
    npm run dev
    ```
 
-3. **Open Browser**
+5. **Open Browser**
    Navigate to [http://localhost:3000](http://localhost:3000)
 
 ## 📱 Usage
