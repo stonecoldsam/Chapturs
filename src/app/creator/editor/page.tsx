@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
-import CreatorEditor from '@/components/CreatorEditor'
+import ChaptursEditor from '@/components/ChaptursEditor'
 import ConfirmMatureModal from '@/components/ConfirmMatureModal'
-import ExperimentalEditor from '@/components/ExperimentalEditor'
 import AdvancedUploader from '@/components/AdvancedUploader'
 import AppLayout from '@/components/AppLayout'
 import { ContentFormat } from '@/types'
+import { ChaptDocument } from '@/types/chapt'
 import {
   ArrowLeft,
   Save,
@@ -442,22 +442,31 @@ export default function CreatorEditorPage() {
         {/* Main Content */}
         <div className="flex-1 overflow-hidden">
           {editorMode.type === 'editor' ? (
-            <>
-              <div>
-                <h1 style={{ color: 'red', fontSize: '24px', padding: '20px' }}>
-                  🧪 FORCING EXPERIMENTAL EDITOR - FORMAT: {formatType}
-                </h1>
-                <ExperimentalEditor
-                  workId={draftId || workId} // Use draftId for new drafts, workId for existing works
-                  onSave={async (content: string, data: any) => {
-                    // Adapt the ExperimentalEditor save format to our handleSave function
-                    await handleSave({ content, experimentalData: data, wordCount: content.split(' ').length })
-                  }}
-                />
-              </div>
-            </>
+            <ChaptursEditor
+              workId={workId || 'new'}
+              chapterId={chapterId}
+              onSave={async (document: ChaptDocument) => {
+                console.log('Saving chapter:', document)
+                
+                // Convert ChaptDocument to API format
+                const saveData = {
+                  title: document.metadata.title,
+                  content: JSON.stringify(document.content),
+                  wordCount: document.metadata.wordCount,
+                  status: document.metadata.status,
+                  chaptNumber: document.metadata.chapterNumber
+                }
+                
+                await handleSave(saveData)
+              }}
+              onPublish={async (document: ChaptDocument) => {
+                console.log('Publishing chapter:', document)
+                // TODO: Implement publish with validation
+                alert('Publishing feature coming soon! Use Save for now.')
+              }}
+            />
           ) : (
-            <div className="h-full overflow-auto p-6">
+            <div className="h-full overflow-auto p-6">`
               <div className="max-w-4xl mx-auto">
                 <div className="mb-6">
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
