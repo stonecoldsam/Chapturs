@@ -1,21 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '../../../../../../auth'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/database/PrismaService'
 
-const prisma = new PrismaClient()
+// use shared prisma instance from PrismaService
 
 // GET /api/works/user/[userId] - Get all works for a specific user (published + drafts)
 export async function GET(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
+  const { userId } = await params
   try {
     const session = await auth()
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    const userId = params.userId
 
     // Check if user is requesting their own works
     if (session.user.id !== userId) {

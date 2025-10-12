@@ -72,7 +72,7 @@ export function GlossaryTooltip({ term, definition, children }: GlossaryTooltipP
 
 interface ChapterContentProps {
   content: string
-  glossaryTerms: GlossaryTerm[]
+  glossaryTerms: GlossaryTerm[] | undefined
   currentChapter: number
 }
 
@@ -80,10 +80,8 @@ export default function ChapterContent({ content, glossaryTerms, currentChapter 
   const [processedContent, setProcessedContent] = useState<React.ReactNode[]>([])
 
   useEffect(() => {
-    // Filter glossary terms that are introduced at or before current chapter
-    const availableTerms = glossaryTerms.filter(
-      term => term.chapterIntroduced <= currentChapter
-    )
+    // Use all available glossary terms (chapter filtering removed for now)
+    const availableTerms = glossaryTerms || []
 
     // Sort by term length (descending) to handle overlapping terms correctly
     const sortedTerms = availableTerms.sort((a, b) => b.term.length - a.term.length)

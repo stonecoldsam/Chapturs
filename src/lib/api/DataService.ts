@@ -171,6 +171,12 @@ export class DataService {
     }
     return response.json()
   }
+  
+  static async getCreatorAnalytics() {
+    const res = await fetch('/api/creator/analytics');
+    if (!res.ok) throw new Error('Failed to fetch analytics');
+    return res.json();
+  }
 }
 
 export default DataService

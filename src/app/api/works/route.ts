@@ -1,44 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '../../../../auth'
 import PrismaService from '../../../lib/database/PrismaService'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/database/PrismaService'
+import { 
+  createErrorResponse, 
+  createSuccessResponse, 
+  generateRequestId,
+  requireAuth,
+  validateRequest,
+  checkRateLimit,
+  addCorsHeaders,
+  ApiError,
+  ApiErrorType
+} from '@/lib/api/errorHandling'
+import { createWorkSchema, searchWorksSchema } from '@/lib/api/schemas'
 
-const prisma = new PrismaClient()
+// use shared prisma instance from PrismaService
 
 // POST /api/works - Create new work with auto Author profile creation
 export async function POST(request: NextRequest) {
+  const requestId = generateRequestId()
+  
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    // Rate limiting - creators can create max 5 works per hour
+    const clientId = request.headers.get('x-forwarded-for') || 'anonymous'
+    checkRateLimit(`create_work_${clientId}`, 5, 3600000) // 5 works per hour
 
-    const body = await request.json()
+    // Authentication
+    const session = await auth()
+    requireAuth(session)
+
+    // Validation
+    const validatedData = await validateRequest(request, createWorkSchema)
     const {
       title,
       description,
       formatType,
       coverImage,
-      genres = [],
-      tags = [],
-      maturityRating = 'PG',
-      status = 'draft'
-    } = body
+      genres,
+      tags,
+      maturityRating,
+      status
+    } = validatedData
 
-    if (!title || !description || !formatType) {
-      return NextResponse.json(
-        { error: 'Title, description, and format type are required' },
-        { status: 400 }
-      )
-    }
-
-    // Get the author profile for this user
+    // Get or create author profile for this user
     let author = await prisma.author.findUnique({
       where: { userId: session.user.id }
     })
 
-    // If no author profile exists, create one
     if (!author) {
+      // Create author profile automatically
       author = await prisma.author.create({
         data: {
           userId: session.user.id,
@@ -48,79 +59,156 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Create work using DatabaseService
-    const workData = {
-      title,
-      description,
-      formatType,
-      coverImageUrl: coverImage,
-      status,
-      maturityRating,
-      genres,
-      tags,
-      glossary: []
-    }
-
-    const work = await PrismaService.createWork({
-      title,
-      description,
-      authorId: author.id, // Use author.id, not user.id
-      formatType,
-      coverImage,
-      genres,
-      tags
+    // Create work using Prisma directly for better type safety
+    const work = await prisma.work.create({
+      data: {
+        title,
+        description,
+        authorId: author.id,
+        formatType,
+        coverImage,
+        status,
+        maturityRating,
+        genres: JSON.stringify(genres),
+        tags: JSON.stringify(tags),
+        statistics: JSON.stringify({
+          views: 0,
+          subscribers: 0,
+          bookmarks: 0,
+          likes: 0,
+          comments: 0,
+          averageRating: 0,
+          ratingCount: 0,
+          completionRate: 0
+        })
+      },
+      include: {
+        author: {
+          include: {
+            user: true
+          }
+        }
+      }
     })
 
-    return NextResponse.json({
-      success: true,
-      work
-    })
+    const response = createSuccessResponse({
+      work: {
+        id: work.id,
+        title: work.title,
+        description: work.description,
+        formatType: work.formatType,
+        status: work.status,
+        author: {
+          id: work.author.id,
+          username: work.author.user.username,
+          displayName: work.author.user.displayName
+        },
+        createdAt: work.createdAt
+      }
+    }, 'Work created successfully', requestId)
+    
+    return addCorsHeaders(response)
 
   } catch (error) {
-    console.error('Work creation error:', error)
-    return NextResponse.json(
-      { error: 'Failed to create work' },
-      { status: 500 }
-    )
+    return createErrorResponse(error, requestId)
   }
 }
 
-// GET /api/works - Get user's works
+// GET /api/works - Get user's works or search works
 export async function GET(request: NextRequest) {
+  const requestId = generateRequestId()
+  
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // Rate limiting - more generous for GET requests
+    const clientId = request.headers.get('x-forwarded-for') || 'anonymous'
+    checkRateLimit(`get_works_${clientId}`, 100, 60000) // 100 requests per minute
+
+    // Parse query parameters
+    const { searchParams } = new URL(request.url)
+    const query = searchParams.get('q')
+    const userId = searchParams.get('userId')
+
+    // If searching, handle as search request (no auth required for public search)
+    if (query) {
+      const filters = {
+        formatType: searchParams.get('formatType'),
+        genres: searchParams.getAll('genres'),
+        status: searchParams.get('status')
+      }
+
+      const works = await PrismaService.searchWorks(query, filters)
+      
+      const response = createSuccessResponse({
+        works,
+        total: works.length,
+        query,
+        filters
+      }, `Found ${works.length} works`, requestId)
+      
+      return addCorsHeaders(response)
     }
+
+    // For user's own works, require authentication
+    const session = await auth()
+    requireAuth(session)
 
     // Get the author profile for this user
     let author = await prisma.author.findUnique({
       where: { userId: session.user.id }
     })
-
-    // If no author profile exists, create one
     if (!author) {
-      author = await prisma.author.create({
-        data: {
-          userId: session.user.id,
-          verified: false,
-          socialLinks: '[]',
-        }
-      })
+      // Return empty works list if no author profile exists yet
+      const response = createSuccessResponse({
+        works: [],
+        total: 0,
+        authorId: null
+      }, 'No author profile found - create your first work to get started', requestId)
+      
+      return addCorsHeaders(response)
     }
 
-    const works = await PrismaService.getUserWorks(author.id)
-
-    return NextResponse.json({
-      success: true,
-      works
+    // Get user's works directly with Prisma for better performance
+    const works = await prisma.work.findMany({
+      where: { authorId: author.id },
+      include: {
+        author: {
+          include: { user: true }
+        },
+        _count: {
+          select: {
+            sections: true,
+            bookmarks: true,
+            likes: true
+          }
+        }
+      },
+      orderBy: { updatedAt: 'desc' }
     })
 
+    const response = createSuccessResponse({
+      works: works.map((work: any) => ({
+        id: work.id,
+        title: work.title,
+        description: work.description,
+        formatType: work.formatType,
+        status: work.status,
+        maturityRating: work.maturityRating,
+        genres: JSON.parse(work.genres || '[]'),
+        tags: JSON.parse(work.tags || '[]'),
+        statistics: JSON.parse(work.statistics || '{}'),
+        createdAt: work.createdAt,
+        updatedAt: work.updatedAt,
+        sections: work._count.sections,
+        bookmarks: work._count.bookmarks,
+        likes: work._count.likes
+      })),
+      total: works.length,
+      authorId: author.id
+    }, `Found ${works.length} works`, requestId)
+
+    return addCorsHeaders(response)
+
   } catch (error) {
-    console.error('Works fetch error:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch works' },
-      { status: 500 }
-    )
+    return createErrorResponse(error, requestId)
   }
 }

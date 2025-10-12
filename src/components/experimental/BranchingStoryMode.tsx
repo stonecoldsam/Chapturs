@@ -388,7 +388,7 @@ export default function BranchingStoryMode({ data, onChange, preview }: Branchin
             <div className="text-center text-gray-500 dark:text-gray-400">
               <ShareIcon className="w-16 h-16 mx-auto mb-4 opacity-50" />
               <p className="text-lg mb-2">Create Your Branching Story</p>
-              <p>Click "Add Story Node" to get started!</p>
+              <p>Click &quot;Add Story Node&quot; to get started!</p>
             </div>
           </div>
         )}

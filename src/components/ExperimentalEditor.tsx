@@ -777,7 +777,7 @@ export default function ExperimentalEditor({
                   {glossaryEntries.length === 0 && (
                     <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                       <SparklesIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>No glossary entries yet. Select text and click "Define" to add terms!</p>
+                      <p>No glossary entries yet. Select text and click &quot;Define&quot; to add terms!</p>
                     </div>
                   )}
                 </div>

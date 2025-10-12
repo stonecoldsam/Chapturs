@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '../../../../../auth'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/database/PrismaService'
 
 // POST /api/works/drafts - Create new work draft (not published to main library)
 export async function POST(request: NextRequest) {

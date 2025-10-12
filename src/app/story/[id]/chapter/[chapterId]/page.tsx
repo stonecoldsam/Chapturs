@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import AppLayout from '@/components/AppLayout'
 import ChapterContent from '@/components/GlossarySystem'
-import { Story, Chapter } from '@/types'
-import { mockStories, mockChapters } from '@/lib/mockData'
+import { Work, Section } from '@/types'
+import DataService from '@/lib/api/DataService'
 import { 
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -21,13 +21,14 @@ import {
 
 export default function ChapterPage() {
   const params = useParams()
+  const router = useRouter()
   const storyId = params?.id as string
   const chapterId = params?.chapterId as string
   
-  const [story, setStory] = useState<Story | null>(null)
-  const [chapter, setChapter] = useState<Chapter | null>(null)
-  const [allChapters, setAllChapters] = useState<Chapter[]>([])
-  const [currentChapterIndex, setCurrentChapterIndex] = useState(0)
+  const [work, setWork] = useState<Work | null>(null)
+  const [section, setSection] = useState<Section | null>(null)
+  const [allSections, setAllSections] = useState<Section[]>([])
+  const [currentSectionIndex, setCurrentSectionIndex] = useState(0)
   const [isBookmarked, setIsBookmarked] = useState(false)
   const [isLiked, setIsLiked] = useState(false)
   const [showChapterList, setShowChapterList] = useState(false)
@@ -37,38 +38,58 @@ export default function ChapterPage() {
     lineHeight: 1.7,
     theme: 'auto'
   })
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Find story and chapter
-    const foundStory = mockStories.find(s => s.id === storyId)
-    if (foundStory) {
-      setStory(foundStory)
-      
-      const storyChapters = mockChapters.filter(c => c.storyId === storyId)
-      setAllChapters(storyChapters)
-      
-      const foundChapter = storyChapters.find(c => c.id === chapterId)
-      if (foundChapter) {
-        setChapter(foundChapter)
-        const index = storyChapters.findIndex(c => c.id === chapterId)
-        setCurrentChapterIndex(index)
+    const loadData = async () => {
+      try {
+        setLoading(true)
+
+        // Fetch work data
+        const workData = await DataService.getWork(storyId)
+        if (workData) {
+          setWork(workData)
+
+          // Fetch all sections for this work
+          const response = await fetch(`/api/works/${storyId}/sections`)
+          if (response.ok) {
+            const sectionsData = await response.json()
+            setAllSections(sectionsData || [])
+
+            // Find the current section
+            const foundSection = sectionsData?.find((s: Section) => s.id === chapterId)
+            if (foundSection) {
+              setSection(foundSection)
+              const index = sectionsData.findIndex((s: Section) => s.id === chapterId)
+              setCurrentSectionIndex(index)
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load chapter data:', error)
+      } finally {
+        setLoading(false)
       }
+    }
+
+    if (storyId && chapterId) {
+      loadData()
     }
   }, [storyId, chapterId])
 
-  const navigateToChapter = (newIndex: number) => {
-    if (newIndex >= 0 && newIndex < allChapters.length) {
-      const newChapter = allChapters[newIndex]
-      window.location.href = `/story/${storyId}/chapter/${newChapter.id}`
+  const navigateToSection = (newIndex: number) => {
+    if (newIndex >= 0 && newIndex < allSections.length) {
+      const newSection = allSections[newIndex]
+      router.push(`/story/${storyId}/chapter/${newSection.id}`)
     }
   }
 
-  const previousChapter = () => {
-    navigateToChapter(currentChapterIndex - 1)
+  const goToPrevious = () => {
+    navigateToSection(currentSectionIndex - 1)
   }
 
-  const nextChapter = () => {
-    navigateToChapter(currentChapterIndex + 1)
+  const goToNext = () => {
+    navigateToSection(currentSectionIndex + 1)
   }
 
   const getFontSizeClass = () => {
@@ -84,7 +105,7 @@ export default function ChapterPage() {
     lineHeight: readingSettings.lineHeight
   })
 
-  if (!story || !chapter) {
+  if (!work || !section) {
     return (
       <AppLayout>
         <div className="flex justify-center items-center h-64">
@@ -146,10 +167,10 @@ export default function ChapterPage() {
 
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-              {story.title}
+              {work.title}
             </h1>
             <h2 className="text-xl text-gray-700 dark:text-gray-300">
-              Chapter {chapter.chapterNumber}: {chapter.title}
+              Chapter {section.chapterNumber}: {section.title}
             </h2>
           </div>
         </div>
@@ -161,22 +182,22 @@ export default function ChapterPage() {
               <h3 className="font-semibold text-gray-900 dark:text-white">All Chapters</h3>
             </div>
             <div className="divide-y divide-gray-200 dark:divide-gray-700">
-              {allChapters.map((ch, index) => (
+              {allSections.map((sec, index) => (
                 <button
-                  key={ch.id}
+                  key={sec.id}
                   onClick={() => {
                     setShowChapterList(false)
-                    navigateToChapter(index)
+                    navigateToSection(index)
                   }}
                   className={`w-full text-left p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
-                    ch.id === chapter.id ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                    sec.id === section.id ? 'bg-blue-50 dark:bg-blue-900/20' : ''
                   }`}
                 >
                   <div className="font-medium text-gray-900 dark:text-white">
-                    Chapter {ch.chapterNumber}: {ch.title}
+                    Chapter {sec.chapterNumber}: {sec.title}
                   </div>
                   <div className="text-sm text-gray-500 dark:text-gray-400">
-                    {ch.wordCount} words • {new Date(ch.publishedAt).toLocaleDateString()}
+                    {sec.wordCount} words • {sec.publishedAt ? new Date(sec.publishedAt).toLocaleDateString() : 'Draft'}
                   </div>
                 </button>
               ))}
@@ -191,9 +212,9 @@ export default function ChapterPage() {
             style={getLineHeightStyle()}
           >
             <ChapterContent
-              content={chapter.content}
-              glossaryTerms={chapter.glossaryTerms}
-              currentChapter={chapter.chapterNumber}
+              content={section.content.text || ''}
+              glossaryTerms={work?.glossary || []}
+              currentChapter={section.chapterNumber || 1}
             />
           </div>
         </div>
@@ -202,8 +223,8 @@ export default function ChapterPage() {
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center justify-between">
             <button
-              onClick={previousChapter}
-              disabled={currentChapterIndex === 0}
+              onClick={goToPrevious}
+              disabled={currentSectionIndex === 0}
               className="flex items-center space-x-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronLeftIcon className="w-5 h-5" />
@@ -212,16 +233,16 @@ export default function ChapterPage() {
 
             <div className="text-center">
               <div className="text-sm text-gray-500 dark:text-gray-400">
-                Chapter {currentChapterIndex + 1} of {allChapters.length}
+                Chapter {currentSectionIndex + 1} of {allSections.length}
               </div>
               <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                {chapter.wordCount} words
+                {section.wordCount} words
               </div>
             </div>
 
             <button
-              onClick={nextChapter}
-              disabled={currentChapterIndex === allChapters.length - 1}
+              onClick={goToNext}
+              disabled={currentSectionIndex === allSections.length - 1}
               className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
             >
               <span>Next</span>
@@ -234,7 +255,7 @@ export default function ChapterPage() {
         <div className="mt-4 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
           <div
             className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-            style={{ width: `${((currentChapterIndex + 1) / allChapters.length) * 100}%` }}
+            style={{ width: `${((currentSectionIndex + 1) / allSections.length) * 100}%` }}
           ></div>
         </div>
       </div>

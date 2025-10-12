@@ -1,8 +1,6 @@
 import NextAuth from "next-auth"
 import Google from "next-auth/providers/google"
-import { PrismaClient } from "@prisma/client"
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/database/PrismaService'
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -62,6 +60,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       // Send properties to the client
       if (session.user && token.sub) {
         session.user.id = token.sub
+        
+        // Fetch user role from database
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.sub },
+            select: { role: true }
+          })
+          if (dbUser?.role) {
+            session.user.role = dbUser.role
+          }
+        } catch (error) {
+          console.error('Error fetching user role:', error)
+        }
       }
       return session
     },

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import CreatorEditor from '@/components/CreatorEditor'
+import ConfirmMatureModal from '@/components/ConfirmMatureModal'
 import ExperimentalEditor from '@/components/ExperimentalEditor'
 import AdvancedUploader from '@/components/AdvancedUploader'
 import AppLayout from '@/components/AppLayout'
@@ -169,6 +170,18 @@ export default function CreatorEditorPage() {
 
         if (response.ok) {
           const result = await response.json()
+          // If the server says confirmation is required for mature content, prompt the author
+            if (result.confirmationRequired) {
+              // Open modal with details and wait for user action
+              setModalState({
+                open: true,
+                suggestedRating: result.suggestedRating,
+                validationDetails: result.validationDetails || result.validation || result.details || {}
+              })
+              return
+            }
+
+          // Normal success path
           alert('Work submitted for review! It will appear in the library once approved.')
           // Redirect to the new published work
           window.location.href = `/work/${result.workId}`
@@ -184,6 +197,39 @@ export default function CreatorEditorPage() {
       // For existing works, just update the content
       alert('Content saved and updated!')
     }
+  }
+
+  // Modal state and handlers
+  const [modalState, setModalState] = useState({ open: false, suggestedRating: undefined as string | undefined, validationDetails: undefined as any })
+
+  const handleModalConfirm = async () => {
+    if (!draftId) return
+    setModalState(prev => ({ ...prev, open: false }))
+    try {
+      const overrideResp = await fetch(`/api/works/publish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ draftId: draftId, publishData: { authorOverride: true } })
+      })
+      if (overrideResp.ok) {
+        const final = await overrideResp.json()
+        alert('Work published successfully!')
+        window.location.href = `/work/${final.workId}`
+        return
+      } else {
+        const err = await overrideResp.json()
+        alert(`Failed to publish after confirmation: ${err.error || JSON.stringify(err)}`)
+        return
+      }
+    } catch (e) {
+      console.error('Error confirming publish:', e)
+      alert('Failed to publish after confirmation. Please try again.')
+    }
+  }
+
+  const handleModalCancel = () => {
+    setModalState(prev => ({ ...prev, open: false }))
+    alert('Publishing cancelled. You can edit your content or explicitly mark the work as mature in settings.')
   }
 
   const handleUploadComplete = (results: any[]) => {

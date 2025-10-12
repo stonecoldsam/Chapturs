@@ -10,6 +10,8 @@ export interface User {
   bookmarks: string[] // Work IDs
   preferences: UserPreferences
   creatorProfile?: CreatorProfile
+  adSupportLevel?: 'normal' | 'boosted' | 'video'
+  isPremium?: boolean
 }
 
 export interface UserPreferences {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '../../../../../../auth'
-import PrismaService from '../../../../../lib/database/PrismaService'
+import DatabaseService from '../../../../../lib/database/PrismaService'
+import { ContentValidationService } from '../../../../../lib/ContentValidationService'
 
 interface RouteParams {
   params: Promise<{
@@ -33,6 +34,79 @@ export async function POST(request: NextRequest, props: RouteParams) {
       )
     }
 
+    // Check if this is the first section for validation purposes
+    const existingSections = await DatabaseService.getSectionsForWork(workId)
+    const isFirstChapter = existingSections.length === 0
+
+    // Validate content based on whether it's the first chapter
+    if (isFirstChapter) {
+      // Comprehensive validation for first chapter
+      try {
+        const validationResult = await ContentValidationService.validateContent(
+          workId,
+          null, // No section ID yet
+          content,
+          {
+            checkPlagiarism: true,
+            checkDuplicates: true,
+            checkSafety: true,
+            checkQuality: true,
+            isFirstChapter: true
+          }
+        )
+
+        if (!validationResult.passed) {
+          return NextResponse.json(
+            {
+              error: 'Content validation failed. Please review and fix the issues.',
+              validationErrors: validationResult.flags,
+              details: validationResult.details
+            },
+            { status: 400 }
+          )
+        }
+      } catch (error) {
+        console.error('Content validation error:', error)
+        return NextResponse.json(
+          { error: 'Content validation failed. Please try again.' },
+          { status: 500 }
+        )
+      }
+    } else {
+      // Basic validation for subsequent chapters
+      try {
+        const validationResult = await ContentValidationService.validateContent(
+          workId,
+          null,
+          content,
+          {
+            checkPlagiarism: false,
+            checkDuplicates: false,
+            checkSafety: true,
+            checkQuality: true,
+            isFirstChapter: false
+          }
+        )
+
+        if (!validationResult.passed) {
+          return NextResponse.json(
+            {
+              error: 'Content validation failed. Please review and fix the issues.',
+              validationErrors: validationResult.flags,
+              details: validationResult.details
+            },
+            { status: 400 }
+          )
+        }
+      } catch (error) {
+        console.error('Content validation error:', error)
+        return NextResponse.json(
+          { error: 'Content validation failed. Please try again.' },
+          { status: 500 }
+        )
+      }
+    }
+
     // Create section using DatabaseService
     const sectionData = {
       title,
@@ -41,7 +115,7 @@ export async function POST(request: NextRequest, props: RouteParams) {
       status
     }
 
-    const section = await PrismaService.createSection({
+    const section = await DatabaseService.createSection({
       workId,
       title,
       content,
@@ -73,8 +147,8 @@ export async function GET(request: NextRequest, props: RouteParams) {
 
     const workId = params.id
 
-    // For now, return empty array since we need to implement getWorkSections in DatabaseService
-    const sections: any[] = []
+    // Fetch sections from database
+    const sections = await DatabaseService.getSectionsForWork(workId)
 
     return NextResponse.json({
       success: true,

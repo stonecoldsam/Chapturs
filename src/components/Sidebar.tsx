@@ -43,6 +43,7 @@ export default function Sidebar({ currentHub, onHubChange, theme, onThemeChange 
     { icon: BookmarkIcon, label: 'Library', href: '/library' },
     { icon: BookOpenIcon, label: 'Subscriptions', href: '/subscriptions' },
     { icon: MagnifyingGlassIcon, label: 'Browse', href: '/browse' },
+    { icon: CogIcon, label: 'Settings', href: '/reader/settings' },
     { icon: UserIcon, label: 'Profile', href: '/profile' },
   ]
 
@@ -74,6 +75,7 @@ export default function Sidebar({ currentHub, onHubChange, theme, onThemeChange 
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
             className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             <div className="w-4 h-4 flex items-center justify-center">
               {isCollapsed ? '→' : '←'}
@@ -98,6 +100,8 @@ export default function Sidebar({ currentHub, onHubChange, theme, onThemeChange 
                     ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                 }`}
+                aria-pressed={currentHub === 'reader'}
+                aria-label="Switch to Reader Hub"
               >
                 Reader Hub
               </button>
@@ -119,6 +123,8 @@ export default function Sidebar({ currentHub, onHubChange, theme, onThemeChange 
                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                 } ${!session ? 'opacity-50' : ''}`}
                 title={!session ? 'Sign in to access Creator Hub' : undefined}
+                aria-pressed={currentHub === 'creator'}
+                aria-label="Switch to Creator Hub"
               >
                 Creator Hub
                 {!session && <span className="ml-1 text-xs">🔒</span>}
@@ -142,6 +148,7 @@ export default function Sidebar({ currentHub, onHubChange, theme, onThemeChange 
               }}
               className="w-full p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
               title={`Switch to ${currentHub === 'reader' ? 'Creator' : 'Reader'} Hub`}
+              aria-label={`Switch to ${currentHub === 'reader' ? 'Creator' : 'Reader'} Hub`}
             >
               {currentHub === 'reader' ? (
                 <BookOpenIcon className="w-6 h-6 text-gray-600 dark:text-gray-400" />
@@ -153,7 +160,7 @@ export default function Sidebar({ currentHub, onHubChange, theme, onThemeChange 
         </div>
 
         {/* Navigation Items */}
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 p-4 space-y-2" role="navigation" aria-label="Main navigation">
           {currentItems.map((item) => {
             const IconComponent = item.icon
             const isCreatorItem = currentHub === 'creator'
@@ -206,6 +213,7 @@ export default function Sidebar({ currentHub, onHubChange, theme, onThemeChange 
               ${isCollapsed ? 'justify-center' : ''}
             `}
             title={isCollapsed ? (theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode') : undefined}
+            aria-label={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
           >
             {theme === 'light' ? (
               <MoonIcon className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
@@ -253,6 +261,7 @@ export default function Sidebar({ currentHub, onHubChange, theme, onThemeChange 
                   ${isCollapsed ? 'justify-center' : ''}
                 `}
                 title={isCollapsed ? 'Sign Out' : undefined}
+                aria-label="Sign out of your account"
               >
                 <ArrowRightOnRectangleIcon className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
                 {!isCollapsed && 'Sign Out'}
@@ -268,6 +277,7 @@ export default function Sidebar({ currentHub, onHubChange, theme, onThemeChange 
                 ${isCollapsed ? 'justify-center' : ''}
               `}
               title={isCollapsed ? 'Sign In' : undefined}
+              aria-label="Sign in with Google"
             >
               <ArrowLeftOnRectangleIcon className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
               {!isCollapsed && 'Sign In'}

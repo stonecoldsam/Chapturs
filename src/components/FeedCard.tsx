@@ -9,19 +9,24 @@ import { getFormatIcon, getFeedTypeIcon } from '@/lib/mockData'
 import DataService from '@/lib/api/DataService'
 import { useUser } from '@/hooks/useUser'
 import { signIn } from 'next-auth/react'
+import { useSignalTracker, RecommendationTracker } from '@/hooks/useRecommendationTracking'
 
 interface FeedCardProps {
   item: FeedItem
   onClick?: () => void
+  recommendationRank?: number // Position in feed for tracking
 }
 
-export default function FeedCard({ item, onClick }: FeedCardProps) {
+export default function FeedCard({ item, onClick, recommendationRank = 0 }: FeedCardProps) {
   const router = useRouter()
   const { userId, isAuthenticated, isLoading: isAuthLoading } = useUser()
   const [isBookmarkedState, setIsBookmarkedState] = useState(false)
   const [isSubscribedState, setIsSubscribedState] = useState(false)
   const [isLiked, setIsLiked] = useState(item.liked || false)
   const [isLoading, setIsLoading] = useState(false)
+  
+  // Recommendation tracking
+  const { trackEngagement } = useSignalTracker()
 
   // Load bookmark and subscription status from database
   useEffect(() => {
@@ -158,6 +163,9 @@ export default function FeedCard({ item, onClick }: FeedCardProps) {
       const newBookmarkState = await DataService.toggleBookmark(item.work.id, userId!)
       console.log('Bookmark API result:', newBookmarkState)
       setIsBookmarkedState(newBookmarkState)
+      
+      // Track bookmark action for recommendations
+      trackEngagement('bookmark', item.work.id, item.work.author.id)
     } catch (error) {
       console.error('Failed to toggle bookmark:', error)
     } finally {
@@ -187,6 +195,9 @@ export default function FeedCard({ item, onClick }: FeedCardProps) {
       const newSubscriptionState = await DataService.toggleSubscription(item.work.author.id, userId!)
       console.log('Subscription API result:', newSubscriptionState)
       setIsSubscribedState(newSubscriptionState)
+      
+      // Track subscription action for recommendations
+      trackEngagement('subscribe', item.work.id, item.work.author.id)
     } catch (error) {
       console.error('Failed to toggle subscription:', error)
     } finally {
@@ -216,6 +227,9 @@ export default function FeedCard({ item, onClick }: FeedCardProps) {
       const newLikeState = await DataService.toggleLike(item.work.id, userId!)
       console.log('Like API result:', newLikeState)
       setIsLiked(newLikeState)
+      
+      // Track like action for recommendations
+      trackEngagement('like', item.work.id, item.work.author.id)
     } catch (error) {
       console.error('Failed to toggle like:', error)
     } finally {
@@ -224,10 +238,19 @@ export default function FeedCard({ item, onClick }: FeedCardProps) {
   }
 
   return (
-    <div 
-      className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden transform hover:-translate-y-1 h-full flex flex-col min-h-[32rem] sm:min-h-[30rem] md:min-h-[28rem]"
-      onClick={handleCardClick}
+    <RecommendationTracker
+      workId={item.work.id}
+      recommendationSource={item.feedType}
+      recommendationRank={recommendationRank}
+      onClick={() => {
+        // Track click for recommendations when user clicks card
+        onClick?.()
+      }}
     >
+      <div 
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden transform hover:-translate-y-1 h-full flex flex-col min-h-[32rem] sm:min-h-[30rem] md:min-h-[28rem]"
+        onClick={handleCardClick}
+      >
       {/* Thumbnail Image */}
       <div className="aspect-video bg-gradient-to-br from-blue-500 via-purple-600 to-pink-500 relative overflow-hidden flex-shrink-0">
         {/* Story Cover/Thumbnail Placeholder */}
@@ -424,5 +447,6 @@ export default function FeedCard({ item, onClick }: FeedCardProps) {
         </div>
       </div>
     </div>
+    </RecommendationTracker>
   )
 }

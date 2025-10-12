@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { auth } from '../../auth'
 import { AuthProvider } from '@/components/AuthProvider'
+import { validateEnvironment } from '@/lib/config'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -10,6 +11,9 @@ export const metadata: Metadata = {
   title: 'Chapturs - Your Webnovel Platform',
   description: 'Discover and create amazing webnovels on the platform that combines the best of content discovery and creator monetization.',
 }
+
+// Validate environment on startup
+validateEnvironment();
 
 export default async function RootLayout({
   children,

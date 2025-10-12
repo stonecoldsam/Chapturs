@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '../../../../auth'
-import DatabaseService from '@/lib/database/PrismaService'
+import { prisma } from '@/lib/database/PrismaService'
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,17 +12,22 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId') || session.user.id
 
-    console.log(`Library API: Fetching library data for user: ${userId}`)
-
-    // Get user's bookmarks with work details
-    const bookmarks = await DatabaseService.getUserBookmarks(userId)
-    console.log(`Library API: Found ${bookmarks.length} bookmarks`)
-
-    // Get user's subscriptions with author details
-    const subscriptions = await DatabaseService.getUserSubscriptions(userId)
-    console.log(`Library API: Found ${subscriptions.length} subscriptions`)
-
-    // Transform bookmarks into library items
+    // Fetch user's bookmarks and subscriptions from database
+    const bookmarks = await prisma.bookmark.findMany({ 
+      where: { userId }, 
+      include: { work: true } 
+    })
+    const subscriptions = await prisma.subscription.findMany({ 
+      where: { userId }, 
+      include: { 
+        author: {
+          include: {
+            works: true,
+            user: true
+          }
+        } 
+      } 
+    })    // Transform bookmarks into library items
     const bookmarkItems = bookmarks.map((bookmark: any) => {
       let genres = []
       try {
@@ -66,7 +71,7 @@ export async function GET(request: NextRequest) {
     })
 
     const allItems = [...bookmarkItems, ...subscriptionItems]
-    console.log(`Library API: Returning ${allItems.length} total library items`)
+
 
     return NextResponse.json({
       items: allItems,
