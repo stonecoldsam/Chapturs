@@ -151,7 +151,23 @@ export default class DatabaseService {
   static async getWork(workId: string) {
     const work = await prisma.work.findUnique({
       where: { id: workId },
-      include: { author: { include: { user: true } } }
+      include: { 
+        author: { include: { user: true } },
+        sections: {
+          where: { status: 'published' },
+          orderBy: { orderIndex: 'asc' },
+          select: {
+            id: true,
+            title: true,
+            chapterNumber: true,
+            orderIndex: true,
+            wordCount: true,
+            estimatedReadTime: true,
+            status: true,
+            createdAt: true
+          }
+        }
+      }
     })
     if (!work) return null
     const authorUser = (work as any).author?.user
@@ -180,7 +196,7 @@ export default class DatabaseService {
       updatedAt: work.updatedAt,
       languages: [],
       thumbnails: [],
-      sections: [] as any[],
+      sections: (work as any).sections || [],
       glossary: undefined
     } as any
   }

@@ -34,6 +34,17 @@ export default function RichTextEditor({
     }
   }
 
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault()
+    
+    // Get plain text from clipboard
+    const text = e.clipboardData.getData('text/plain')
+    
+    // Insert as plain text, preserving line breaks
+    const html = text.replace(/\n/g, '<br>')
+    document.execCommand('insertHTML', false, html)
+  }
+
   const execCommand = (command: string, value?: string) => {
     document.execCommand(command, false, value)
     editorRef.current?.focus()
@@ -146,6 +157,7 @@ export default function RichTextEditor({
         ref={editorRef}
         contentEditable
         onInput={handleInput}
+        onPaste={handlePaste}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
         className="p-3 outline-none prose max-w-none bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
