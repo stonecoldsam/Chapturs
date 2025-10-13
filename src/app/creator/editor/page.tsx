@@ -652,8 +652,8 @@ export default function CreatorEditorPage() {
                       }
 
                       alert('Chapter published successfully!')
-                      // Optionally reload or redirect
-                      window.location.reload()
+                      // Redirect to the published work page
+                      window.location.href = `/work/${workId}`
                     } else {
                       const error = await response.json()
                       console.error('API error response:', error)
