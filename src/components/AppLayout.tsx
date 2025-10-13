@@ -26,6 +26,11 @@ interface AppLayoutProps {
 export default function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname()
   
+  // Force dark mode globally
+  useEffect(() => {
+    document.documentElement.classList.add('dark')
+  }, [])
+  
   // Determine current hub based on URL
   const currentHub: 'reader' | 'creator' = pathname.startsWith('/creator') ? 'creator' : 'reader'
   
@@ -41,7 +46,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <HubContext.Provider value={{ currentHub, setCurrentHub }}>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-900">
         <Sidebar
           currentHub={currentHub}
           onHubChange={handleHubChange}
@@ -54,37 +59,37 @@ export default function AppLayout({ children }: AppLayoutProps) {
           </main>
           
           {/* Footer */}
-          <footer className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 py-4 px-6">
-            <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+          <footer className="border-t border-gray-700 bg-gray-800 py-4 px-6">
+            <div className="flex items-center justify-between text-sm text-gray-400">
               <div>
                 <span className="font-semibold">Chapturs</span>
                 <span className="mx-2">·</span>
-                <span className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 text-xs font-semibold rounded">
+                <span className="px-2 py-0.5 bg-yellow-900/30 text-yellow-200 text-xs font-semibold rounded">
                   BETA
                 </span>
               </div>
               <div className="flex items-center gap-4">
                 <a 
                   href="/legal/privacy" 
-                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="hover:text-blue-400 transition-colors"
                 >
                   Privacy
                 </a>
                 <a 
                   href="/legal/terms" 
-                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="hover:text-blue-400 transition-colors"
                 >
                   Terms
                 </a>
                 <a 
                   href="/legal/creator-agreement" 
-                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="hover:text-blue-400 transition-colors"
                 >
                   Creator Agreement
                 </a>
                 <a 
                   href="/about/roadmap" 
-                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="hover:text-blue-400 transition-colors"
                 >
                   Roadmap
                 </a>
