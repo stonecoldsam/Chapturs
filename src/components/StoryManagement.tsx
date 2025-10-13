@@ -119,15 +119,24 @@ export default function StoryManagement() {
 
   // Fetch user's works
   useEffect(() => {
-    if (!isAuthenticated || !userId) return
+    if (!isAuthenticated || !userId) {
+      console.log('StoryManagement: Not fetching works', { isAuthenticated, userId })
+      return
+    }
 
     const fetchWorks = async () => {
       try {
         setLoadingWorks(true)
+        console.log('StoryManagement: Fetching works for userId:', userId)
         const response = await fetch(`/api/works?authorId=${userId}`)
+        console.log('StoryManagement: Response status:', response.status)
         if (response.ok) {
           const data = await response.json()
-          setWorks(data)
+          console.log('StoryManagement: Received data:', data)
+          console.log('StoryManagement: Works array length:', data?.works?.length || data?.length || 0)
+          setWorks(data.works || data || [])
+        } else {
+          console.error('StoryManagement: Failed to fetch works, status:', response.status)
         }
       } catch (error) {
         console.error('Failed to fetch works:', error)

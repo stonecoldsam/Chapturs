@@ -228,9 +228,12 @@ export async function GET(request: NextRequest) {
         statistics: JSON.parse(work.statistics || '{}'),
         createdAt: work.createdAt,
         updatedAt: work.updatedAt,
-        sections: work._count.sections,
-        bookmarks: work._count.bookmarks,
-        likes: work._count.likes
+        sections: work.sections || [], // Include actual sections array
+        _count: {
+          sections: work._count.sections,
+          bookmarks: work._count.bookmarks,
+          likes: work._count.likes
+        }
       })),
       total: works.length,
       authorId: author.id
