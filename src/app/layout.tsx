@@ -4,6 +4,7 @@ import './globals.css'
 import { auth } from '../../auth'
 import { AuthProvider } from '@/components/AuthProvider'
 import { validateEnvironment } from '@/lib/config'
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -28,6 +29,7 @@ export default async function RootLayout({
         <AuthProvider session={session}>
           {children}
         </AuthProvider>
+        <SpeedInsights />
       </body>
     </html>
   )
