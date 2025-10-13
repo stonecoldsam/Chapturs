@@ -181,6 +181,25 @@ export default function CreatorEditorPage() {
               return
             }
 
+          // Queue quality assessment for first chapter (non-blocking)
+          if (result.workId && result.firstSectionId) {
+            try {
+              await fetch('/api/quality-assessment/queue', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  workId: result.workId,
+                  sectionId: result.firstSectionId,
+                  priority: 'normal'
+                })
+              })
+              console.log('Quality assessment queued for:', result.workId)
+            } catch (error) {
+              console.error('Failed to queue quality assessment:', error)
+              // Non-critical, don't block publish flow
+            }
+          }
+
           // Normal success path
           alert('Work submitted for review! It will appear in the library once approved.')
           // Redirect to the new published work

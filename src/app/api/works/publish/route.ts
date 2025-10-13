@@ -174,6 +174,14 @@ export async function POST(request: NextRequest) {
           wordCount: totalWordCount,
           publishedAt: new Date().toISOString()
         })
+      },
+      include: {
+        sections: {
+          orderBy: {
+            createdAt: 'asc'
+          },
+          take: 1
+        }
       }
     })
 
@@ -195,6 +203,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Work published successfully!',
       workId: publishedWork.id,
+      firstSectionId: publishedWork.sections[0]?.id,
       status: 'published' // In production: 'pending_review'
     })
 

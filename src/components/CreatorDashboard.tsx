@@ -3,10 +3,11 @@
 import { useUser } from '@/hooks/useUser'
 import { useState } from 'react';
 import CreatorAnalyticsDashboard from './CreatorAnalyticsDashboard';
+import StoryManagement from './StoryManagement';
 
 export default function CreatorDashboard() {
   const { userId, isAuthenticated, isLoading, userName } = useUser()
-  const [tab, setTab] = useState<'dashboard' | 'analytics'>('dashboard');
+  const [tab, setTab] = useState<'dashboard' | 'analytics' | 'stories'>('dashboard');
 
   if (isLoading) {
     return (
@@ -41,6 +42,7 @@ export default function CreatorDashboard() {
       <div className="flex space-x-4 mb-6">
         <button onClick={() => setTab('dashboard')} className={tab === 'dashboard' ? 'font-bold underline' : ''}>Dashboard</button>
         <button onClick={() => setTab('analytics')} className={tab === 'analytics' ? 'font-bold underline' : ''}>Analytics</button>
+        <button onClick={() => setTab('stories')} className={tab === 'stories' ? 'font-bold underline' : ''}>Manage Stories</button>
       </div>
       {tab === 'dashboard' && (
         <>
@@ -66,7 +68,7 @@ export default function CreatorDashboard() {
               <button onClick={() => setTab('analytics')} className="flex items-center justify-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors">
                 <span className="text-green-600 dark:text-green-400 font-medium">View Analytics</span>
               </button>
-              <button className="flex items-center justify-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors">
+              <button onClick={() => setTab('stories')} className="flex items-center justify-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors">
                 <span className="text-purple-600 dark:text-purple-400 font-medium">Manage Stories</span>
               </button>
               <button className="flex items-center justify-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition-colors">
@@ -77,6 +79,7 @@ export default function CreatorDashboard() {
         </>
       )}
       {tab === 'analytics' && <CreatorAnalyticsDashboard />}
+      {tab === 'stories' && <StoryManagement />}
     </div>
   )
 }
