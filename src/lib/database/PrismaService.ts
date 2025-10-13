@@ -3,8 +3,46 @@ import { Work, FeedItem, Author, User } from '@/types'
 
 // Some environments may not expose named exports properly; use the namespace import as a fallback.
 const PrismaClient: any = (PrismaPkg as any).PrismaClient || (PrismaPkg as any).default
-const prisma = new PrismaClient()
-export { prisma }
+
+// Global Prisma instance with connection pooling for Supabase
+const globalForPrisma = global as unknown as { prisma: any }
+
+export const prisma = globalForPrisma.prisma || new PrismaClient({
+  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL,
+    },
+  },
+})
+
+// Prevent multiple instances in development
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma
+}
+
+// Connection health check with retry
+export async function ensureConnection(retries = 3): Promise<boolean> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      await prisma.$queryRaw`SELECT 1`
+      return true
+    } catch (error) {
+      console.error(`Database connection attempt ${i + 1} failed:`, error)
+      if (i < retries - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))) // Exponential backoff
+      }
+    }
+  }
+  return false
+}
+
+// Graceful shutdown
+process.on('beforeExit', async () => {
+  await prisma.$disconnect()
+})
+
+
 
 export default class DatabaseService {
   static async getUserByEmail(email: string): Promise<User | null> {

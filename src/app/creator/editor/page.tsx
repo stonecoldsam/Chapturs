@@ -35,15 +35,29 @@ export default function CreatorEditorPage() {
   const params = useParams()
   const searchParams = useSearchParams()
   
-  // URL parameters
-  const workId = searchParams?.get('workId') || (params?.workId as string | undefined)
+  // URL parameters - with safe fallbacks
+  const workId = searchParams?.get('workId') || (params?.workId as string | undefined) || undefined
   const draftId = searchParams?.get('draftId') || undefined
-  const chapterId = params?.chapterId as string | undefined
+  const chapterId = (params?.chapterId as string | undefined) || undefined
   const formatType = (searchParams?.get('format') || 'novel') as ContentFormat
   const mode = searchParams?.get('mode') === 'edit' ? 'edit' : 'create'
 
   console.log('Editor page loaded with:', { formatType, mode, workId, draftId, chapterId })
   console.log('Should use experimental editor?', formatType === 'experimental')
+
+  // Safety check - if we're in an invalid state, show loading
+  if (!searchParams) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-400">Loading editor...</p>
+          </div>
+        </div>
+      </AppLayout>
+    )
+  }
 
   // UI State
   const [editorMode, setEditorMode] = useState<EditorMode>({ type: 'editor' })
@@ -96,14 +110,26 @@ export default function CreatorEditorPage() {
       if (response.ok) {
         const result = await response.json()
         console.log('Loaded work data:', result)
+        
+        // Safely parse statistics if it's a JSON string
+        let statistics = result.work.statistics
+        if (typeof statistics === 'string') {
+          try {
+            statistics = JSON.parse(statistics)
+          } catch (e) {
+            console.error('Failed to parse statistics:', e)
+            statistics = { wordCount: 0 }
+          }
+        }
+        
         setCurrentWork(prev => ({
           ...prev,
-          title: result.work.title,
-          description: result.work.description,
+          title: result.work.title || '',
+          description: result.work.description || '',
           formatType: result.work.formatType || prev.formatType,
           status: result.work.status || prev.status,
           chaptersCount: result.work.sections?.length || 0,
-          wordsCount: result.work.statistics?.wordCount || 0,
+          wordsCount: statistics?.wordCount || 0,
           hasContent: (result.work.sections?.length || 0) > 0
         }))
       } else {
@@ -530,7 +556,7 @@ export default function CreatorEditorPage() {
               </div>
               <div className="flex items-center space-x-1 text-gray-600 dark:text-gray-400">
                 <Calendar size={14} />
-                <span>Last saved: {projectStats.lastSaved.toLocaleTimeString()}</span>
+                <span>Last saved: {projectStats.lastSaved ? new Date(projectStats.lastSaved).toLocaleTimeString() : 'Never'}</span>
               </div>
             </div>
             
