@@ -1,9 +1,12 @@
 import NextAuth from "next-auth"
 import Google from "next-auth/providers/google"
+import GitHub from "next-auth/providers/github"
+import Discord from "next-auth/providers/discord"
 import { prisma } from '@/lib/database/PrismaService'
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
+    // Google OAuth (primary recommended option)
     Google({
       clientId: process.env.AUTH_GOOGLE_ID,
       clientSecret: process.env.AUTH_GOOGLE_SECRET,
@@ -15,24 +18,45 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         },
       },
     }),
+    
+    // GitHub OAuth (optional - fast setup, no verification needed)
+    ...(process.env.AUTH_GITHUB_ID ? [
+      GitHub({
+        clientId: process.env.AUTH_GITHUB_ID,
+        clientSecret: process.env.AUTH_GITHUB_SECRET,
+      })
+    ] : []),
+    
+    // Discord OAuth (optional - popular with webnovel readers)
+    ...(process.env.AUTH_DISCORD_ID ? [
+      Discord({
+        clientId: process.env.AUTH_DISCORD_ID,
+        clientSecret: process.env.AUTH_DISCORD_SECRET,
+      })
+    ] : []),
   ],
   callbacks: {
     async signIn({ account, profile, user }) {
-      if (account?.provider === "google" && profile?.email_verified) {
+      // Support multiple providers (Google, GitHub, Discord)
+      const email = profile?.email
+      const emailVerified = profile?.email_verified ?? true // GitHub/Discord don't have this field
+      
+      if (email && emailVerified) {
         try {
           // Create or find user in our database
           const dbUser = await prisma.user.upsert({
-            where: { email: profile.email! },
+            where: { email },
             update: {
               displayName: profile.name || undefined,
-              avatar: profile.picture || undefined,
+              // Support different avatar field names across providers
+              avatar: (profile as any).picture || (profile as any).avatar_url || (profile as any).image || undefined,
             },
             create: {
               id: user.id, // Use NextAuth's generated ID
-              email: profile.email!,
-              username: profile.email!.split('@')[0] + '_' + Date.now(), // Generate unique username
+              email,
+              username: email.split('@')[0] + '_' + Date.now(), // Generate unique username
               displayName: profile.name || undefined,
-              avatar: profile.picture || undefined,
+              avatar: (profile as any).picture || (profile as any).avatar_url || (profile as any).image || undefined,
             },
           })
 
@@ -47,14 +71,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             },
           })
 
-          console.log('User and Author profile authenticated and synced to database:', dbUser.email)
+          console.log(`User authenticated via ${account?.provider}:`, dbUser.email)
           return true
         } catch (error) {
           console.error('Error creating/updating user in database:', error)
           return false
         }
       }
-      return profile?.email_verified === true
+      return false // Reject if no email or email not verified
     },
     async session({ session, token }) {
       // Send properties to the client
