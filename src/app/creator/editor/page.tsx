@@ -169,11 +169,34 @@ export default function CreatorEditorPage() {
         if (targetChapter) {
           console.log('Found target chapter:', targetChapter)
           try {
-            const content = typeof targetChapter.content === 'string' 
+            const contentBlocks = typeof targetChapter.content === 'string' 
               ? JSON.parse(targetChapter.content) 
               : targetChapter.content
-            setLoadedContent(content)
-            console.log('Loaded chapter content into editor for editing')
+            
+            // Construct a full ChaptDocument with metadata
+            const chaptDocument = {
+              type: 'chapter' as const,
+              version: '1.0.0',
+              metadata: {
+                id: targetChapter.id,
+                title: targetChapter.title || 'Untitled Chapter',
+                chapterNumber: targetChapter.chapterNumber || 1,
+                author: {
+                  id: 'current-user', // Will be filled from session
+                  name: 'Current User'
+                },
+                language: 'en',
+                wordCount: targetChapter.wordCount || 0,
+                created: targetChapter.createdAt || new Date().toISOString(),
+                modified: targetChapter.updatedAt || new Date().toISOString(),
+                status: (targetChapter.status || 'draft') as 'draft' | 'published' | 'archived',
+                tags: []
+              },
+              content: Array.isArray(contentBlocks) ? contentBlocks : []
+            }
+            
+            setLoadedContent(chaptDocument)
+            console.log('Loaded chapter as ChaptDocument into editor for editing')
           } catch (e) {
             console.error('Error parsing chapter content:', e)
           }
