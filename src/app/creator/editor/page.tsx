@@ -38,11 +38,12 @@ export default function CreatorEditorPage() {
   // URL parameters - with safe fallbacks
   const workId = searchParams?.get('workId') || (params?.workId as string | undefined) || undefined
   const draftId = searchParams?.get('draftId') || undefined
-  const chapterId = (params?.chapterId as string | undefined) || undefined
+  const chapterId = searchParams?.get('chapterId') || (params?.chapterId as string | undefined) || undefined
   const formatType = (searchParams?.get('format') || 'novel') as ContentFormat
   const mode = searchParams?.get('mode') === 'edit' ? 'edit' : 'create'
 
   console.log('Editor page loaded with:', { formatType, mode, workId, draftId, chapterId })
+  console.log('If chapterId is present, we should load that chapter:', chapterId)
   console.log('Should use experimental editor?', formatType === 'experimental')
 
   // Safety check - if we're in an invalid state, show loading
@@ -96,19 +97,27 @@ export default function CreatorEditorPage() {
   })
 
   useEffect(() => {
-    console.log('useEffect triggered:', { mode, workId, draftId })
+    console.log('useEffect triggered:', { mode, workId, draftId, chapterId })
     // Load work data if workId provided (load existing work + sections)
     if (workId) {
       console.log('Calling loadWorkData for workId:', workId)
       loadWorkData(workId)
-      loadWorkSections(workId) // Also load existing sections/chapters
+      
+      // If chapterId is provided, load that specific chapter for editing
+      if (chapterId) {
+        console.log('Loading specific chapter for editing:', chapterId)
+        loadSpecificChapter(workId, chapterId)
+      } else {
+        // Otherwise just load sections list
+        loadWorkSections(workId)
+      }
     } else if (draftId) {
       console.log('Calling loadDraftData for draftId:', draftId)
       loadDraftData(draftId)
     } else {
       console.log('No data to load - mode:', mode, 'workId:', workId, 'draftId:', draftId)
     }
-  }, [mode, workId, draftId])
+  }, [mode, workId, draftId, chapterId])
 
   const loadWorkData = async (workId: string) => {
     try {
@@ -144,6 +153,38 @@ export default function CreatorEditorPage() {
       }
     } catch (error) {
       console.error('Error loading work data:', error)
+    }
+  }
+
+  const loadSpecificChapter = async (workId: string, chapterId: string) => {
+    try {
+      console.log('Loading specific chapter:', { workId, chapterId })
+      const response = await fetch(`/api/works/${workId}/sections`)
+      if (response.ok) {
+        const result = await response.json()
+        const sectionsArray = result.sections || []
+        
+        // Find the specific chapter
+        const targetChapter = sectionsArray.find((s: any) => s.id === chapterId)
+        if (targetChapter) {
+          console.log('Found target chapter:', targetChapter)
+          try {
+            const content = typeof targetChapter.content === 'string' 
+              ? JSON.parse(targetChapter.content) 
+              : targetChapter.content
+            setLoadedContent(content)
+            console.log('Loaded chapter content into editor for editing')
+          } catch (e) {
+            console.error('Error parsing chapter content:', e)
+          }
+        } else {
+          console.error('Chapter not found:', chapterId)
+          alert('Chapter not found')
+        }
+      }
+    } catch (error) {
+      console.error('Error loading chapter:', error)
+      alert('Failed to load chapter')
     }
   }
 
