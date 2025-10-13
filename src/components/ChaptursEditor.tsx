@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { ChaptDocument, ContentBlock, BlockType, ProseBlock, HeadingBlock, DividerBlock, DialogueBlock, ChatBlock, PhoneBlock, NarrationBlock, ImageBlock, EditorState, ChatPlatform } from '@/types/chapt'
 import { ChatBlockEditor, PhoneBlockEditor, DialogueBlockEditor, NarrationBlockEditor } from './BlockEditors'
 import { PlusCircle, Save, Eye, Edit3, Type, MessageSquare, Smartphone, Users, SplitSquareVertical, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight, Maximize, Sparkles, X } from 'lucide-react'
+import RichTextEditor from './RichTextEditor'
 
 interface ChaptursEditorProps {
   workId: string
@@ -849,20 +850,21 @@ function ProseBlockEditor({
   if (mode === 'preview' || mode === 'translate') {
     return (
       <div className="mx-auto max-w-4xl px-8">
-        <p className="prose max-w-none text-gray-900 dark:text-gray-100 text-base leading-relaxed mb-4" style={{ textAlign: block.style?.textAlign }}>
-          {block.text}
-        </p>
+        <div 
+          className="prose max-w-none text-gray-900 dark:text-gray-100 text-base leading-relaxed mb-4" 
+          style={{ textAlign: block.style?.textAlign }}
+          dangerouslySetInnerHTML={{ __html: block.text }}
+        />
       </div>
     )
   }
 
   return (
-    <textarea
+    <RichTextEditor
       value={block.text}
-      onChange={(e) => onUpdate({ text: e.target.value })}
+      onChange={(html) => onUpdate({ text: html })}
       placeholder="Write something..."
-      className="w-full min-h-[80px] border-none outline-none resize-none prose max-w-none bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
-      style={{ textAlign: block.style?.textAlign }}
+      minHeight="80px"
     />
   )
 }

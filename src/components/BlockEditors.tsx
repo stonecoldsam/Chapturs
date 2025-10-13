@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { ChatBlock, ChatMessage, ChatPlatform, DialogueBlock, PhoneBlock, NarrationBlock } from '@/types/chapt'
 import { MessageCircle, Phone, Users, BookOpen, Plus, Trash2 } from 'lucide-react'
+import RichTextEditor from './RichTextEditor'
 
 // ============================================================================
 // CHAT BLOCK EDITOR
@@ -134,7 +135,10 @@ export function ChatBlockEditor({ block, mode, onUpdate }: ChatBlockEditorProps)
                     </span>
                   )}
                 </div>
-                <div className={platformStyles.message}>{message.text}</div>
+                <div 
+                  className={platformStyles.message}
+                  dangerouslySetInnerHTML={{ __html: message.text }}
+                />
               </div>
             </div>
           ))}
@@ -220,12 +224,11 @@ export function ChatBlockEditor({ block, mode, onUpdate }: ChatBlockEditorProps)
                 placeholder="Username"
                 className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100 dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400"
               />
-              <textarea
+              <RichTextEditor
                 value={message.text}
-                onChange={(e) => updateMessage(message.id, { text: e.target.value })}
-                placeholder="Message text"
-                className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded resize-none text-gray-900 dark:text-gray-100 dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400"
-                rows={2}
+                onChange={(html) => updateMessage(message.id, { text: html })}
+                placeholder="Message text (supports emojis, images, formatting)"
+                minHeight="60px"
               />
             </div>
             <button
