@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { ChaptDocument, ContentBlock, BlockType, ProseBlock, HeadingBlock, DividerBlock, DialogueBlock, ChatBlock, PhoneBlock, NarrationBlock, ImageBlock, EditorState, ChatPlatform } from '@/types/chapt'
 import { ChatBlockEditor, PhoneBlockEditor, DialogueBlockEditor, NarrationBlockEditor } from './BlockEditors'
-import { PlusCircle, Save, Eye, Edit3, Type, MessageSquare, Smartphone, Users, SplitSquareVertical, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight, Maximize } from 'lucide-react'
+import { PlusCircle, Save, Eye, Edit3, Type, MessageSquare, Smartphone, Users, SplitSquareVertical, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight, Maximize, Sparkles, X } from 'lucide-react'
 
 interface ChaptursEditorProps {
   workId: string
@@ -37,6 +37,64 @@ export default function ChaptursEditor({
   const [insertAfterBlockId, setInsertAfterBlockId] = useState<string | null>(null)
   
   const autoSaveTimer = useRef<NodeJS.Timeout | null>(null)
+
+  // Glossary system state
+  const [selectedText, setSelectedText] = useState('')
+  const [showGlossaryModal, setShowGlossaryModal] = useState(false)
+  const [glossaryTerm, setGlossaryTerm] = useState('')
+  const [glossaryDefinition, setGlossaryDefinition] = useState('')
+
+  // Track text selection
+  useEffect(() => {
+    const handleSelectionChange = () => {
+      const selection = window.getSelection()
+      const text = selection?.toString().trim() || ''
+      setSelectedText(text)
+    }
+
+    document.addEventListener('selectionchange', handleSelectionChange)
+    return () => document.removeEventListener('selectionchange', handleSelectionChange)
+  }, [])
+
+  // Glossary handlers
+  const handleAddToGlossary = () => {
+    if (!selectedText) return
+    setGlossaryTerm(selectedText)
+    setGlossaryDefinition('')
+    setShowGlossaryModal(true)
+  }
+
+  const handleSaveGlossary = async () => {
+    if (!glossaryTerm || !glossaryDefinition) return
+
+    try {
+      const response = await fetch(`/api/works/${workId}/glossary`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          term: glossaryTerm,
+          definition: glossaryDefinition,
+          category: 'general',
+          chapters: [editorState.document.metadata.chapterNumber || 1]
+        })
+      })
+
+      if (response.ok) {
+        console.log('Glossary entry saved successfully')
+        setShowGlossaryModal(false)
+        setGlossaryTerm('')
+        setGlossaryDefinition('')
+        setSelectedText('')
+      } else {
+        const error = await response.json()
+        alert(`Failed to save glossary entry: ${error.error}`)
+      }
+    } catch (error) {
+      console.error('Error saving glossary:', error)
+      alert('Failed to save glossary entry. Please try again.')
+    }
+  }
+
 
   // Auto-save functionality
   useEffect(() => {
@@ -217,6 +275,18 @@ export default function ChaptursEditor({
             className="text-xl font-semibold border-none outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
           />
           <span className="text-sm text-gray-900 dark:text-gray-100 font-medium">{wordCount} words</span>
+          
+          {/* Glossary Define button - shows when text is selected */}
+          {selectedText && editorState.mode === 'edit' && (
+            <button
+              onClick={handleAddToGlossary}
+              className="px-3 py-1.5 text-xs bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 flex items-center gap-1.5 animate-in fade-in duration-200"
+              title="Add to Glossary"
+            >
+              <Sparkles size={14} />
+              Define "{selectedText.substring(0, 20)}{selectedText.length > 20 ? '...' : ''}"
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -313,6 +383,77 @@ export default function ChaptursEditor({
             <BlockTypeMenu onSelectBlock={(type) => addBlock(type, insertAfterBlockId)} />
           </div>
         </>
+      )}
+
+      {/* Glossary Modal */}
+      {showGlossaryModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-lg mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Add Glossary Entry</h3>
+              <button
+                onClick={() => {
+                  setShowGlossaryModal(false)
+                  setGlossaryTerm('')
+                  setGlossaryDefinition('')
+                }}
+                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+              >
+                <X size={20} className="text-gray-500 dark:text-gray-400" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Term
+                </label>
+                <input
+                  type="text"
+                  value={glossaryTerm}
+                  onChange={(e) => setGlossaryTerm(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  placeholder="Enter the term..."
+                  autoFocus
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Definition
+                </label>
+                <textarea
+                  value={glossaryDefinition}
+                  onChange={(e) => setGlossaryDefinition(e.target.value)}
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  placeholder="Enter the definition..."
+                />
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-end space-x-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowGlossaryModal(false)
+                  setGlossaryTerm('')
+                  setGlossaryDefinition('')
+                }}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveGlossary}
+                disabled={!glossaryTerm || !glossaryDefinition}
+                className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <Sparkles size={16} />
+                Save Entry
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

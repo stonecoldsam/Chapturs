@@ -10,8 +10,6 @@ import {
   PencilIcon,
   ChartBarIcon,
   CogIcon,
-  SunIcon,
-  MoonIcon,
   ArrowRightOnRectangleIcon,
   ArrowLeftOnRectangleIcon,
   BookmarkIcon,
@@ -22,11 +20,9 @@ import {
 interface SidebarProps {
   currentHub: 'reader' | 'creator'
   onHubChange: (hub: 'reader' | 'creator') => void
-  theme: 'light' | 'dark'
-  onThemeChange: () => void
 }
 
-export default function Sidebar({ currentHub, onHubChange, theme, onThemeChange }: SidebarProps) {
+export default function Sidebar({ currentHub, onHubChange }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const { data: session, status } = useSession()
 
@@ -201,28 +197,6 @@ export default function Sidebar({ currentHub, onHubChange, theme, onThemeChange 
             )
           })}
         </nav>
-
-        {/* Theme Toggle */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-          <button
-            onClick={onThemeChange}
-            className={`
-              flex items-center w-full px-3 py-2 rounded-lg text-sm font-medium
-              text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800
-              hover:text-gray-900 dark:hover:text-white transition-colors
-              ${isCollapsed ? 'justify-center' : ''}
-            `}
-            title={isCollapsed ? (theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode') : undefined}
-            aria-label={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
-          >
-            {theme === 'light' ? (
-              <MoonIcon className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
-            ) : (
-              <SunIcon className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
-            )}
-            {!isCollapsed && (theme === 'light' ? 'Dark Mode' : 'Light Mode')}
-          </button>
-        </div>
 
         {/* Authentication Section */}
         <div className="p-4 border-t border-gray-200 dark:border-gray-700">

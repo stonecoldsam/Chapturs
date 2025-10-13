@@ -480,8 +480,63 @@ export default function CreatorEditorPage() {
               }}
               onPublish={async (document: ChaptDocument) => {
                 console.log('Publishing chapter:', document)
-                // TODO: Implement publish with validation
-                alert('Publishing feature coming soon! Use Save for now.')
+                
+                // Convert ChaptDocument to API format
+                const publishData = {
+                  title: document.metadata.title,
+                  content: JSON.stringify(document.content),
+                  wordCount: document.metadata.wordCount,
+                  status: 'published',
+                  chaptNumber: document.metadata.chapterNumber
+                }
+                
+                // Use handlePublish for drafts, or direct API call for existing works
+                if (currentWork.isDraft && draftId) {
+                  await handlePublish(publishData)
+                } else if (workId) {
+                  // Publishing a chapter on an existing work
+                  try {
+                    const response = await fetch(`/api/works/${workId}/sections`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(publishData)
+                    })
+
+                    if (response.ok) {
+                      const result = await response.json()
+                      console.log('Chapter published:', result)
+
+                      // Queue quality assessment for the published chapter
+                      if (result.section?.id) {
+                        try {
+                          await fetch('/api/quality-assessment/queue', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              workId: workId,
+                              sectionId: result.section.id,
+                              priority: 'normal'
+                            })
+                          })
+                          console.log('Quality assessment queued for chapter:', result.section.id)
+                        } catch (error) {
+                          console.error('Failed to queue quality assessment:', error)
+                          // Non-critical, don't block publish flow
+                        }
+                      }
+
+                      alert('Chapter published successfully!')
+                      // Optionally reload or redirect
+                      window.location.reload()
+                    } else {
+                      const error = await response.json()
+                      alert(`Failed to publish chapter: ${error.error}`)
+                    }
+                  } catch (error) {
+                    console.error('Error publishing chapter:', error)
+                    alert('Failed to publish chapter. Please try again.')
+                  }
+                }
               }}
             />
           ) : (
