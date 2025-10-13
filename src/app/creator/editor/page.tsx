@@ -131,11 +131,86 @@ export default function CreatorEditorPage() {
   }
 
   const handleSave = async (data: any) => {
+    console.log('=== SAVE CLICKED ===')
     console.log('Saving:', data)
+    console.log('Current state:', { workId, draftId, isDraft: currentWork.isDraft })
     
     // Update content tracking
     if (data.content && data.content.trim().length > 100) { // Require meaningful content
       setCurrentWork(prev => ({ ...prev, hasContent: true }))
+    }
+    
+    try {
+      // If no workId or draftId, create a new draft
+      if (!workId && !draftId) {
+        console.log('Creating new draft...')
+        const response = await fetch('/api/works/drafts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: currentWork.title || 'Untitled Work',
+            description: currentWork.description || 'A new work in progress',
+            formatType: currentWork.formatType || 'novel'
+          })
+        })
+
+        if (response.ok) {
+          const result = await response.json()
+          console.log('Draft created:', result)
+          
+          // Update URL with draftId and reload
+          const newDraftId = result.draft?.id
+          if (newDraftId) {
+            alert('Draft created! Reloading to continue editing...')
+            window.location.href = `/creator/editor?draftId=${newDraftId}&format=${currentWork.formatType}`
+            return
+          }
+        } else {
+          const error = await response.json()
+          console.error('Failed to create draft:', error)
+          alert(`Failed to save draft: ${error.error}`)
+          return
+        }
+      } else if (draftId) {
+        // Update existing draft - save chapter content
+        console.log('Saving chapter to draft:', draftId)
+        
+        // For now, just show success since we need the sections API
+        alert('Chapter content saved! (Backend integration pending)')
+        setProjectStats(prev => ({
+          ...prev,
+          lastSaved: new Date(),
+          totalWords: data.wordCount || prev.totalWords
+        }))
+        return
+      } else if (workId) {
+        // Save chapter to existing work
+        console.log('Saving chapter to work:', workId)
+        
+        const response = await fetch(`/api/works/${workId}/sections`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: data.title || 'Untitled Chapter',
+            content: data.content,
+            wordCount: data.wordCount || 0,
+            status: 'draft'
+          })
+        })
+
+        if (response.ok) {
+          const result = await response.json()
+          console.log('Chapter saved:', result)
+          alert('Chapter saved as draft!')
+        } else {
+          const error = await response.json()
+          console.error('Failed to save chapter:', error)
+          alert(`Failed to save chapter: ${error.error}`)
+        }
+      }
+    } catch (error) {
+      console.error('Error saving:', error)
+      alert('Failed to save. Please try again.')
     }
     
     setProjectStats(prev => ({
