@@ -239,7 +239,7 @@ export function ChatBlockEditor({ block, mode, onUpdate }: ChatBlockEditorProps)
       </div>
 
       {/* Add Message Form */}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <input
           type="text"
           value={newMessage.user}
@@ -252,7 +252,7 @@ export function ChatBlockEditor({ block, mode, onUpdate }: ChatBlockEditorProps)
           value={newMessage.text}
           onChange={(e) => setNewMessage({ ...newMessage, text: e.target.value })}
           placeholder="Message text"
-          className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded text-gray-900 dark:text-gray-100 dark:bg-gray-800 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400"
+          className="flex-1 min-w-[200px] px-3 py-2 text-sm border border-gray-300 rounded text-gray-900 dark:text-gray-100 dark:bg-gray-800 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400"
           onKeyDown={(e) => e.key === 'Enter' && addMessage()}
         />
         <button
@@ -650,7 +650,7 @@ export function PhoneBlockEditor({ block, mode, onUpdate }: PhoneBlockEditorProp
       {/* Add New Message */}
       <div className="space-y-2 border-t pt-3">
         <div className="text-sm font-medium text-gray-700 dark:text-gray-300">Add Message:</div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <select
             value={newMessage.user}
             onChange={(e) => setNewMessage({ ...newMessage, user: e.target.value })}
@@ -681,7 +681,7 @@ export function PhoneBlockEditor({ block, mode, onUpdate }: PhoneBlockEditorProp
             value={newMessage.text}
             onChange={(e) => setNewMessage({ ...newMessage, text: e.target.value })}
             placeholder="Message text"
-            className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100 dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400"
+            className="flex-1 min-w-[200px] px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100 dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400"
             onKeyDown={(e) => e.key === 'Enter' && addMessage()}
           />
           <button

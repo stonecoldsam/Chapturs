@@ -42,6 +42,7 @@ export type PacingAnimation =
 export interface BaseBlock {
   id: string
   type: BlockType
+  align?: 'left' | 'center' | 'right' | 'full' // Horizontal alignment for the entire block
   metadata?: {
     created?: string
     modified?: string

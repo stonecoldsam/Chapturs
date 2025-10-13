@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { ChaptDocument, ContentBlock, BlockType, ProseBlock, HeadingBlock, DividerBlock, DialogueBlock, ChatBlock, PhoneBlock, NarrationBlock, EditorState, ChatPlatform } from '@/types/chapt'
+import { ChaptDocument, ContentBlock, BlockType, ProseBlock, HeadingBlock, DividerBlock, DialogueBlock, ChatBlock, PhoneBlock, NarrationBlock, ImageBlock, EditorState, ChatPlatform } from '@/types/chapt'
 import { ChatBlockEditor, PhoneBlockEditor, DialogueBlockEditor, NarrationBlockEditor } from './BlockEditors'
-import { PlusCircle, Save, Eye, Edit3, Type, MessageSquare, Smartphone, Users, SplitSquareVertical } from 'lucide-react'
+import { PlusCircle, Save, Eye, Edit3, Type, MessageSquare, Smartphone, Users, SplitSquareVertical, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight, Maximize } from 'lucide-react'
 
 interface ChaptursEditorProps {
   workId: string
@@ -438,63 +438,136 @@ function BlockRenderer({
   
   const [showControls, setShowControls] = useState(false)
   const [showTypeMenu, setShowTypeMenu] = useState(false)
+  const [showAlignMenu, setShowAlignMenu] = useState(false)
 
   // Show controls when block is active (focused) OR when hovering
   const controlsVisible = (mode === 'edit' && (showControls || isActive))
 
+  // Determine alignment class
+  const alignmentClass = block.align === 'left' ? 'mr-auto' :
+                        block.align === 'right' ? 'ml-auto' :
+                        block.align === 'center' ? 'mx-auto' :
+                        block.align === 'full' ? 'w-full' :
+                        'w-full' // default to full width
+
+  // Determine max width based on alignment
+  const maxWidthClass = block.align === 'full' ? 'max-w-full' :
+                       block.type === 'phone' || block.type === 'chat' ? 'max-w-md' :
+                       'max-w-2xl'
+
   return (
     <div
-      className={`group relative mb-4 ${isActive ? 'ring-2 ring-blue-500 rounded' : ''}`}
+      className={`group relative mb-4 ${alignmentClass} ${maxWidthClass}`}
       onMouseEnter={() => setShowControls(true)}
       onMouseLeave={() => setShowControls(false)}
-      onClick={onFocus}
     >
-      {/* Block Controls */}
-      {controlsVisible && (
-        <div className="absolute -left-12 top-0 flex flex-col gap-1 bg-white dark:bg-gray-800 rounded shadow-sm p-1 border border-gray-200 dark:border-gray-700">
+      <div 
+        className={`relative ${isActive ? 'ring-2 ring-blue-500 rounded' : ''}`}
+        onClick={onFocus}
+      >
+        {/* Block Controls */}
+        {controlsVisible && (
+          <div className="absolute -left-12 top-0 flex flex-col gap-1 bg-white dark:bg-gray-800 rounded shadow-sm p-1 border border-gray-200 dark:border-gray-700 z-20">
+            <button
+              onClick={onMoveUp}
+              disabled={!canMoveUp}
+              className="p-1 text-gray-900 hover:text-blue-600 dark:text-gray-100 dark:hover:text-blue-400 disabled:opacity-30 font-bold"
+              title="Move up"
+            >
+              ↑
+            </button>
+            <button
+              onClick={onMoveDown}
+              disabled={!canMoveDown}
+              className="p-1 text-gray-900 hover:text-blue-600 dark:text-gray-100 dark:hover:text-blue-400 disabled:opacity-30 font-bold"
+              title="Move down"
+            >
+              ↓
+            </button>
+            <button
+              onClick={() => setShowAlignMenu(!showAlignMenu)}
+              className="p-1 text-gray-900 hover:text-blue-600 dark:text-gray-100 dark:hover:text-blue-400"
+              title="Align block"
+            >
+              {block.align === 'left' && <AlignLeft size={16} />}
+              {block.align === 'right' && <AlignRight size={16} />}
+              {block.align === 'center' && <AlignCenter size={16} />}
+              {(block.align === 'full' || !block.align) && <Maximize size={16} />}
+            </button>
+            <button
+              onClick={() => setShowTypeMenu(!showTypeMenu)}
+              className="p-1 text-gray-900 hover:text-blue-600 dark:text-gray-100 dark:hover:text-blue-400"
+              title="Change block type"
+            >
+              <Edit3 size={16} />
+            </button>
+            <button
+              onClick={onAddBlockAfter}
+              className="p-1 text-gray-900 hover:text-blue-600 dark:text-gray-100 dark:hover:text-blue-400"
+              title="Add block"
+            >
+              <PlusCircle size={16} />
+            </button>
+            <button
+              onClick={onDelete}
+              className="p-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-bold"
+              title="Delete"
+            >
+              ×
+            </button>
+          </div>
+        )}
+
+      {/* Alignment Menu */}
+      {showAlignMenu && (
+        <div className="absolute -left-48 top-12 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg p-2 z-30">
+          <div className="text-xs font-medium text-gray-900 dark:text-gray-100 mb-2">Align:</div>
           <button
-            onClick={onMoveUp}
-            disabled={!canMoveUp}
-            className="p-1 text-gray-900 hover:text-blue-600 dark:text-gray-100 dark:hover:text-blue-400 disabled:opacity-30 font-bold"
-            title="Move up"
+            onClick={() => {
+              onUpdate({ align: 'left' })
+              setShowAlignMenu(false)
+            }}
+            className="w-full text-left px-2 py-1 text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
           >
-            ↑
+            <AlignLeft size={14} className="inline mr-2" />
+            Left
           </button>
           <button
-            onClick={onMoveDown}
-            disabled={!canMoveDown}
-            className="p-1 text-gray-900 hover:text-blue-600 dark:text-gray-100 dark:hover:text-blue-400 disabled:opacity-30 font-bold"
-            title="Move down"
+            onClick={() => {
+              onUpdate({ align: 'center' })
+              setShowAlignMenu(false)
+            }}
+            className="w-full text-left px-2 py-1 text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
           >
-            ↓
+            <AlignCenter size={14} className="inline mr-2" />
+            Center
           </button>
           <button
-            onClick={() => setShowTypeMenu(!showTypeMenu)}
-            className="p-1 text-gray-900 hover:text-blue-600 dark:text-gray-100 dark:hover:text-blue-400"
-            title="Change block type"
+            onClick={() => {
+              onUpdate({ align: 'right' })
+              setShowAlignMenu(false)
+            }}
+            className="w-full text-left px-2 py-1 text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
           >
-            <Edit3 size={16} />
+            <AlignRight size={14} className="inline mr-2" />
+            Right
           </button>
           <button
-            onClick={onAddBlockAfter}
-            className="p-1 text-gray-900 hover:text-blue-600 dark:text-gray-100 dark:hover:text-blue-400"
-            title="Add block"
+            onClick={() => {
+              onUpdate({ align: 'full' })
+              setShowAlignMenu(false)
+            }}
+            className="w-full text-left px-2 py-1 text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
           >
-            <PlusCircle size={16} />
-          </button>
-          <button
-            onClick={onDelete}
-            className="p-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-bold"
-            title="Delete"
-          >
-            ×
+            <Maximize size={14} className="inline mr-2" />
+            Full Width
           </button>
         </div>
       )}
 
       {/* Block Type Change Menu */}
       {showTypeMenu && (
-        <div className="absolute -left-48 top-0 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg p-2 z-10">
+        <div className="absolute -left-48 top-0 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg p-2 z-30">
           <div className="text-xs font-medium text-gray-900 dark:text-gray-100 mb-2">Change to:</div>
           <button
             onClick={() => {
@@ -562,6 +635,17 @@ function BlockRenderer({
             <Smartphone size={14} className="inline mr-2" />
             Phone UI
           </button>
+          <button
+            onClick={() => {
+              onUpdate(convertBlockType(block, 'image'))
+              setShowTypeMenu(false)
+            }}
+            disabled={block.type === 'image'}
+            className="w-full text-left px-2 py-1 text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <ImageIcon size={14} className="inline mr-2" />
+            Image
+          </button>
           <hr className="my-1 border-gray-200 dark:border-gray-700" />
           <button
             onClick={() => setShowTypeMenu(false)}
@@ -595,6 +679,10 @@ function BlockRenderer({
         {block.type === 'narration' && (
           <NarrationBlockEditor block={block as NarrationBlock} mode={mode} onUpdate={onUpdate} />
         )}
+        {block.type === 'image' && (
+          <ImageBlockEditor block={block as ImageBlock} mode={mode} onUpdate={onUpdate} />
+        )}
+      </div>
       </div>
     </div>
   )
@@ -673,6 +761,144 @@ function DividerBlockEditor({ block }: { block: DividerBlock; mode: 'edit' | 'pr
   )
 }
 
+function ImageBlockEditor({ 
+  block, 
+  mode, 
+  onUpdate 
+}: { 
+  block: ImageBlock
+  mode: 'edit' | 'preview' | 'translate'
+  onUpdate: (updates: Partial<ImageBlock>) => void
+}) {
+  if (mode === 'preview' || mode === 'translate') {
+    return (
+      <div className="my-4">
+        {block.url ? (
+          <div>
+            <img
+              src={block.url}
+              alt={block.alt || ''}
+              className="w-full h-auto rounded-lg"
+              style={{
+                maxWidth: block.width || '100%',
+                maxHeight: block.height || 'auto'
+              }}
+            />
+            {block.caption && (
+              <p className="text-sm text-gray-600 dark:text-gray-400 text-center mt-2 italic">
+                {block.caption}
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="w-full h-48 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
+            <div className="text-center text-gray-500 dark:text-gray-400">
+              <ImageIcon size={48} className="mx-auto mb-2" />
+              <p>No image URL provided</p>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-4 space-y-4 bg-gray-50 dark:bg-gray-800">
+      <div className="flex items-center gap-2">
+        <ImageIcon size={18} className="text-gray-600 dark:text-gray-400" />
+        <span className="font-medium text-gray-900 dark:text-gray-100">Image Block</span>
+      </div>
+
+      <div className="space-y-3">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Image URL *
+          </label>
+          <input
+            type="text"
+            value={block.url}
+            onChange={(e) => onUpdate({ url: e.target.value })}
+            placeholder="https://example.com/image.jpg"
+            className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100 dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Alt Text
+          </label>
+          <input
+            type="text"
+            value={block.alt || ''}
+            onChange={(e) => onUpdate({ alt: e.target.value })}
+            placeholder="Describe the image for accessibility"
+            className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100 dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Caption (optional)
+          </label>
+          <input
+            type="text"
+            value={block.caption || ''}
+            onChange={(e) => onUpdate({ caption: e.target.value })}
+            placeholder="Image caption"
+            className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100 dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Max Width
+            </label>
+            <input
+              type="text"
+              value={block.width || ''}
+              onChange={(e) => onUpdate({ width: e.target.value })}
+              placeholder="e.g., 500px or 100%"
+              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100 dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Max Height
+            </label>
+            <input
+              type="text"
+              value={block.height || ''}
+              onChange={(e) => onUpdate({ height: e.target.value })}
+              placeholder="e.g., 300px or auto"
+              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100 dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Preview */}
+      {block.url && (
+        <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+          <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">Preview:</p>
+          <img
+            src={block.url}
+            alt={block.alt || ''}
+            className="w-full h-auto rounded"
+            style={{
+              maxWidth: block.width || '100%',
+              maxHeight: block.height || '400px'
+            }}
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none'
+            }}
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ============================================================================
 // BLOCK TYPE MENU
 // ============================================================================
@@ -685,6 +911,7 @@ function BlockTypeMenu({ onSelectBlock }: { onSelectBlock: (type: BlockType) => 
     { type: 'chat', label: 'Chat', icon: MessageSquare, description: 'Messaging UI simulation' },
     { type: 'phone', label: 'Phone UI', icon: Smartphone, description: 'Phone screen interface' },
     { type: 'narration', label: 'Narration', icon: SplitSquareVertical, description: 'Narrator box' },
+    { type: 'image', label: 'Image', icon: ImageIcon, description: 'Embedded image' },
     { type: 'divider', label: 'Divider', icon: SplitSquareVertical, description: 'Scene break' },
   ]
 
