@@ -62,6 +62,7 @@ export default function CreatorEditorPage() {
   // UI State
   const [editorMode, setEditorMode] = useState<EditorMode>({ type: 'editor' })
   const [showSettings, setShowSettings] = useState(false)
+  const [loadedContent, setLoadedContent] = useState<ChaptDocument | undefined>(undefined)
   const [currentWork, setCurrentWork] = useState({
     id: workId || draftId,
     title: '',
@@ -114,11 +115,11 @@ export default function CreatorEditorPage() {
       console.log('Loading work data for workId:', workId)
       const response = await fetch(`/api/works/${workId}`)
       if (response.ok) {
-        const result = await response.json()
-        console.log('Loaded work data:', result)
+        const work = await response.json()
+        console.log('Loaded work data:', work)
         
         // Safely parse statistics if it's a JSON string
-        let statistics = result.work.statistics
+        let statistics = work.statistics
         if (typeof statistics === 'string') {
           try {
             statistics = JSON.parse(statistics)
@@ -130,13 +131,13 @@ export default function CreatorEditorPage() {
         
         setCurrentWork(prev => ({
           ...prev,
-          title: result.work.title || '',
-          description: result.work.description || '',
-          formatType: result.work.formatType || prev.formatType,
-          status: result.work.status || prev.status,
-          chaptersCount: result.work.sections?.length || 0,
+          title: work.title || '',
+          description: work.description || '',
+          formatType: work.formatType || prev.formatType,
+          status: work.status || prev.status,
+          chaptersCount: work.sections?.length || 0,
           wordsCount: statistics?.wordCount || 0,
-          hasContent: (result.work.sections?.length || 0) > 0
+          hasContent: (work.sections?.length || 0) > 0
         }))
       } else {
         console.error('Failed to load work data, status:', response.status)
@@ -153,20 +154,23 @@ export default function CreatorEditorPage() {
       if (response.ok) {
         const result = await response.json()
         console.log('Loaded sections:', result.sections)
-        // TODO: Load first section content into editor
-        // For now, just log that we found sections
+        
         if (result.sections && result.sections.length > 0) {
+          // Load existing chapter content
           const firstSection = result.sections[0]
           console.log('First section:', firstSection)
-          // Parse the content from JSON string back to ChaptDocument format
           try {
             const content = typeof firstSection.content === 'string' 
               ? JSON.parse(firstSection.content) 
               : firstSection.content
-            setDocument(content)
+            setLoadedContent(content)
+            console.log('Loaded existing chapter content into editor')
           } catch (e) {
             console.error('Error parsing section content:', e)
           }
+        } else {
+          // No chapters yet - work needs first chapter created
+          console.log('No chapters found - this work needs its first chapter published')
         }
       } else {
         console.error('Failed to load sections, status:', response.status)
@@ -275,7 +279,7 @@ export default function CreatorEditorPage() {
         if (response.ok) {
           const result = await response.json()
           console.log('Chapter saved:', result)
-          alert('Chapter saved as draft!')
+          // Subtle autosave indicator - no alert that steals focus
         } else {
           const error = await response.json()
           console.error('Failed to save chapter:', error)
@@ -351,8 +355,8 @@ export default function CreatorEditorPage() {
 
           // Normal success path
           alert('Work submitted for review! It will appear in the library once approved.')
-          // Redirect to the new published work
-          window.location.href = `/work/${result.workId}`
+          // Redirect to the published work story page (has proper navigation)
+          window.location.href = `/story/${result.workId}`
         } else {
           const error = await response.json()
           alert(`Failed to publish: ${error.error}`)
@@ -613,6 +617,7 @@ export default function CreatorEditorPage() {
             <ChaptursEditor
               workId={workId || 'new'}
               chapterId={chapterId}
+              initialDocument={loadedContent}
               onSave={async (document: ChaptDocument) => {
                 console.log('Saving chapter:', document)
                 
@@ -651,16 +656,24 @@ export default function CreatorEditorPage() {
                   console.log('Publishing chapter to existing work:', workId)
                   // Publishing a chapter on an existing work
                   try {
+                    console.log('=== CALLING SECTIONS API ===')
+                    console.log('Endpoint:', `/api/works/${workId}/sections`)
+                    console.log('Data being sent:', publishData)
+                    
                     const response = await fetch(`/api/works/${workId}/sections`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify(publishData)
                     })
 
-                    console.log('API response status:', response.status)
+                    console.log('=== API RESPONSE ===')
+                    console.log('Status:', response.status)
+                    console.log('Status text:', response.statusText)
                     
                     if (response.ok) {
                       const result = await response.json()
+                      console.log('=== PUBLISH SUCCESS ===')
+                      console.log('Full result:', JSON.stringify(result, null, 2))
                       console.log('Chapter published successfully:', result)
 
                       // Queue quality assessment for the published chapter
@@ -683,8 +696,8 @@ export default function CreatorEditorPage() {
                       }
 
                       alert('Chapter published successfully!')
-                      // Redirect to the published work page
-                      window.location.href = `/work/${workId}`
+                      // Redirect to the published work story page (has proper navigation)
+                      window.location.href = `/story/${workId}`
                     } else {
                       const error = await response.json()
                       console.error('API error response:', error)
