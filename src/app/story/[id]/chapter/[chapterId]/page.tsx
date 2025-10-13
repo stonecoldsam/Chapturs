@@ -61,6 +61,10 @@ export default function ChapterPage() {
             // Find the current section
             const foundSection = sectionsArray.find((s: Section) => s.id === chapterId)
             if (foundSection) {
+              console.log('Found section:', foundSection)
+              console.log('Section content type:', typeof foundSection.content)
+              console.log('Section content:', foundSection.content)
+              console.log('Is array?', Array.isArray(foundSection.content))
               setSection(foundSection)
               const index = sectionsArray.findIndex((s: Section) => s.id === chapterId)
               setCurrentSectionIndex(index)
