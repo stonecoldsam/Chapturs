@@ -41,6 +41,8 @@ export default function UploadPage() {
     genres: [],
     tags: []
   })
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Predefined options
   const availableGenres = [
@@ -55,22 +57,32 @@ export default function UploadPage() {
       return
     }
 
+    // Clear previous errors
+    setErrors({})
+    setIsSubmitting(true)
+
     try {
       // Create the work via API
+      const payload: any = {
+        title: newWork.title,
+        description: newWork.description,
+        formatType: newWork.formatType,
+        genres: newWork.genres,
+        tags: newWork.tags,
+        status: 'draft'
+      }
+      
+      // Only include coverImage if it's not empty
+      if (newWork.coverImage && newWork.coverImage.trim()) {
+        payload.coverImage = newWork.coverImage
+      }
+      
       const response = await fetch('/api/works', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          title: newWork.title,
-          description: newWork.description,
-          formatType: newWork.formatType,
-          coverImage: newWork.coverImage,
-          genres: newWork.genres,
-          tags: newWork.tags,
-          status: 'draft'
-        })
+        body: JSON.stringify(payload)
       })
 
       if (response.ok) {
@@ -78,14 +90,34 @@ export default function UploadPage() {
         console.log('Work created:', result)
         
         // Redirect to editor with the new work
-        router.push(`/creator/editor?mode=edit&workId=${result.work.id}`)
+        router.push(`/creator/editor?mode=edit&workId=${result.data.work.id}`)
       } else {
         const error = await response.json()
-        alert(`Failed to create work: ${error.error}`)
+        console.error('API Error:', error)
+        
+        // If there are validation details, map them to form fields
+        if (error.details && Array.isArray(error.details)) {
+          const fieldErrors: Record<string, string> = {}
+          error.details.forEach((detail: any) => {
+            fieldErrors[detail.field] = detail.message
+          })
+          setErrors(fieldErrors)
+          
+          // Also show an alert with all errors
+          const errorList = error.details
+            .map((detail: any) => `• ${detail.field}: ${detail.message}`)
+            .join('\n')
+          alert(`Please fix the following errors:\n\n${errorList}`)
+        } else {
+          // Generic error
+          alert(error.message || 'Failed to create work. Please try again.')
+        }
       }
     } catch (error) {
       console.error('Error creating work:', error)
       alert('Failed to create work. Please try again.')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -140,8 +172,15 @@ export default function UploadPage() {
                   value={newWork.title}
                   onChange={(e) => setNewWork(prev => ({ ...prev, title: e.target.value }))}
                   placeholder="Enter the title of your work..."
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
+                    errors.title 
+                      ? 'border-red-500 dark:border-red-500' 
+                      : 'border-gray-300 dark:border-gray-600'
+                  }`}
                 />
+                {errors.title && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.title}</p>
+                )}
               </div>
 
               <div>
@@ -153,8 +192,15 @@ export default function UploadPage() {
                   onChange={(e) => setNewWork(prev => ({ ...prev, description: e.target.value }))}
                   placeholder="Describe your work - what is it about? What should readers expect?"
                   rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
+                    errors.description 
+                      ? 'border-red-500 dark:border-red-500' 
+                      : 'border-gray-300 dark:border-gray-600'
+                  }`}
                 />
+                {errors.description && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.description}</p>
+                )}
               </div>
             </div>
           </div>
@@ -253,11 +299,11 @@ export default function UploadPage() {
           <div className="flex justify-end">
             <button
               onClick={handleCreateWork}
-              disabled={!newWork.title || !newWork.description}
+              disabled={!newWork.title || !newWork.description || isSubmitting}
               className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
             >
-              <span>Create Work & Start Writing</span>
-              <ArrowRightIcon className="w-5 h-5" />
+              <span>{isSubmitting ? 'Creating...' : 'Create Work & Start Writing'}</span>
+              {!isSubmitting && <ArrowRightIcon className="w-5 h-5" />}
             </button>
           </div>
         </div>

@@ -30,6 +30,8 @@ export async function POST(request: NextRequest) {
     const session = await auth()
     requireAuth(session)
 
+    console.log('Creating work for user:', session.user.id, session.user.email)
+
     // Validation
     const validatedData = await validateRequest(request, createWorkSchema)
     const {
@@ -43,12 +45,32 @@ export async function POST(request: NextRequest) {
       status
     } = validatedData
 
+    // Ensure user exists in database (in case auth callback failed)
+    let user = await prisma.user.findUnique({
+      where: { id: session.user.id }
+    })
+
+    if (!user) {
+      // Create user if they don't exist (fallback for auth issues)
+      console.log('User not found in database, creating user:', session.user.email)
+      user = await prisma.user.create({
+        data: {
+          id: session.user.id,
+          email: session.user.email!,
+          username: session.user.email!.split('@')[0] + '_' + Date.now(),
+          displayName: session.user.name || undefined,
+          avatar: session.user.image || undefined,
+        }
+      })
+    }
+
     // Get or create author profile for this user
     let author = await prisma.author.findUnique({
       where: { userId: session.user.id }
     })
 
     if (!author) {
+      console.log('Author profile not found, creating for user:', session.user.id)
       // Create author profile automatically
       author = await prisma.author.create({
         data: {

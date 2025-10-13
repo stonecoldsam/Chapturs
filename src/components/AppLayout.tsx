@@ -76,7 +76,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         
         {/* Main Content */}
         <div className="ml-64 min-h-screen">
-          <main className="p-6">
+          <main className={pathname.includes('/editor') ? '' : 'p-6'}>
             {children}
           </main>
         </div>

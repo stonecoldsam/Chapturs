@@ -83,6 +83,7 @@ export interface ChatBlock extends BaseBlock {
   type: 'chat'
   platform: ChatPlatform
   messages: ChatMessage[]
+  channelName?: string
   platformStyle?: {
     theme?: 'light' | 'dark'
     showTimestamps?: boolean
@@ -94,6 +95,7 @@ export interface PhoneBlock extends BaseBlock {
   type: 'phone'
   phoneType?: 'ios' | 'android' | 'generic'
   content: ChatMessage[]
+  phoneOwner?: string // The name of the phone owner (whose perspective we're seeing)
   ui?: {
     batteryLevel?: number
     signalStrength?: number

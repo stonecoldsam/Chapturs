@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { ChaptDocument, ContentBlock, BlockType, ProseBlock, HeadingBlock, DividerBlock, DialogueBlock, ChatBlock, PhoneBlock, NarrationBlock, EditorState } from '@/types/chapt'
+import { ChaptDocument, ContentBlock, BlockType, ProseBlock, HeadingBlock, DividerBlock, DialogueBlock, ChatBlock, PhoneBlock, NarrationBlock, EditorState, ChatPlatform } from '@/types/chapt'
 import { ChatBlockEditor, PhoneBlockEditor, DialogueBlockEditor, NarrationBlockEditor } from './BlockEditors'
 import { PlusCircle, Save, Eye, Edit3, Type, MessageSquare, Smartphone, Users, SplitSquareVertical } from 'lucide-react'
 
@@ -172,7 +172,16 @@ export default function ChaptursEditor({
   // Block menu handlers
   const showBlockMenuAt = (afterBlockId: string | null, event: React.MouseEvent) => {
     const rect = (event.target as HTMLElement).getBoundingClientRect()
-    setBlockMenuPosition({ top: rect.bottom + 10, left: rect.left })
+    const menuHeight = 400 // Approximate max height of menu
+    const viewportHeight = window.innerHeight
+    
+    // Calculate position - if menu would overflow bottom, position it above the button
+    let top = rect.bottom + 10
+    if (top + menuHeight > viewportHeight) {
+      top = Math.max(10, viewportHeight - menuHeight - 10)
+    }
+    
+    setBlockMenuPosition({ top, left: rect.left })
     setInsertAfterBlockId(afterBlockId)
     setShowBlockMenu(true)
   }
@@ -189,9 +198,9 @@ export default function ChaptursEditor({
   const wordCount = editorState.document.metadata.wordCount
 
   return (
-    <div className="h-full flex flex-col bg-gray-50">
+    <div className="h-full flex flex-col bg-white dark:bg-gray-900 overflow-hidden">
       {/* Toolbar */}
-      <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between sticky top-0 z-10">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-3 flex items-center justify-between sticky top-0 z-10 flex-shrink-0">
         <div className="flex items-center gap-4">
           <input
             type="text"
@@ -205,15 +214,15 @@ export default function ChaptursEditor({
               isDirty: true
             }))}
             placeholder="Chapter Title"
-            className="text-xl font-semibold border-none outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1"
+            className="text-xl font-semibold border-none outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
           />
-          <span className="text-sm text-gray-500">{wordCount} words</span>
+          <span className="text-sm text-gray-900 dark:text-gray-100 font-medium">{wordCount} words</span>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={toggleMode}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50 flex items-center gap-2"
+            className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-900 dark:text-gray-100"
           >
             {editorState.mode === 'edit' ? (
               <><Eye size={16} /> Preview</>
@@ -243,11 +252,11 @@ export default function ChaptursEditor({
       </div>
 
       {/* Editor Content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-4xl mx-auto py-8 px-6">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="max-w-4xl mx-auto py-8 px-6 pb-96">
           {editorState.document.content.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-400 mb-4">Start writing your story...</p>
+              <p className="text-gray-900 dark:text-gray-100 mb-4 font-medium">Start writing your story...</p>
               <button
                 onClick={() => addBlock('prose')}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -279,7 +288,7 @@ export default function ChaptursEditor({
               {editorState.mode === 'edit' && (
                 <button
                   onClick={(e) => showBlockMenuAt(null, e)}
-                  className="mt-4 flex items-center gap-2 text-gray-400 hover:text-gray-600"
+                  className="mt-4 flex items-center gap-2 text-gray-900 hover:text-blue-600 dark:text-gray-100 dark:hover:text-blue-400 font-medium"
                 >
                   <PlusCircle size={18} />
                   Add Block
@@ -298,7 +307,7 @@ export default function ChaptursEditor({
             onClick={() => setShowBlockMenu(false)}
           />
           <div
-            className="fixed z-30 bg-white border border-gray-200 rounded-lg shadow-lg p-2 w-64"
+            className="fixed z-30 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-2 w-64 max-h-[80vh] overflow-y-auto"
             style={{ top: blockMenuPosition.top, left: blockMenuPosition.left }}
           >
             <BlockTypeMenu onSelectBlock={(type) => addBlock(type, insertAfterBlockId)} />
@@ -307,6 +316,92 @@ export default function ChaptursEditor({
       )}
     </div>
   )
+}
+
+// ============================================================================
+// BLOCK CONVERSION HELPER
+// ============================================================================
+
+function convertBlockType(block: ContentBlock, newType: BlockType): Partial<ContentBlock> {
+  // If converting to the same type, no change needed
+  if (block.type === newType) return {}
+
+  const baseBlock = {
+    type: newType,
+    id: block.id,
+  }
+
+  // Extract text content from current block if applicable
+  let textContent = ''
+  if (block.type === 'prose') {
+    textContent = (block as ProseBlock).text || ''
+  } else if (block.type === 'heading') {
+    textContent = (block as HeadingBlock).text || ''
+  } else if (block.type === 'narration') {
+    textContent = (block as NarrationBlock).text || ''
+  } else if (block.type === 'dialogue') {
+    // Get first line of dialogue
+    const dialogueBlock = block as DialogueBlock
+    if (dialogueBlock.lines && dialogueBlock.lines.length > 0) {
+      textContent = dialogueBlock.lines[0].text || ''
+    }
+  }
+
+  // Create appropriate structure for new type
+  switch (newType) {
+    case 'prose':
+      return { ...baseBlock, text: textContent } as Partial<ProseBlock>
+    
+    case 'heading':
+      return { ...baseBlock, text: textContent, level: 2 } as Partial<HeadingBlock>
+    
+    case 'narration':
+      return { 
+        ...baseBlock, 
+        text: textContent,
+        style: { variant: 'box' }
+      } as Partial<NarrationBlock>
+    
+    case 'dialogue':
+      return {
+        ...baseBlock,
+        lines: textContent ? [{
+          speaker: 'Speaker',
+          text: textContent
+        }] : []
+      } as Partial<DialogueBlock>
+    
+    case 'chat':
+      return {
+        ...baseBlock,
+        platform: 'generic' as ChatPlatform,
+        messages: textContent ? [{
+          id: crypto.randomUUID(),
+          user: 'User',
+          text: textContent,
+          timestamp: new Date().toISOString(),
+          status: 'sent'
+        }] : []
+      } as Partial<ChatBlock>
+    
+    case 'phone':
+      return {
+        ...baseBlock,
+        phoneType: 'generic',
+        content: textContent ? [{
+          id: crypto.randomUUID(),
+          user: 'Contact',
+          text: textContent,
+          timestamp: new Date().toISOString()
+        }] : []
+      } as Partial<PhoneBlock>
+    
+    case 'divider':
+      return { ...baseBlock, style: 'line' } as Partial<DividerBlock>
+    
+    default:
+      return baseBlock as Partial<ContentBlock>
+  }
 }
 
 // ============================================================================
@@ -342,6 +437,10 @@ function BlockRenderer({
 }: BlockRendererProps) {
   
   const [showControls, setShowControls] = useState(false)
+  const [showTypeMenu, setShowTypeMenu] = useState(false)
+
+  // Show controls when block is active (focused) OR when hovering
+  const controlsVisible = (mode === 'edit' && (showControls || isActive))
 
   return (
     <div
@@ -351,12 +450,12 @@ function BlockRenderer({
       onClick={onFocus}
     >
       {/* Block Controls */}
-      {mode === 'edit' && showControls && (
-        <div className="absolute -left-12 top-0 flex flex-col gap-1">
+      {controlsVisible && (
+        <div className="absolute -left-12 top-0 flex flex-col gap-1 bg-white dark:bg-gray-800 rounded shadow-sm p-1 border border-gray-200 dark:border-gray-700">
           <button
             onClick={onMoveUp}
             disabled={!canMoveUp}
-            className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
+            className="p-1 text-gray-900 hover:text-blue-600 dark:text-gray-100 dark:hover:text-blue-400 disabled:opacity-30 font-bold"
             title="Move up"
           >
             ↑
@@ -364,24 +463,111 @@ function BlockRenderer({
           <button
             onClick={onMoveDown}
             disabled={!canMoveDown}
-            className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
+            className="p-1 text-gray-900 hover:text-blue-600 dark:text-gray-100 dark:hover:text-blue-400 disabled:opacity-30 font-bold"
             title="Move down"
           >
             ↓
           </button>
           <button
+            onClick={() => setShowTypeMenu(!showTypeMenu)}
+            className="p-1 text-gray-900 hover:text-blue-600 dark:text-gray-100 dark:hover:text-blue-400"
+            title="Change block type"
+          >
+            <Edit3 size={16} />
+          </button>
+          <button
             onClick={onAddBlockAfter}
-            className="p-1 text-gray-400 hover:text-gray-600"
+            className="p-1 text-gray-900 hover:text-blue-600 dark:text-gray-100 dark:hover:text-blue-400"
             title="Add block"
           >
             <PlusCircle size={16} />
           </button>
           <button
             onClick={onDelete}
-            className="p-1 text-red-400 hover:text-red-600"
+            className="p-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-bold"
             title="Delete"
           >
             ×
+          </button>
+        </div>
+      )}
+
+      {/* Block Type Change Menu */}
+      {showTypeMenu && (
+        <div className="absolute -left-48 top-0 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg p-2 z-10">
+          <div className="text-xs font-medium text-gray-900 dark:text-gray-100 mb-2">Change to:</div>
+          <button
+            onClick={() => {
+              onUpdate(convertBlockType(block, 'prose'))
+              setShowTypeMenu(false)
+            }}
+            disabled={block.type === 'prose'}
+            className="w-full text-left px-2 py-1 text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Type size={14} className="inline mr-2" />
+            Prose
+          </button>
+          <button
+            onClick={() => {
+              onUpdate(convertBlockType(block, 'heading'))
+              setShowTypeMenu(false)
+            }}
+            disabled={block.type === 'heading'}
+            className="w-full text-left px-2 py-1 text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Type size={14} className="inline mr-2" />
+            Heading
+          </button>
+          <button
+            onClick={() => {
+              onUpdate(convertBlockType(block, 'narration'))
+              setShowTypeMenu(false)
+            }}
+            disabled={block.type === 'narration'}
+            className="w-full text-left px-2 py-1 text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <SplitSquareVertical size={14} className="inline mr-2" />
+            Narration Box
+          </button>
+          <button
+            onClick={() => {
+              onUpdate(convertBlockType(block, 'dialogue'))
+              setShowTypeMenu(false)
+            }}
+            disabled={block.type === 'dialogue'}
+            className="w-full text-left px-2 py-1 text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Users size={14} className="inline mr-2" />
+            Dialogue
+          </button>
+          <button
+            onClick={() => {
+              onUpdate(convertBlockType(block, 'chat'))
+              setShowTypeMenu(false)
+            }}
+            disabled={block.type === 'chat'}
+            className="w-full text-left px-2 py-1 text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <MessageSquare size={14} className="inline mr-2" />
+            Chat
+          </button>
+          <button
+            onClick={() => {
+              onUpdate(convertBlockType(block, 'phone'))
+              setShowTypeMenu(false)
+            }}
+            disabled={block.type === 'phone'}
+            className="w-full text-left px-2 py-1 text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Smartphone size={14} className="inline mr-2" />
+            Phone UI
+          </button>
+          <hr className="my-1 border-gray-200 dark:border-gray-700" />
+          <button
+            onClick={() => setShowTypeMenu(false)}
+            className="w-full text-left px-2 py-1 text-xs text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+          >
+            Cancel
           </button>
         </div>
       )}
@@ -429,7 +615,7 @@ function ProseBlockEditor({
 }) {
   if (mode === 'preview' || mode === 'translate') {
     return (
-      <p className="prose max-w-none" style={{ textAlign: block.style?.textAlign }}>
+      <p className="prose max-w-none text-gray-900 dark:text-gray-100" style={{ textAlign: block.style?.textAlign }}>
         {block.text}
       </p>
     )
@@ -440,7 +626,7 @@ function ProseBlockEditor({
       value={block.text}
       onChange={(e) => onUpdate({ text: e.target.value })}
       placeholder="Write something..."
-      className="w-full min-h-[80px] border-none outline-none resize-none prose max-w-none"
+      className="w-full min-h-[80px] border-none outline-none resize-none prose max-w-none bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
       style={{ textAlign: block.style?.textAlign }}
     />
   )
@@ -465,7 +651,7 @@ function HeadingBlockEditor({
                             block.level === 2 ? 'h2' :
                             block.level === 3 ? 'h3' : 'h4'
     
-    return <HeadingComponent className={`${className} ${textSizeClass}`}>{block.text}</HeadingComponent>
+    return <HeadingComponent className={`${className} ${textSizeClass} text-gray-900 dark:text-gray-100`}>{block.text}</HeadingComponent>
   }
 
   return (
@@ -474,7 +660,7 @@ function HeadingBlockEditor({
       value={block.text}
       onChange={(e) => onUpdate({ text: e.target.value })}
       placeholder={`Heading ${block.level}`}
-      className={`w-full border-none outline-none ${className} ${textSizeClass}`}
+      className={`w-full border-none outline-none bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 ${className} ${textSizeClass}`}
     />
   )
 }
@@ -508,12 +694,12 @@ function BlockTypeMenu({ onSelectBlock }: { onSelectBlock: (type: BlockType) => 
         <button
           key={type}
           onClick={() => onSelectBlock(type)}
-          className="w-full flex items-start gap-3 px-3 py-2 hover:bg-gray-100 rounded text-left"
+          className="w-full flex items-start gap-3 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-left"
         >
-          <Icon size={18} className="mt-0.5 flex-shrink-0 text-gray-600" />
+          <Icon size={18} className="mt-0.5 flex-shrink-0 text-gray-900 dark:text-gray-100" />
           <div>
-            <div className="font-medium text-sm">{label}</div>
-            <div className="text-xs text-gray-500">{description}</div>
+            <div className="font-medium text-sm text-gray-900 dark:text-gray-100">{label}</div>
+            <div className="text-xs text-gray-700 dark:text-gray-300">{description}</div>
           </div>
         </button>
       ))}

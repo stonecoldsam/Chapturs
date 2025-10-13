@@ -16,6 +16,8 @@ interface ChatBlockEditorProps {
 
 export function ChatBlockEditor({ block, mode, onUpdate }: ChatBlockEditorProps) {
   const [newMessage, setNewMessage] = useState({ user: '', text: '' })
+  const [editingChannelName, setEditingChannelName] = useState(false)
+  const [tempChannelName, setTempChannelName] = useState('')
 
   const addMessage = () => {
     if (!newMessage.user || !newMessage.text) return
@@ -49,9 +51,35 @@ export function ChatBlockEditor({ block, mode, onUpdate }: ChatBlockEditorProps)
     })
   }
 
+  const startEditingChannelName = () => {
+    setTempChannelName(block.channelName || getDefaultChannelName(block.platform))
+    setEditingChannelName(true)
+  }
+
+  const finishEditingChannelName = () => {
+    if (tempChannelName.trim()) {
+      onUpdate({ channelName: tempChannelName.trim() })
+    }
+    setEditingChannelName(false)
+  }
+
+  const getDefaultChannelName = (platform: ChatPlatform): string => {
+    const defaults: Record<ChatPlatform, string> = {
+      discord: '#general',
+      whatsapp: 'WhatsApp',
+      sms: 'Messages',
+      telegram: 'Telegram',
+      slack: '#general',
+      generic: 'Chat'
+    }
+    return defaults[platform]
+  }
+
   // Render chat UI based on platform
   const renderChatPreview = () => {
     const platformStyles = getPlatformStyles(block.platform)
+    const isEditing = mode === 'edit'
+    const channelName = block.channelName || getDefaultChannelName(block.platform)
 
     return (
       <div className={`rounded-lg overflow-hidden ${platformStyles.container}`}>
@@ -59,9 +87,29 @@ export function ChatBlockEditor({ block, mode, onUpdate }: ChatBlockEditorProps)
         <div className={platformStyles.header}>
           <div className="flex items-center gap-2">
             <MessageCircle size={16} />
-            <span className="font-medium">
-              {block.platform === 'discord' ? '#general' : 'Chat'}
-            </span>
+            {isEditing && editingChannelName ? (
+              <input
+                type="text"
+                value={tempChannelName}
+                onChange={(e) => setTempChannelName(e.target.value)}
+                onBlur={finishEditingChannelName}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') finishEditingChannelName()
+                  if (e.key === 'Escape') setEditingChannelName(false)
+                }}
+                autoFocus
+                className="bg-gray-700 text-white px-2 py-1 rounded outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                placeholder={getDefaultChannelName(block.platform)}
+              />
+            ) : (
+              <span
+                onClick={() => isEditing && startEditingChannelName()}
+                className={isEditing ? 'cursor-pointer hover:bg-opacity-20 hover:bg-white px-2 py-1 rounded' : 'font-medium'}
+                title={isEditing ? 'Click to edit channel name' : ''}
+              >
+                {channelName}
+              </span>
+            )}
           </div>
         </div>
 
@@ -107,18 +155,52 @@ export function ChatBlockEditor({ block, mode, onUpdate }: ChatBlockEditorProps)
           <MessageCircle size={18} className="text-gray-600" />
           <span className="font-medium">Chat Block</span>
         </div>
-        <select
-          value={block.platform}
-          onChange={(e) => onUpdate({ platform: e.target.value as ChatPlatform })}
-          className="px-3 py-1 border border-gray-300 rounded text-sm"
-        >
-          <option value="discord">Discord</option>
-          <option value="whatsapp">WhatsApp</option>
-          <option value="sms">SMS</option>
-          <option value="telegram">Telegram</option>
-          <option value="slack">Slack</option>
-          <option value="generic">Generic</option>
-        </select>
+        <div className="flex items-center gap-3">
+          <select
+            value={block.platform}
+            onChange={(e) => onUpdate({ platform: e.target.value as ChatPlatform })}
+            className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm text-gray-900 dark:text-gray-100 dark:bg-gray-700"
+          >
+            <option value="discord">Discord</option>
+            <option value="whatsapp">WhatsApp</option>
+            <option value="sms">SMS</option>
+            <option value="telegram">Telegram</option>
+            <option value="slack">Slack</option>
+            <option value="generic">Generic</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Display Options */}
+      <div className="flex gap-4 text-sm">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={block.platformStyle?.showAvatars ?? true}
+            onChange={(e) => onUpdate({ 
+              platformStyle: { 
+                ...block.platformStyle, 
+                showAvatars: e.target.checked 
+              } 
+            })}
+            className="rounded"
+          />
+          <span>Show Avatars</span>
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={block.platformStyle?.showTimestamps ?? true}
+            onChange={(e) => onUpdate({ 
+              platformStyle: { 
+                ...block.platformStyle, 
+                showTimestamps: e.target.checked 
+              } 
+            })}
+            className="rounded"
+          />
+          <span>Show Timestamps</span>
+        </label>
       </div>
 
       {/* Preview */}
@@ -129,20 +211,20 @@ export function ChatBlockEditor({ block, mode, onUpdate }: ChatBlockEditorProps)
       {/* Message List */}
       <div className="space-y-2">
         {block.messages.map((message, index) => (
-          <div key={message.id} className="flex items-start gap-2 bg-white p-3 rounded border border-gray-200">
+          <div key={message.id} className="flex items-start gap-2 bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700">
             <div className="flex-1 space-y-2">
               <input
                 type="text"
                 value={message.user}
                 onChange={(e) => updateMessage(message.id, { user: e.target.value })}
                 placeholder="Username"
-                className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100 dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400"
               />
               <textarea
                 value={message.text}
                 onChange={(e) => updateMessage(message.id, { text: e.target.value })}
                 placeholder="Message text"
-                className="w-full px-2 py-1 text-sm border border-gray-300 rounded resize-none"
+                className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded resize-none text-gray-900 dark:text-gray-100 dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400"
                 rows={2}
               />
             </div>
@@ -163,14 +245,14 @@ export function ChatBlockEditor({ block, mode, onUpdate }: ChatBlockEditorProps)
           value={newMessage.user}
           onChange={(e) => setNewMessage({ ...newMessage, user: e.target.value })}
           placeholder="Username"
-          className="px-3 py-2 text-sm border border-gray-300 rounded"
+          className="px-3 py-2 text-sm border border-gray-300 rounded text-gray-900 dark:text-gray-100 dark:bg-gray-800 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400"
         />
         <input
           type="text"
           value={newMessage.text}
           onChange={(e) => setNewMessage({ ...newMessage, text: e.target.value })}
           placeholder="Message text"
-          className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded"
+          className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded text-gray-900 dark:text-gray-100 dark:bg-gray-800 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400"
           onKeyDown={(e) => e.key === 'Enter' && addMessage()}
         />
         <button
@@ -196,7 +278,13 @@ interface PhoneBlockEditorProps {
 }
 
 export function PhoneBlockEditor({ block, mode, onUpdate }: PhoneBlockEditorProps) {
-  const [newMessage, setNewMessage] = useState({ user: '', text: '' })
+  const [newMessage, setNewMessage] = useState({ user: '', text: '', isOwner: false })
+  const [editingField, setEditingField] = useState<string | null>(null)
+  const [tempValue, setTempValue] = useState<string>('')
+
+  // Get unique senders for autocomplete
+  const uniqueSenders = Array.from(new Set(block.content.map(m => m.user))).filter(Boolean)
+  const phoneOwner = block.phoneOwner || 'You'
 
   const addMessage = () => {
     if (!newMessage.user || !newMessage.text) return
@@ -213,7 +301,7 @@ export function PhoneBlockEditor({ block, mode, onUpdate }: PhoneBlockEditorProp
       content: [...block.content, message]
     })
 
-    setNewMessage({ user: '', text: '' })
+    setNewMessage({ user: '', text: '', isOwner: false })
   }
 
   const removeMessage = (messageId: string) => {
@@ -222,8 +310,47 @@ export function PhoneBlockEditor({ block, mode, onUpdate }: PhoneBlockEditorProp
     })
   }
 
+  const startEditing = (field: string, currentValue: string | number) => {
+    setEditingField(field)
+    setTempValue(String(currentValue))
+  }
+
+  const finishEditing = (field: string) => {
+    if (!tempValue.trim() && field !== 'batteryLevel' && field !== 'signalStrength') {
+      setEditingField(null)
+      return
+    }
+
+    const ui = block.ui || {}
+    
+    switch (field) {
+      case 'time':
+        onUpdate({ ui: { ...ui, time: tempValue } })
+        break
+      case 'carrier':
+        onUpdate({ ui: { ...ui, carrier: tempValue } })
+        break
+      case 'batteryLevel':
+        const battery = parseInt(tempValue)
+        if (!isNaN(battery) && battery >= 0 && battery <= 100) {
+          onUpdate({ ui: { ...ui, batteryLevel: battery } })
+        }
+        break
+      case 'signalStrength':
+        const signal = parseInt(tempValue)
+        if (!isNaN(signal) && signal >= 0 && signal <= 5) {
+          onUpdate({ ui: { ...ui, signalStrength: signal } })
+        }
+        break
+    }
+    
+    setEditingField(null)
+    setTempValue('')
+  }
+
   const renderPhonePreview = () => {
     const isIOS = block.phoneType === 'ios'
+    const isEditing = mode === 'edit'
 
     return (
       <div className="mx-auto max-w-sm">
@@ -231,11 +358,108 @@ export function PhoneBlockEditor({ block, mode, onUpdate }: PhoneBlockEditorProp
         <div className={`rounded-3xl overflow-hidden shadow-2xl ${isIOS ? 'bg-black' : 'bg-gray-900'}`}>
           {/* Notch/Status Bar */}
           <div className={`${isIOS ? 'h-8' : 'h-6'} bg-black flex items-center justify-between px-6 text-white text-xs`}>
-            <span>{block.ui?.time || '9:41'}</span>
+            {/* Time - Editable */}
+            {isEditing && editingField === 'time' ? (
+              <input
+                type="text"
+                value={tempValue}
+                onChange={(e) => setTempValue(e.target.value)}
+                onBlur={() => finishEditing('time')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') finishEditing('time')
+                  if (e.key === 'Escape') setEditingField(null)
+                }}
+                autoFocus
+                className="bg-gray-800 text-white px-1 rounded w-16 outline-none focus:ring-1 focus:ring-blue-500"
+                placeholder="9:41"
+              />
+            ) : (
+              <span
+                onClick={() => isEditing && startEditing('time', block.ui?.time || '9:41')}
+                className={isEditing ? 'cursor-pointer hover:bg-gray-800 px-1 rounded' : ''}
+                title={isEditing ? 'Click to edit time' : ''}
+              >
+                {block.ui?.time || '9:41'}
+              </span>
+            )}
+            
             <div className="flex items-center gap-2">
-              <span>{block.ui?.carrier || 'Carrier'}</span>
-              <span>📶 {block.ui?.signalStrength || 4}/5</span>
-              <span>🔋 {block.ui?.batteryLevel || 85}%</span>
+              {/* Carrier - Editable */}
+              {isEditing && editingField === 'carrier' ? (
+                <input
+                  type="text"
+                  value={tempValue}
+                  onChange={(e) => setTempValue(e.target.value)}
+                  onBlur={() => finishEditing('carrier')}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') finishEditing('carrier')
+                    if (e.key === 'Escape') setEditingField(null)
+                  }}
+                  autoFocus
+                  className="bg-gray-800 text-white px-1 rounded w-20 outline-none focus:ring-1 focus:ring-blue-500"
+                  placeholder="Carrier"
+                />
+              ) : (
+                <span
+                  onClick={() => isEditing && startEditing('carrier', block.ui?.carrier || 'Carrier')}
+                  className={isEditing ? 'cursor-pointer hover:bg-gray-800 px-1 rounded' : ''}
+                  title={isEditing ? 'Click to edit carrier' : ''}
+                >
+                  {block.ui?.carrier || 'Carrier'}
+                </span>
+              )}
+              
+              {/* Signal Strength - Editable */}
+              {isEditing && editingField === 'signalStrength' ? (
+                <input
+                  type="number"
+                  min="0"
+                  max="5"
+                  value={tempValue}
+                  onChange={(e) => setTempValue(e.target.value)}
+                  onBlur={() => finishEditing('signalStrength')}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') finishEditing('signalStrength')
+                    if (e.key === 'Escape') setEditingField(null)
+                  }}
+                  autoFocus
+                  className="bg-gray-800 text-white px-1 rounded w-12 outline-none focus:ring-1 focus:ring-blue-500"
+                />
+              ) : (
+                <span
+                  onClick={() => isEditing && startEditing('signalStrength', block.ui?.signalStrength || 4)}
+                  className={isEditing ? 'cursor-pointer hover:bg-gray-800 px-1 rounded' : ''}
+                  title={isEditing ? 'Click to edit signal (0-5)' : ''}
+                >
+                  📶 {block.ui?.signalStrength || 4}/5
+                </span>
+              )}
+              
+              {/* Battery Level - Editable */}
+              {isEditing && editingField === 'batteryLevel' ? (
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={tempValue}
+                  onChange={(e) => setTempValue(e.target.value)}
+                  onBlur={() => finishEditing('batteryLevel')}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') finishEditing('batteryLevel')
+                    if (e.key === 'Escape') setEditingField(null)
+                  }}
+                  autoFocus
+                  className="bg-gray-800 text-white px-1 rounded w-12 outline-none focus:ring-1 focus:ring-blue-500"
+                />
+              ) : (
+                <span
+                  onClick={() => isEditing && startEditing('batteryLevel', block.ui?.batteryLevel || 85)}
+                  className={isEditing ? 'cursor-pointer hover:bg-gray-800 px-1 rounded' : ''}
+                  title={isEditing ? 'Click to edit battery (0-100)' : ''}
+                >
+                  🔋 {block.ui?.batteryLevel || 85}%
+                </span>
+              )}
             </div>
           </div>
 
@@ -257,7 +481,7 @@ export function PhoneBlockEditor({ block, mode, onUpdate }: PhoneBlockEditorProp
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {block.content.map((message) => {
-                const isSent = message.user === 'You'
+                const isSent = message.user === phoneOwner
                 
                 return (
                   <div key={message.id} className={`flex ${isSent ? 'justify-end' : 'justify-start'}`}>
@@ -271,7 +495,7 @@ export function PhoneBlockEditor({ block, mode, onUpdate }: PhoneBlockEditorProp
                       )}
                       <div className="text-sm">{message.text}</div>
                       {block.ui && (
-                        <div className={`text-xs mt-1 ${isSent ? 'text-blue-100' : 'text-gray-500'}`}>
+                        <div className={`text-xs mt-1 ${isSent ? 'text-blue-100' : 'text-gray-600'}`}>
                           {new Date(message.timestamp || '').toLocaleTimeString([], { 
                             hour: '2-digit', 
                             minute: '2-digit' 
@@ -306,90 +530,169 @@ export function PhoneBlockEditor({ block, mode, onUpdate }: PhoneBlockEditorProp
     <div className="border border-gray-300 rounded-lg p-4 space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Phone size={18} className="text-gray-600" />
-          <span className="font-medium">Phone UI Block</span>
+          <Phone size={18} className="text-gray-600 dark:text-gray-400" />
+          <span className="font-medium text-gray-900 dark:text-gray-100">Phone UI Block</span>
         </div>
-        <select
-          value={block.phoneType || 'ios'}
-          onChange={(e) => onUpdate({ phoneType: e.target.value as 'ios' | 'android' | 'generic' })}
-          className="px-3 py-1 border border-gray-300 rounded text-sm"
-        >
-          <option value="ios">iOS</option>
-          <option value="android">Android</option>
-          <option value="generic">Generic</option>
-        </select>
+        <div className="flex gap-2">
+          <select
+            value={block.phoneType || 'ios'}
+            onChange={(e) => onUpdate({ phoneType: e.target.value as 'ios' | 'android' | 'generic' })}
+            className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm text-gray-900 dark:text-gray-100 dark:bg-gray-700"
+          >
+            <option value="ios">iOS</option>
+            <option value="android">Android</option>
+            <option value="generic">Generic</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Phone Owner Setting */}
+      <div className="flex items-center gap-2">
+        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Phone Owner (Perspective):</label>
+        <input
+          type="text"
+          value={phoneOwner}
+          onChange={(e) => onUpdate({ phoneOwner: e.target.value })}
+          placeholder="You"
+          className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100 dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400"
+          list="phone-owner-suggestions"
+        />
+        <datalist id="phone-owner-suggestions">
+          {uniqueSenders.map(sender => (
+            <option key={sender} value={sender} />
+          ))}
+        </datalist>
+        <span className="text-xs text-gray-600 dark:text-gray-400">(Their messages appear on the right)</span>
       </div>
 
       {/* Preview */}
-      <div className="bg-gray-50 rounded p-4">
+      <div className="bg-gray-50 dark:bg-gray-900 rounded p-4">
         {renderPhonePreview()}
       </div>
 
-      {/* Message Editor (similar to ChatBlock) */}
+      {/* Message Editor */}
       <div className="space-y-2">
-        {block.content.map((message) => (
-          <div key={message.id} className="flex items-start gap-2 bg-white p-3 rounded border border-gray-200">
-            <div className="flex-1 space-y-2">
-              <input
-                type="text"
-                value={message.user}
-                onChange={(e) => {
-                  onUpdate({
-                    content: block.content.map(m =>
-                      m.id === message.id ? { ...m, user: e.target.value } : m
-                    )
-                  })
-                }}
-                placeholder="Sender (use 'You' for sent messages)"
-                className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
-              />
-              <textarea
-                value={message.text}
-                onChange={(e) => {
-                  onUpdate({
-                    content: block.content.map(m =>
-                      m.id === message.id ? { ...m, text: e.target.value } : m
-                    )
-                  })
-                }}
-                placeholder="Message text"
-                className="w-full px-2 py-1 text-sm border border-gray-300 rounded resize-none"
-                rows={2}
-              />
+        <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Messages:</div>
+        {block.content.map((message) => {
+          const isSent = message.user === phoneOwner
+          return (
+            <div key={message.id} className={`flex items-start gap-2 bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700 ${isSent ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}>
+              <div className="flex-1 space-y-2">
+                <div className="flex gap-2 items-center">
+                  <select
+                    value={message.user}
+                    onChange={(e) => {
+                      onUpdate({
+                        content: block.content.map(m =>
+                          m.id === message.id ? { ...m, user: e.target.value } : m
+                        )
+                      })
+                    }}
+                    className="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100 dark:bg-gray-700"
+                  >
+                    <option value="">Select sender...</option>
+                    {uniqueSenders.map(sender => (
+                      <option key={sender} value={sender}>{sender}</option>
+                    ))}
+                    {!uniqueSenders.includes(message.user) && message.user && (
+                      <option value={message.user}>{message.user}</option>
+                    )}
+                  </select>
+                  <input
+                    type="text"
+                    value={message.user}
+                    onChange={(e) => {
+                      onUpdate({
+                        content: block.content.map(m =>
+                          m.id === message.id ? { ...m, user: e.target.value } : m
+                        )
+                      })
+                    }}
+                    placeholder="Or type sender name"
+                    className="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100 dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400"
+                    list="message-sender-suggestions"
+                  />
+                  <datalist id="message-sender-suggestions">
+                    {uniqueSenders.map(sender => (
+                      <option key={sender} value={sender} />
+                    ))}
+                  </datalist>
+                  <span className={`text-xs px-2 py-1 rounded ${isSent ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}>
+                    {isSent ? '→ Sent' : '← Received'}
+                  </span>
+                </div>
+                <textarea
+                  value={message.text}
+                  onChange={(e) => {
+                    onUpdate({
+                      content: block.content.map(m =>
+                        m.id === message.id ? { ...m, text: e.target.value } : m
+                      )
+                    })
+                  }}
+                  placeholder="Message text"
+                  className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded resize-none text-gray-900 dark:text-gray-100 dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400"
+                  rows={2}
+                />
+              </div>
+              <button
+                onClick={() => removeMessage(message.id)}
+                className="p-1 text-red-500 hover:text-red-700"
+                title="Delete message"
+              >
+                <Trash2 size={16} />
+              </button>
             </div>
-            <button
-              onClick={() => removeMessage(message.id)}
-              className="p-1 text-red-500 hover:text-red-700"
-            >
-              <Trash2 size={16} />
-            </button>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={newMessage.user}
-          onChange={(e) => setNewMessage({ ...newMessage, user: e.target.value })}
-          placeholder="Sender"
-          className="px-3 py-2 text-sm border border-gray-300 rounded"
-        />
-        <input
-          type="text"
-          value={newMessage.text}
-          onChange={(e) => setNewMessage({ ...newMessage, text: e.target.value })}
-          placeholder="Message text"
-          className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded"
-          onKeyDown={(e) => e.key === 'Enter' && addMessage()}
-        />
-        <button
-          onClick={addMessage}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-2"
-        >
-          <Plus size={16} />
-          Add
-        </button>
+      {/* Add New Message */}
+      <div className="space-y-2 border-t pt-3">
+        <div className="text-sm font-medium text-gray-700 dark:text-gray-300">Add Message:</div>
+        <div className="flex gap-2">
+          <select
+            value={newMessage.user}
+            onChange={(e) => setNewMessage({ ...newMessage, user: e.target.value })}
+            className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100 dark:bg-gray-700"
+          >
+            <option value="">Select sender...</option>
+            <option value={phoneOwner}>{phoneOwner} (Phone Owner)</option>
+            {uniqueSenders.filter(s => s !== phoneOwner).map(sender => (
+              <option key={sender} value={sender}>{sender}</option>
+            ))}
+          </select>
+          <input
+            type="text"
+            value={newMessage.user}
+            onChange={(e) => setNewMessage({ ...newMessage, user: e.target.value })}
+            placeholder="Or type sender name"
+            className="w-32 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100 dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400"
+            list="new-message-sender-suggestions"
+          />
+          <datalist id="new-message-sender-suggestions">
+            <option value={phoneOwner} />
+            {uniqueSenders.map(sender => (
+              <option key={sender} value={sender} />
+            ))}
+          </datalist>
+          <input
+            type="text"
+            value={newMessage.text}
+            onChange={(e) => setNewMessage({ ...newMessage, text: e.target.value })}
+            placeholder="Message text"
+            className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100 dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400"
+            onKeyDown={(e) => e.key === 'Enter' && addMessage()}
+          />
+          <button
+            onClick={addMessage}
+            disabled={!newMessage.user || !newMessage.text}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            <Plus size={16} />
+            Add
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -426,14 +729,14 @@ export function DialogueBlockEditor({ block, mode, onUpdate }: DialogueBlockEdit
 
   if (mode === 'preview' || mode === 'translate') {
     return (
-      <div className="bg-gray-50 rounded-lg p-6 space-y-3 font-mono text-sm">
+      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 space-y-3 font-mono text-sm">
         {block.lines.map((line, index) => (
           <div key={index} className="flex gap-3">
-            <div className="font-bold uppercase min-w-[120px] text-right">
+            <div className="font-bold uppercase min-w-[120px] text-right text-gray-900 dark:text-gray-100">
               {line.speaker}
-              {line.emotion && <span className="text-gray-500 text-xs ml-2">({line.emotion})</span>}
+              {line.emotion && <span className="text-gray-600 dark:text-gray-400 text-xs ml-2">({line.emotion})</span>}
             </div>
-            <div className="flex-1">{line.text}</div>
+            <div className="flex-1 text-gray-900 dark:text-gray-100">{line.text}</div>
           </div>
         ))}
       </div>
@@ -451,7 +754,7 @@ export function DialogueBlockEditor({ block, mode, onUpdate }: DialogueBlockEdit
 
       <div className="space-y-2">
         {block.lines.map((line, index) => (
-          <div key={index} className="flex items-start gap-2 bg-white p-3 rounded border border-gray-200">
+          <div key={index} className="flex items-start gap-2 bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700">
             <div className="flex-1 space-y-2">
               <div className="flex gap-2">
                 <input
@@ -459,21 +762,21 @@ export function DialogueBlockEditor({ block, mode, onUpdate }: DialogueBlockEdit
                   value={line.speaker}
                   onChange={(e) => updateLine(index, { speaker: e.target.value })}
                   placeholder="Speaker"
-                  className="w-40 px-2 py-1 text-sm border border-gray-300 rounded font-medium"
+                  className="w-40 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded font-medium text-gray-900 dark:text-gray-100 dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400"
                 />
                 <input
                   type="text"
                   value={line.emotion || ''}
                   onChange={(e) => updateLine(index, { emotion: e.target.value || undefined })}
                   placeholder="Emotion (optional)"
-                  className="w-32 px-2 py-1 text-sm border border-gray-300 rounded text-gray-600"
+                  className="w-32 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400"
                 />
               </div>
               <textarea
                 value={line.text}
                 onChange={(e) => updateLine(index, { text: e.target.value })}
                 placeholder="Dialogue text"
-                className="w-full px-2 py-1 text-sm border border-gray-300 rounded resize-none"
+                className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded resize-none text-gray-900 dark:text-gray-100 dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400"
                 rows={2}
               />
             </div>
@@ -516,13 +819,13 @@ export function NarrationBlockEditor({ block, mode, onUpdate }: NarrationBlockEd
     return (
       <div className={`my-6 ${position === 'center' ? 'mx-auto max-w-2xl' : ''}`}>
         <div className={`
-          ${variant === 'box' ? 'border-2 border-gray-400 bg-gray-50 p-4 rounded' : ''}
+          ${variant === 'box' ? 'border-2 border-gray-400 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 p-4 rounded' : ''}
           ${variant === 'overlay' ? 'bg-black/80 text-white p-6 rounded-lg' : ''}
-          ${variant === 'inline' ? 'italic text-gray-600 border-l-4 border-gray-400 pl-4' : ''}
+          ${variant === 'inline' ? 'italic text-gray-700 dark:text-gray-300 border-l-4 border-gray-400 dark:border-gray-600 pl-4' : ''}
           text-center
         `}>
-          <BookOpen className="inline-block mb-2 text-gray-500" size={20} />
-          <div className="font-serif text-sm leading-relaxed">
+          <BookOpen className="inline-block mb-2 text-gray-600 dark:text-gray-400" size={20} />
+          <div className={`font-serif text-sm leading-relaxed ${variant !== 'overlay' ? 'text-gray-900 dark:text-gray-100' : ''}`}>
             {block.text}
           </div>
         </div>
@@ -543,7 +846,7 @@ export function NarrationBlockEditor({ block, mode, onUpdate }: NarrationBlockEd
             onChange={(e) => onUpdate({ 
               style: { ...block.style, variant: e.target.value as 'box' | 'overlay' | 'inline' }
             })}
-            className="px-3 py-1 border border-gray-300 rounded text-sm"
+            className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm text-gray-900 dark:text-gray-100 dark:bg-gray-700"
           >
             <option value="box">Box</option>
             <option value="overlay">Overlay</option>
@@ -554,7 +857,7 @@ export function NarrationBlockEditor({ block, mode, onUpdate }: NarrationBlockEd
             onChange={(e) => onUpdate({ 
               style: { ...block.style, position: e.target.value as 'top' | 'center' | 'bottom' }
             })}
-            className="px-3 py-1 border border-gray-300 rounded text-sm"
+            className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm text-gray-900 dark:text-gray-100 dark:bg-gray-700"
           >
             <option value="top">Top</option>
             <option value="center">Center</option>
@@ -567,7 +870,7 @@ export function NarrationBlockEditor({ block, mode, onUpdate }: NarrationBlockEd
         value={block.text}
         onChange={(e) => onUpdate({ text: e.target.value })}
         placeholder="Narrator commentary..."
-        className="w-full min-h-[100px] px-3 py-2 text-sm border border-gray-300 rounded resize-none font-serif"
+        className="w-full min-h-[100px] px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded resize-none font-serif text-gray-900 dark:text-gray-100 dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400"
       />
 
       {/* Preview */}

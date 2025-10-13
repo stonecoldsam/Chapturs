@@ -1,4 +1,5 @@
 // Centralized API Error Handling and Validation Utilities
+// Updated with better error handling
 import { NextResponse } from 'next/server'
 import { ZodSchema, ZodError } from 'zod'
 
@@ -64,6 +65,16 @@ export function createErrorResponse(
 ): NextResponse<ApiErrorResponse> {
   const timestamp = new Date().toISOString()
 
+  // Log all errors for debugging
+  console.error('API Error caught:', {
+    errorType: error?.constructor?.name,
+    error,
+    hasErrors: error && typeof error === 'object' && 'errors' in error,
+    hasIssues: error && typeof error === 'object' && 'issues' in error,
+    requestId,
+    timestamp
+  })
+
   // Handle known ApiError instances
   if (error instanceof ApiError) {
     return NextResponse.json({
@@ -81,9 +92,24 @@ export function createErrorResponse(
     return NextResponse.json({
       error: ApiErrorType.VALIDATION_ERROR,
       message: 'Validation failed',
-      details: error.errors.map((err: any) => ({
+      details: error.issues.map((err) => ({
         field: err.path.join('.'),
         message: err.message,
+        code: err.code
+      })),
+      timestamp,
+      requestId
+    }, { status: 400 })
+  }
+
+  // Handle errors with errors array (but not ZodError)
+  if (error && typeof error === 'object' && 'errors' in error && Array.isArray((error as any).errors)) {
+    return NextResponse.json({
+      error: ApiErrorType.VALIDATION_ERROR,
+      message: 'Validation failed',
+      details: (error as any).errors.map((err: any) => ({
+        field: err.path?.join('.') || 'unknown',
+        message: err.message || String(err),
         code: err.code
       })),
       timestamp,
