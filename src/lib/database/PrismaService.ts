@@ -121,6 +121,7 @@ export default class DatabaseService {
     title: string;
     content: any;
     wordCount: number;
+    status?: string;
   }) {
     const section = await prisma.section.create({
       data: {
@@ -128,7 +129,7 @@ export default class DatabaseService {
         title: data.title,
         content: JSON.stringify(data.content),
         wordCount: data.wordCount,
-        status: 'draft'
+        status: data.status || 'draft'
       }
     });
     return {

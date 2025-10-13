@@ -122,7 +122,8 @@ export async function POST(request: NextRequest, props: RouteParams) {
       workId,
       title,
       content,
-      wordCount: wordCount || 0
+      wordCount: wordCount || 0,
+      status
     })
 
     // If this is the first published chapter, update work status to published
