@@ -4,7 +4,20 @@ import GitHub from "next-auth/providers/github"
 import Discord from "next-auth/providers/discord"
 import { prisma } from '@/lib/database/PrismaService'
 
+// Validate required environment variables
+const requiredEnvVars = ['AUTH_SECRET', 'AUTH_GOOGLE_ID', 'AUTH_GOOGLE_SECRET']
+const missingVars = requiredEnvVars.filter(varName => !process.env[varName])
+
+if (missingVars.length > 0) {
+  console.error('❌ Missing required environment variables:', missingVars.join(', '))
+  console.error('Please add these to your Vercel environment variables:')
+  console.error('- AUTH_SECRET (generate with: openssl rand -base64 32)')
+  console.error('- AUTH_GOOGLE_ID (from Google Cloud Console)')
+  console.error('- AUTH_GOOGLE_SECRET (from Google Cloud Console)')
+}
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  secret: process.env.AUTH_SECRET,
   providers: [
     // Google OAuth (primary recommended option)
     Google({
