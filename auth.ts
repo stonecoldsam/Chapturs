@@ -54,44 +54,73 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       const email = profile?.email
       const emailVerified = profile?.email_verified ?? true // GitHub/Discord don't have this field
       
-      if (email && emailVerified) {
-        try {
-          // Create or find user in our database
-          const dbUser = await prisma.user.upsert({
-            where: { email },
-            update: {
-              displayName: profile.name || undefined,
-              // Support different avatar field names across providers
-              avatar: (profile as any).picture || (profile as any).avatar_url || (profile as any).image || undefined,
-            },
-            create: {
-              id: user.id, // Use NextAuth's generated ID
-              email,
-              username: email.split('@')[0] + '_' + Date.now(), // Generate unique username
-              displayName: profile.name || undefined,
-              avatar: (profile as any).picture || (profile as any).avatar_url || (profile as any).image || undefined,
-            },
-          })
-
-          // Create or ensure author profile exists for this user
-          await prisma.author.upsert({
-            where: { userId: dbUser.id },
-            update: {}, // No updates needed for existing authors
-            create: {
-              userId: dbUser.id,
-              verified: false, // New authors start unverified
-              socialLinks: '[]', // Empty social links array
-            },
-          })
-
-          console.log(`User authenticated via ${account?.provider}:`, dbUser.email)
-          return true
-        } catch (error) {
-          console.error('Error creating/updating user in database:', error)
-          return false
-        }
+      console.log('🔐 Sign-in attempt:', {
+        provider: account?.provider,
+        email,
+        emailVerified,
+        userId: user.id
+      })
+      
+      if (!email) {
+        console.error('❌ Sign-in rejected: No email in profile')
+        return false
       }
-      return false // Reject if no email or email not verified
+      
+      if (!emailVerified) {
+        console.error('❌ Sign-in rejected: Email not verified')
+        return false
+      }
+      
+      try {
+        console.log('📝 Attempting to upsert user in database...')
+        
+        // Create or find user in our database
+        const dbUser = await prisma.user.upsert({
+          where: { email },
+          update: {
+            displayName: profile.name || undefined,
+            // Support different avatar field names across providers
+            avatar: (profile as any).picture || (profile as any).avatar_url || (profile as any).image || undefined,
+          },
+          create: {
+            id: user.id, // Use NextAuth's generated ID
+            email,
+            username: email.split('@')[0] + '_' + Date.now(), // Generate unique username
+            displayName: profile.name || undefined,
+            avatar: (profile as any).picture || (profile as any).avatar_url || (profile as any).image || undefined,
+          },
+        })
+        
+        console.log('✅ User upserted:', dbUser.email)
+
+        // Create or ensure author profile exists for this user
+        console.log('📝 Attempting to upsert author profile...')
+        
+        await prisma.author.upsert({
+          where: { userId: dbUser.id },
+          update: {}, // No updates needed for existing authors
+          create: {
+            userId: dbUser.id,
+            verified: false, // New authors start unverified
+            socialLinks: '[]', // Empty social links array
+          },
+        })
+        
+        console.log('✅ Author profile ready')
+        console.log(`✅ User authenticated via ${account?.provider}:`, dbUser.email)
+        return true
+      } catch (error) {
+        console.error('❌ Database error during sign-in:', error)
+        console.error('Error details:', JSON.stringify(error, null, 2))
+        
+        // Check if it's a connection error
+        if (error instanceof Error) {
+          console.error('Error message:', error.message)
+          console.error('Error stack:', error.stack)
+        }
+        
+        return false
+      }
     },
     async session({ session, token }) {
       // Send properties to the client
