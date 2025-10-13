@@ -49,7 +49,7 @@ export default function ChapterBlockRenderer({ content, className = '' }: Chapte
 function BlockRenderer({ block }: { block: ContentBlock }) {
   switch (block.type) {
     case 'prose':
-      return <ProseBlock content={block.content} />
+      return <ProseBlock content={block.text || block.content || ''} />
     
     case 'heading':
       return <HeadingBlock text={block.text} level={block.level} />
@@ -67,7 +67,7 @@ function BlockRenderer({ block }: { block: ContentBlock }) {
       return <PhoneBlock screens={block.screens} />
     
     default:
-      console.warn('Unknown block type:', block.type)
+      console.warn('Unknown block type:', block.type, block)
       return null
   }
 }

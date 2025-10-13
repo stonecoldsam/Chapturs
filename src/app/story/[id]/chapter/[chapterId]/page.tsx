@@ -64,7 +64,18 @@ export default function ChapterPage() {
               console.log('Found section:', foundSection)
               console.log('Section content type:', typeof foundSection.content)
               console.log('Section content:', foundSection.content)
-              console.log('Is array?', Array.isArray(foundSection.content))
+              
+              // Parse content if it's a string
+              if (typeof foundSection.content === 'string') {
+                try {
+                  foundSection.content = JSON.parse(foundSection.content)
+                  console.log('Parsed content:', foundSection.content)
+                } catch (error) {
+                  console.error('Failed to parse section content:', error)
+                }
+              }
+              
+              console.log('Final content is array?', Array.isArray(foundSection.content))
               setSection(foundSection)
               const index = sectionsArray.findIndex((s: Section) => s.id === chapterId)
               setCurrentSectionIndex(index)
