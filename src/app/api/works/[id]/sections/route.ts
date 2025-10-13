@@ -34,76 +34,79 @@ export async function POST(request: NextRequest, props: RouteParams) {
       )
     }
 
-    // Check if this is the first section for validation purposes
-    const existingSections = await DatabaseService.getSectionsForWork(workId)
-    const isFirstChapter = existingSections.length === 0
+    // Only validate if status is 'published', skip for drafts
+    if (status === 'published') {
+      // Check if this is the first section for validation purposes
+      const existingSections = await DatabaseService.getSectionsForWork(workId)
+      const isFirstChapter = existingSections.length === 0
 
-    // Validate content based on whether it's the first chapter
-    if (isFirstChapter) {
-      // Comprehensive validation for first chapter
-      try {
-        const validationResult = await ContentValidationService.validateContent(
-          workId,
-          null, // No section ID yet
-          content,
-          {
-            checkPlagiarism: true,
-            checkDuplicates: true,
-            checkSafety: true,
-            checkQuality: true,
-            isFirstChapter: true
-          }
-        )
-
-        if (!validationResult.passed) {
-          return NextResponse.json(
+      // Validate content based on whether it's the first chapter
+      if (isFirstChapter) {
+        // Comprehensive validation for first chapter
+        try {
+          const validationResult = await ContentValidationService.validateContent(
+            workId,
+            null, // No section ID yet
+            content,
             {
-              error: 'Content validation failed. Please review and fix the issues.',
-              validationErrors: validationResult.flags,
-              details: validationResult.details
-            },
-            { status: 400 }
+              checkPlagiarism: true,
+              checkDuplicates: true,
+              checkSafety: true,
+              checkQuality: true,
+              isFirstChapter: true
+            }
+          )
+
+          if (!validationResult.passed) {
+            return NextResponse.json(
+              {
+                error: 'Content validation failed. Please review and fix the issues.',
+                validationErrors: validationResult.flags,
+                details: validationResult.details
+              },
+              { status: 400 }
+            )
+          }
+        } catch (error) {
+          console.error('Content validation error:', error)
+          return NextResponse.json(
+            { error: 'Content validation failed. Please try again.' },
+            { status: 500 }
           )
         }
-      } catch (error) {
-        console.error('Content validation error:', error)
-        return NextResponse.json(
-          { error: 'Content validation failed. Please try again.' },
-          { status: 500 }
-        )
-      }
-    } else {
-      // Basic validation for subsequent chapters
-      try {
-        const validationResult = await ContentValidationService.validateContent(
-          workId,
-          null,
-          content,
-          {
-            checkPlagiarism: false,
-            checkDuplicates: false,
-            checkSafety: true,
-            checkQuality: true,
-            isFirstChapter: false
-          }
-        )
-
-        if (!validationResult.passed) {
-          return NextResponse.json(
+      } else {
+        // Basic validation for subsequent chapters
+        try {
+          const validationResult = await ContentValidationService.validateContent(
+            workId,
+            null,
+            content,
             {
-              error: 'Content validation failed. Please review and fix the issues.',
-              validationErrors: validationResult.flags,
-              details: validationResult.details
-            },
-            { status: 400 }
+              checkPlagiarism: false,
+              checkDuplicates: false,
+              checkSafety: true,
+              checkQuality: true,
+              isFirstChapter: false
+            }
+          )
+
+          if (!validationResult.passed) {
+            return NextResponse.json(
+              {
+                error: 'Content validation failed. Please review and fix the issues.',
+                validationErrors: validationResult.flags,
+                details: validationResult.details
+              },
+              { status: 400 }
+            )
+          }
+        } catch (error) {
+          console.error('Content validation error:', error)
+          return NextResponse.json(
+            { error: 'Content validation failed. Please try again.' },
+            { status: 500 }
           )
         }
-      } catch (error) {
-        console.error('Content validation error:', error)
-        return NextResponse.json(
-          { error: 'Content validation failed. Please try again.' },
-          { status: 500 }
-        )
       }
     }
 

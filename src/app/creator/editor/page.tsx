@@ -95,11 +95,16 @@ export default function CreatorEditorPage() {
   })
 
   useEffect(() => {
+    console.log('useEffect triggered:', { mode, workId, draftId })
     // Load work data if in edit mode, or draft data if working with a draft
     if (mode === 'edit' && workId) {
+      console.log('Calling loadWorkData for workId:', workId)
       loadWorkData(workId)
     } else if (mode === 'create' && draftId) {
+      console.log('Calling loadDraftData for draftId:', draftId)
       loadDraftData(draftId)
+    } else {
+      console.log('No data to load - mode:', mode, 'workId:', workId, 'draftId:', draftId)
     }
   }, [mode, workId, draftId])
 
