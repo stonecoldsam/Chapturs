@@ -96,11 +96,12 @@ export default function CreatorEditorPage() {
 
   useEffect(() => {
     console.log('useEffect triggered:', { mode, workId, draftId })
-    // Load work data if in edit mode, or draft data if working with a draft
-    if (mode === 'edit' && workId) {
+    // Load work data if workId provided (load existing work + sections)
+    if (workId) {
       console.log('Calling loadWorkData for workId:', workId)
       loadWorkData(workId)
-    } else if (mode === 'create' && draftId) {
+      loadWorkSections(workId) // Also load existing sections/chapters
+    } else if (draftId) {
       console.log('Calling loadDraftData for draftId:', draftId)
       loadDraftData(draftId)
     } else {
@@ -142,6 +143,36 @@ export default function CreatorEditorPage() {
       }
     } catch (error) {
       console.error('Error loading work data:', error)
+    }
+  }
+
+  const loadWorkSections = async (workId: string) => {
+    try {
+      console.log('Loading sections for workId:', workId)
+      const response = await fetch(`/api/works/${workId}/sections`)
+      if (response.ok) {
+        const result = await response.json()
+        console.log('Loaded sections:', result.sections)
+        // TODO: Load first section content into editor
+        // For now, just log that we found sections
+        if (result.sections && result.sections.length > 0) {
+          const firstSection = result.sections[0]
+          console.log('First section:', firstSection)
+          // Parse the content from JSON string back to ChaptDocument format
+          try {
+            const content = typeof firstSection.content === 'string' 
+              ? JSON.parse(firstSection.content) 
+              : firstSection.content
+            setDocument(content)
+          } catch (e) {
+            console.error('Error parsing section content:', e)
+          }
+        }
+      } else {
+        console.error('Failed to load sections, status:', response.status)
+      }
+    } catch (error) {
+      console.error('Error loading sections:', error)
     }
   }
 
