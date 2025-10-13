@@ -53,14 +53,16 @@ export default function ChapterPage() {
           // Fetch all sections for this work
           const response = await fetch(`/api/works/${storyId}/sections`)
           if (response.ok) {
-            const sectionsData = await response.json()
-            setAllSections(sectionsData || [])
+            const responseData = await response.json()
+            // Extract sections array from wrapped response
+            const sectionsArray = responseData.sections || responseData || []
+            setAllSections(sectionsArray)
 
             // Find the current section
-            const foundSection = sectionsData?.find((s: Section) => s.id === chapterId)
+            const foundSection = sectionsArray.find((s: Section) => s.id === chapterId)
             if (foundSection) {
               setSection(foundSection)
-              const index = sectionsData.findIndex((s: Section) => s.id === chapterId)
+              const index = sectionsArray.findIndex((s: Section) => s.id === chapterId)
               setCurrentSectionIndex(index)
             }
           }
