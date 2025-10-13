@@ -657,7 +657,17 @@ export default function CreatorEditorPage() {
                     } else {
                       const error = await response.json()
                       console.error('API error response:', error)
-                      alert(`Failed to publish chapter: ${error.error}`)
+                      
+                      // Show detailed validation errors if available
+                      if (error.validationErrors && error.details) {
+                        console.error('Validation errors:', error.validationErrors)
+                        console.error('Validation details:', error.details)
+                        
+                        const errorDetails = error.validationErrors.join('\n• ')
+                        alert(`Failed to publish chapter: ${error.error}\n\nIssues found:\n• ${errorDetails}\n\nCheck the console for more details.`)
+                      } else {
+                        alert(`Failed to publish chapter: ${error.error}`)
+                      }
                     }
                   } catch (error) {
                     console.error('Error publishing chapter:', error)

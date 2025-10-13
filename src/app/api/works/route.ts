@@ -196,6 +196,14 @@ export async function GET(request: NextRequest) {
         author: {
           include: { user: true }
         },
+        sections: {
+          select: {
+            id: true,
+            title: true,
+            createdAt: true
+          },
+          orderBy: { createdAt: 'asc' }
+        },
         _count: {
           select: {
             sections: true,

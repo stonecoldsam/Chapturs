@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '../../../../../../auth'
-import DatabaseService from '../../../../../lib/database/PrismaService'
+import DatabaseService, { prisma } from '../../../../../lib/database/PrismaService'
 import { ContentValidationService } from '../../../../../lib/ContentValidationService'
 
 interface RouteParams {
@@ -124,6 +124,21 @@ export async function POST(request: NextRequest, props: RouteParams) {
       content,
       wordCount: wordCount || 0
     })
+
+    // If this is the first published chapter, update work status to published
+    if (status === 'published') {
+      const work = await prisma.work.findUnique({
+        where: { id: workId },
+        select: { status: true, _count: { select: { sections: true } } }
+      })
+      
+      if (work && work.status === 'draft' && work._count.sections === 1) {
+        await prisma.work.update({
+          where: { id: workId },
+          data: { status: 'published' }
+        })
+      }
+    }
 
     return NextResponse.json({
       success: true,

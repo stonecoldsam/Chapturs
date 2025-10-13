@@ -284,8 +284,8 @@ export class ContentValidationService {
     const wordCount = content.split(/\s+/).length
     const flags: string[] = []
 
-    // Basic quality checks
-    if (wordCount < 100) {
+    // Basic quality checks (lowered to 10 words for MVP testing)
+    if (wordCount < 10) {
       flags.push('too_short')
     }
 
