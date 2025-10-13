@@ -75,10 +75,49 @@ export default function AppLayout({ children }: AppLayoutProps) {
         />
         
         {/* Main Content */}
-        <div className="ml-64 min-h-screen">
-          <main className={pathname.includes('/editor') ? '' : 'p-6'}>
+        <div className="ml-64 min-h-screen flex flex-col">
+          <main className={`flex-1 ${pathname.includes('/editor') ? '' : 'p-6'}`}>
             {children}
           </main>
+          
+          {/* Footer */}
+          <footer className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 py-4 px-6">
+            <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+              <div>
+                <span className="font-semibold">Chapturs</span>
+                <span className="mx-2">·</span>
+                <span className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 text-xs font-semibold rounded">
+                  BETA
+                </span>
+              </div>
+              <div className="flex items-center gap-4">
+                <a 
+                  href="/legal/privacy" 
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Privacy
+                </a>
+                <a 
+                  href="/legal/terms" 
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Terms
+                </a>
+                <a 
+                  href="/legal/creator-agreement" 
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Creator Agreement
+                </a>
+                <a 
+                  href="/about/roadmap" 
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  Roadmap
+                </a>
+              </div>
+            </div>
+          </footer>
         </div>
       </div>
     </HubContext.Provider>

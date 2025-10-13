@@ -261,9 +261,7 @@ export default function TermsOfServicePage() {
             <p className="text-gray-700 mb-4">
               These Terms are governed by the laws of the Commonwealth of Virginia and the United States. 
               Any disputes will be resolved in courts of competent jurisdiction.
-            </p>
-
-            <h3 className="text-xl font-semibold text-gray-800 mb-3">10.3 No Class Actions</h3>
+            </p>            <h3 className="text-xl font-semibold text-gray-800 mb-3">10.3 No Class Actions</h3>
             <p className="text-gray-700 mb-4">
               Disputes must be brought individually, not as part of a class action. (Required by lawyers, but we'll 
               be reasonable if issues affect many users.)
