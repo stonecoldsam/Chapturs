@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import AppLayout from '@/components/AppLayout'
-import ChapterContent from '@/components/GlossarySystem'
+import ChapterBlockRenderer from '@/components/ChapterBlockRenderer'
 import { Work, Section } from '@/types'
 import DataService from '@/lib/api/DataService'
 import { 
@@ -213,10 +213,8 @@ export default function ChapterPage() {
             className={`${getFontSizeClass()} text-gray-900 dark:text-gray-100`}
             style={getLineHeightStyle()}
           >
-            <ChapterContent
-              content={section.content.text || ''}
-              glossaryTerms={work?.glossary || []}
-              currentChapter={section.chapterNumber || 1}
+            <ChapterBlockRenderer 
+              content={Array.isArray(section.content) ? section.content : []}
             />
           </div>
         </div>
