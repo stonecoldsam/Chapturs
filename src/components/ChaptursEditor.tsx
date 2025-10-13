@@ -57,6 +57,18 @@ export default function ChaptursEditor({
     return () => document.removeEventListener('selectionchange', handleSelectionChange)
   }, [])
 
+  // Update editor state when initialDocument changes (for loading existing chapters)
+  useEffect(() => {
+    if (initialDocument) {
+      console.log('ChaptursEditor: Updating editor state with loaded document:', initialDocument)
+      setEditorState(prevState => ({
+        ...prevState,
+        document: initialDocument,
+        isDirty: false
+      }))
+    }
+  }, [initialDocument])
+
   // Glossary handlers
   const handleAddToGlossary = () => {
     if (!selectedText) return
