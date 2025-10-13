@@ -217,7 +217,7 @@ export default function BetaWelcome({ isLoggedIn = false }: BetaWelcomeProps) {
   // Sidebar for logged-in users
   return (
     <div 
-      className={`fixed right-4 top-20 w-80 bg-white rounded-lg shadow-xl border-2 border-purple-200 z-50 transition-all duration-300 ${
+      className={`fixed right-4 top-20 w-96 bg-white rounded-lg shadow-xl border-2 border-purple-200 z-50 transition-all duration-300 ${
         isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
       }`}
     >
@@ -245,24 +245,40 @@ export default function BetaWelcome({ isLoggedIn = false }: BetaWelcomeProps) {
         </div>
 
         {/* Quick Info */}
-        <div className="space-y-3 mb-4">
+        <div className="space-y-4 mb-4">
           <div className="flex items-start gap-2">
             <Sparkles className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />
-            <p className="text-sm text-gray-700">
-              <strong>No paywalls:</strong> All stories free to read
-            </p>
+            <div>
+              <p className="text-sm font-semibold text-gray-900">No Paywalls</p>
+              <p className="text-xs text-gray-600">All stories remain free to read, always</p>
+            </div>
           </div>
+          
           <div className="flex items-start gap-2">
             <DollarSign className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-            <p className="text-sm text-gray-700">
-              <strong>Fair revenue:</strong> 70/30 ads, 95/5 tips
-            </p>
+            <div>
+              <p className="text-sm font-semibold text-gray-900">Fair Revenue Sharing</p>
+              <p className="text-xs text-gray-600">70/30 ad splits, 95/5 tips & subscriptions</p>
+              <p className="text-xs text-gray-600 mt-1">Platform Premium pool distributed by reading time</p>
+            </div>
           </div>
+          
           <div className="flex items-start gap-2">
             <Trophy className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
-            <p className="text-sm text-gray-700">
-              <strong>Writing contests:</strong> Coming soon
-            </p>
+            <div>
+              <p className="text-sm font-semibold text-gray-900">Writing Contests (Coming Soon)</p>
+              <p className="text-xs text-gray-600">Create or enter community contests</p>
+              <p className="text-xs text-gray-600 mt-1">Contest entries pool ad revenue to fund prizes for winners</p>
+              <p className="text-xs text-gray-600">Platform may add bonus prizes to official contests</p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-2">
+            <Users className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-gray-900">You Own Your Work</p>
+              <p className="text-xs text-gray-600">100% IP rights, publish anywhere, export anytime</p>
+            </div>
           </div>
         </div>
 

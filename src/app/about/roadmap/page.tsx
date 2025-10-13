@@ -225,15 +225,15 @@ export default function RoadmapPage() {
             <div className="flex items-start gap-3">
               <Circle className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
               <div>
-                <h3 className="font-semibold text-gray-900">Audiobook Integration</h3>
-                <p className="text-sm text-gray-600">Text-to-speech, professional narration uploads, audio monetization</p>
+                <h3 className="font-semibold text-gray-900">Publishing Partnerships</h3>
+                <p className="text-sm text-gray-600">Traditional publisher connections, print-on-demand, media adaptation deals</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <Circle className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
               <div>
-                <h3 className="font-semibold text-gray-900">Publishing Partnerships</h3>
-                <p className="text-sm text-gray-600">Traditional publisher connections, print-on-demand, media adaptation deals</p>
+                <h3 className="font-semibold text-gray-900">Enhanced Media Integration</h3>
+                <p className="text-sm text-gray-600">Advanced multimedia features, creator-produced supplementary content</p>
               </div>
             </div>
           </div>

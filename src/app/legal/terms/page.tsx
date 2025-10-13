@@ -259,12 +259,8 @@ export default function TermsOfServicePage() {
 
             <h3 className="text-xl font-semibold text-gray-800 mb-3">10.2 Governing Law</h3>
             <p className="text-gray-700 mb-4">
-              These Terms are governed by the laws of the State of [Your State] and the United States. 
-              Any disputes will be resolved in the state or federal courts located in [Your County], [Your State].
-            </p>
-            <p className="text-gray-700 mb-4 text-sm italic">
-              Note: This should be updated to reflect where Chapturs is legally registered/operated. Typically this 
-              is the state/county where the business owner resides or where the company is incorporated.
+              These Terms are governed by the laws of the Commonwealth of Virginia and the United States. 
+              Any disputes will be resolved in the state or federal courts located in Loudoun County, Virginia.
             </p>
 
             <h3 className="text-xl font-semibold text-gray-800 mb-3">10.3 No Class Actions</h3>

@@ -470,7 +470,8 @@ export default function CreatorAgreementPage() {
 
             <h3 className="text-xl font-semibold text-gray-800 mb-3">10.3 Governing Law</h3>
             <p className="text-gray-700 mb-4">
-              This agreement follows the same governing law as our Terms of Service.
+              This agreement is governed by the laws of the Commonwealth of Virginia and the United States. 
+              Any disputes will be resolved in the state or federal courts located in Loudoun County, Virginia.
             </p>
           </section>
 
