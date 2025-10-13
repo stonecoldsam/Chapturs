@@ -342,10 +342,10 @@ export default function ChaptursEditor({
         </div>
       </div>
 
-      {/* Floating Sidebar Toggle Button */}
+      {/* Floating Sidebar Toggle Button - positioned below this component's toolbar */}
       <button
         onClick={() => setShowSidebar(!showSidebar)}
-        className={`fixed right-0 top-[73px] z-20 py-3 px-2 rounded-l-lg shadow-lg transition-all ${
+        className={`absolute right-0 top-[57px] z-20 py-3 px-2 rounded-l-lg shadow-lg transition-all ${
           showSidebar 
             ? 'bg-blue-600 text-white' 
             : 'bg-gray-700 text-gray-300 hover:bg-gray-600'

@@ -167,8 +167,8 @@ export default function EditorSidebar({
 
   return (
     <div 
-      className="fixed right-0 top-[73px] bottom-0 w-96 bg-white dark:bg-gray-800 border-l border-gray-300 dark:border-gray-700 shadow-xl z-10 flex flex-col transform transition-transform"
-      style={{ height: 'calc(100vh - 73px)' }}
+      className="absolute right-0 top-[57px] bottom-0 w-96 bg-white dark:bg-gray-800 border-l border-gray-300 dark:border-gray-700 shadow-xl z-10 flex flex-col transform transition-transform"
+      style={{ height: 'calc(100% - 57px)' }}
     >
       {/* Header - Simple without close button since we have the floating toggle */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-750">

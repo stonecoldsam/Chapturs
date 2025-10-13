@@ -96,6 +96,9 @@ export default function CreatorEditorPage() {
     goalMode: false // NaNoWriMo-style goal tracking
   })
 
+  // UI state
+  const [showStatsBar, setShowStatsBar] = useState(false) // Quick stats bar toggle
+
   useEffect(() => {
     console.log('useEffect triggered:', { mode, workId, draftId, chapterId })
     // Load work data if workId provided (load existing work + sections)
@@ -624,6 +627,18 @@ export default function CreatorEditorPage() {
                 </button>
 
                 <button
+                  onClick={() => setShowStatsBar(!showStatsBar)}
+                  className={`p-2 rounded-lg transition-colors ${
+                    showStatsBar 
+                      ? 'bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400' 
+                      : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                  title="Toggle Stats Bar"
+                >
+                  <Zap size={16} />
+                </button>
+
+                <button
                   onClick={() => setShowSettings(!showSettings)}
                   className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
                   title="Settings"
@@ -659,9 +674,10 @@ export default function CreatorEditorPage() {
           )}
         </div>
 
-        {/* Quick Stats Bar */}
-        <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-2">
-          <div className="flex items-center justify-between text-sm">
+        {/* Quick Stats Bar - Toggleable */}
+        {showStatsBar && (
+          <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-2">
+            <div className="flex items-center justify-between text-sm">
             <div className="flex items-center space-x-6">
               <div className="flex items-center space-x-1 text-gray-600 dark:text-gray-400">
                 <BookOpen size={14} />
@@ -690,7 +706,8 @@ export default function CreatorEditorPage() {
               </div>
             </div>
           </div>
-        </div>
+          </div>
+        )}
 
         {/* Main Content */}
         <div className="flex-1 overflow-hidden">
