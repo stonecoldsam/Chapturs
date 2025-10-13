@@ -36,13 +36,13 @@ export default function CreatorEditorPage() {
   const searchParams = useSearchParams()
   
   // URL parameters
-  const workId = params?.workId as string | undefined
+  const workId = searchParams?.get('workId') || (params?.workId as string | undefined)
   const draftId = searchParams?.get('draftId') || undefined
   const chapterId = params?.chapterId as string | undefined
   const formatType = (searchParams?.get('format') || 'novel') as ContentFormat
   const mode = searchParams?.get('mode') === 'edit' ? 'edit' : 'create'
 
-  console.log('Editor page loaded with:', { formatType, mode, workId, draftId })
+  console.log('Editor page loaded with:', { formatType, mode, workId, draftId, chapterId })
   console.log('Should use experimental editor?', formatType === 'experimental')
 
   // UI State
@@ -91,18 +91,23 @@ export default function CreatorEditorPage() {
 
   const loadWorkData = async (workId: string) => {
     try {
+      console.log('Loading work data for workId:', workId)
       const response = await fetch(`/api/works/${workId}`)
       if (response.ok) {
         const result = await response.json()
-        console.log('Loading work data:', result)
+        console.log('Loaded work data:', result)
         setCurrentWork(prev => ({
           ...prev,
           title: result.work.title,
           description: result.work.description,
+          formatType: result.work.formatType || prev.formatType,
+          status: result.work.status || prev.status,
           chaptersCount: result.work.sections?.length || 0,
           wordsCount: result.work.statistics?.wordCount || 0,
           hasContent: (result.work.sections?.length || 0) > 0
         }))
+      } else {
+        console.error('Failed to load work data, status:', response.status)
       }
     } catch (error) {
       console.error('Error loading work data:', error)
@@ -111,19 +116,26 @@ export default function CreatorEditorPage() {
 
   const loadDraftData = async (draftId: string) => {
     try {
+      console.log('Loading draft data for draftId:', draftId)
       const response = await fetch(`/api/works/drafts`)
       if (response.ok) {
         const result = await response.json()
         const draft = result.drafts.find((d: any) => d.id === draftId)
         if (draft) {
-          console.log('Loading draft data:', draft)
+          console.log('Loaded draft data:', draft)
           setCurrentWork(prev => ({
             ...prev,
             title: draft.title,
             description: draft.description,
+            formatType: draft.formatType || prev.formatType,
+            status: draft.status || prev.status,
             hasContent: false // Drafts start with no content
           }))
+        } else {
+          console.error('Draft not found with id:', draftId)
         }
+      } else {
+        console.error('Failed to load drafts, status:', response.status)
       }
     } catch (error) {
       console.error('Error loading draft data:', error)
