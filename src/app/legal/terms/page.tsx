@@ -260,7 +260,7 @@ export default function TermsOfServicePage() {
             <h3 className="text-xl font-semibold text-gray-800 mb-3">10.2 Governing Law</h3>
             <p className="text-gray-700 mb-4">
               These Terms are governed by the laws of the Commonwealth of Virginia and the United States. 
-              Any disputes will be resolved in the state or federal courts located in Loudoun County, Virginia.
+              Any disputes will be resolved in courts of competent jurisdiction.
             </p>
 
             <h3 className="text-xl font-semibold text-gray-800 mb-3">10.3 No Class Actions</h3>
