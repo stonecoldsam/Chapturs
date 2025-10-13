@@ -479,7 +479,9 @@ export default function CreatorEditorPage() {
                 await handleSave(saveData)
               }}
               onPublish={async (document: ChaptDocument) => {
+                console.log('=== PUBLISH CLICKED ===')
                 console.log('Publishing chapter:', document)
+                console.log('Current state:', { workId, draftId, isDraft: currentWork.isDraft, hasContent: currentWork.hasContent })
                 
                 // Convert ChaptDocument to API format
                 const publishData = {
@@ -490,10 +492,14 @@ export default function CreatorEditorPage() {
                   chaptNumber: document.metadata.chapterNumber
                 }
                 
+                console.log('Publish data:', publishData)
+                
                 // Use handlePublish for drafts, or direct API call for existing works
                 if (currentWork.isDraft && draftId) {
+                  console.log('Publishing draft via handlePublish...')
                   await handlePublish(publishData)
                 } else if (workId) {
+                  console.log('Publishing chapter to existing work:', workId)
                   // Publishing a chapter on an existing work
                   try {
                     const response = await fetch(`/api/works/${workId}/sections`, {
@@ -502,9 +508,11 @@ export default function CreatorEditorPage() {
                       body: JSON.stringify(publishData)
                     })
 
+                    console.log('API response status:', response.status)
+                    
                     if (response.ok) {
                       const result = await response.json()
-                      console.log('Chapter published:', result)
+                      console.log('Chapter published successfully:', result)
 
                       // Queue quality assessment for the published chapter
                       if (result.section?.id) {
@@ -530,12 +538,17 @@ export default function CreatorEditorPage() {
                       window.location.reload()
                     } else {
                       const error = await response.json()
+                      console.error('API error response:', error)
                       alert(`Failed to publish chapter: ${error.error}`)
                     }
                   } catch (error) {
                     console.error('Error publishing chapter:', error)
                     alert('Failed to publish chapter. Please try again.')
                   }
+                } else {
+                  // No workId or draftId - need to create work first
+                  console.error('Cannot publish: No workId or draftId')
+                  alert('Please save your work as a draft first before publishing.')
                 }
               }}
             />

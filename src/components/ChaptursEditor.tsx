@@ -312,7 +312,11 @@ export default function ChaptursEditor({
 
           {onPublish && (
             <button
-              onClick={() => onPublish(editorState.document)}
+              onClick={() => {
+                console.log('ChaptursEditor: Publish button clicked')
+                console.log('ChaptursEditor: Document to publish:', editorState.document)
+                onPublish(editorState.document)
+              }}
               className="px-4 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700"
             >
               Publish
