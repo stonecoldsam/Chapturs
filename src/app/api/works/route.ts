@@ -174,12 +174,18 @@ export async function GET(request: NextRequest) {
     const session = await auth()
     requireAuth(session)
 
+    console.log('GET /api/works - Fetching for user:', session.user.id)
+
     // Get the author profile for this user
     let author = await prisma.author.findUnique({
       where: { userId: session.user.id }
     })
+    
+    console.log('Author profile found:', author?.id)
+    
     if (!author) {
       // Return empty works list if no author profile exists yet
+      console.log('No author profile found for user:', session.user.id)
       const response = createSuccessResponse({
         works: [],
         total: 0,
@@ -190,6 +196,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user's works directly with Prisma for better performance
+    console.log('Fetching works for author:', author.id)
     const works = await prisma.work.findMany({
       where: { authorId: author.id },
       include: {
@@ -215,26 +222,50 @@ export async function GET(request: NextRequest) {
       orderBy: { updatedAt: 'desc' }
     })
 
+    console.log('Found works for author:', author.id, 'Count:', works.length)
+
     const response = createSuccessResponse({
-      works: works.map((work: any) => ({
-        id: work.id,
-        title: work.title,
-        description: work.description,
-        formatType: work.formatType,
-        status: work.status,
-        maturityRating: work.maturityRating,
-        genres: JSON.parse(work.genres || '[]'),
-        tags: JSON.parse(work.tags || '[]'),
-        statistics: JSON.parse(work.statistics || '{}'),
-        createdAt: work.createdAt,
-        updatedAt: work.updatedAt,
-        sections: work.sections || [], // Include actual sections array
-        _count: {
-          sections: work._count.sections,
-          bookmarks: work._count.bookmarks,
-          likes: work._count.likes
+      works: works.map((work: any) => {
+        try {
+          return {
+            id: work.id,
+            title: work.title,
+            description: work.description,
+            formatType: work.formatType,
+            status: work.status,
+            maturityRating: work.maturityRating,
+            genres: typeof work.genres === 'string' ? JSON.parse(work.genres) : (work.genres || []),
+            tags: typeof work.tags === 'string' ? JSON.parse(work.tags) : (work.tags || []),
+            statistics: typeof work.statistics === 'string' ? JSON.parse(work.statistics) : (work.statistics || {}),
+            createdAt: work.createdAt,
+            updatedAt: work.updatedAt,
+            sections: work.sections || [], // Include actual sections array
+            _count: {
+              sections: work._count?.sections || 0,
+              bookmarks: work._count?.bookmarks || 0,
+              likes: work._count?.likes || 0
+            }
+          }
+        } catch (parseError) {
+          console.error('Error parsing work:', work.id, parseError)
+          // Return minimal safe work object
+          return {
+            id: work.id,
+            title: work.title || 'Untitled',
+            description: work.description || '',
+            formatType: work.formatType,
+            status: work.status,
+            maturityRating: work.maturityRating,
+            genres: [],
+            tags: [],
+            statistics: {},
+            createdAt: work.createdAt,
+            updatedAt: work.updatedAt,
+            sections: [],
+            _count: { sections: 0, bookmarks: 0, likes: 0 }
+          }
         }
-      })),
+      }),
       total: works.length,
       authorId: author.id
     }, `Found ${works.length} works`, requestId)
