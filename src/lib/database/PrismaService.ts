@@ -155,16 +155,15 @@ export default class DatabaseService {
         author: { include: { user: true } },
         sections: {
           where: { status: 'published' },
-          orderBy: { orderIndex: 'asc' },
+          orderBy: { createdAt: 'asc' },
           select: {
             id: true,
             title: true,
-            chapterNumber: true,
-            orderIndex: true,
             wordCount: true,
-            estimatedReadTime: true,
             status: true,
-            createdAt: true
+            publishedAt: true,
+            createdAt: true,
+            updatedAt: true
           }
         }
       }
