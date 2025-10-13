@@ -131,10 +131,18 @@ export default function StoryManagement() {
         const response = await fetch(`/api/works?authorId=${userId}`)
         console.log('StoryManagement: Response status:', response.status)
         if (response.ok) {
-          const data = await response.json()
-          console.log('StoryManagement: Received data:', data)
-          console.log('StoryManagement: Works array length:', data?.works?.length || data?.length || 0)
-          setWorks(data.works || data || [])
+          const responseData = await response.json()
+          console.log('StoryManagement: Received data:', responseData)
+          
+          // Handle wrapped response format: { success: true, data: { works: [...] } }
+          const data = responseData.data || responseData
+          const worksArray = data.works || data || []
+          
+          console.log('StoryManagement: Extracted data:', data)
+          console.log('StoryManagement: Works array:', worksArray)
+          console.log('StoryManagement: Works array length:', worksArray.length)
+          
+          setWorks(worksArray)
         } else {
           console.error('StoryManagement: Failed to fetch works, status:', response.status)
         }
