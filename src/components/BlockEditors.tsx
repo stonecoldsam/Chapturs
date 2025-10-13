@@ -729,14 +729,10 @@ export function DialogueBlockEditor({ block, mode, onUpdate }: DialogueBlockEdit
 
   if (mode === 'preview' || mode === 'translate') {
     return (
-      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 space-y-3 font-mono text-sm">
+      <div className="mx-auto max-w-4xl px-8 space-y-2 my-4">
         {block.lines.map((line, index) => (
-          <div key={index} className="flex gap-3">
-            <div className="font-bold uppercase min-w-[120px] text-right text-gray-900 dark:text-gray-100">
-              {line.speaker}
-              {line.emotion && <span className="text-gray-600 dark:text-gray-400 text-xs ml-2">({line.emotion})</span>}
-            </div>
-            <div className="flex-1 text-gray-900 dark:text-gray-100">{line.text}</div>
+          <div key={index} className="text-gray-900 dark:text-gray-100">
+            <span className="font-semibold">{line.speaker}</span>: "{line.text}"
           </div>
         ))}
       </div>
@@ -817,17 +813,9 @@ export function NarrationBlockEditor({ block, mode, onUpdate }: NarrationBlockEd
 
   if (mode === 'preview' || mode === 'translate') {
     return (
-      <div className={`my-6 ${position === 'center' ? 'mx-auto max-w-2xl' : ''}`}>
-        <div className={`
-          ${variant === 'box' ? 'border-2 border-gray-400 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 p-4 rounded' : ''}
-          ${variant === 'overlay' ? 'bg-black/80 text-white p-6 rounded-lg' : ''}
-          ${variant === 'inline' ? 'italic text-gray-700 dark:text-gray-300 border-l-4 border-gray-400 dark:border-gray-600 pl-4' : ''}
-          text-center
-        `}>
-          <BookOpen className="inline-block mb-2 text-gray-600 dark:text-gray-400" size={20} />
-          <div className={`font-serif text-sm leading-relaxed ${variant !== 'overlay' ? 'text-gray-900 dark:text-gray-100' : ''}`}>
-            {block.text}
-          </div>
+      <div className="mx-auto max-w-4xl px-8 my-4">
+        <div className="font-serif text-base leading-relaxed text-gray-900 dark:text-gray-100 text-center italic">
+          {block.text}
         </div>
       </div>
     )

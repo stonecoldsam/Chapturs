@@ -848,9 +848,11 @@ function ProseBlockEditor({
 }) {
   if (mode === 'preview' || mode === 'translate') {
     return (
-      <p className="prose max-w-none text-gray-900 dark:text-gray-100" style={{ textAlign: block.style?.textAlign }}>
-        {block.text}
-      </p>
+      <div className="mx-auto max-w-4xl px-8">
+        <p className="prose max-w-none text-gray-900 dark:text-gray-100 text-base leading-relaxed mb-4" style={{ textAlign: block.style?.textAlign }}>
+          {block.text}
+        </p>
+      </div>
     )
   }
 
@@ -884,7 +886,11 @@ function HeadingBlockEditor({
                             block.level === 2 ? 'h2' :
                             block.level === 3 ? 'h3' : 'h4'
     
-    return <HeadingComponent className={`${className} ${textSizeClass} text-gray-900 dark:text-gray-100`}>{block.text}</HeadingComponent>
+    return (
+      <div className="mx-auto max-w-4xl px-8">
+        <HeadingComponent className={`${className} ${textSizeClass} text-gray-900 dark:text-gray-100 mb-4`}>{block.text}</HeadingComponent>
+      </div>
+    )
   }
 
   return (
