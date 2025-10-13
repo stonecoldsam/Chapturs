@@ -278,7 +278,7 @@ export default function CreatorEditorPage() {
 
   return (
     <AppLayout>
-      <div className="fixed inset-0 left-64 flex flex-col bg-gray-50 dark:bg-gray-900">
+      <div className="fixed inset-0 left-64 flex flex-col bg-gray-50">
         {/* Header */}
         <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex-shrink-0">
           <div className="flex items-center justify-between">
