@@ -3,8 +3,9 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { ChaptDocument, ContentBlock, BlockType, ProseBlock, HeadingBlock, DividerBlock, DialogueBlock, ChatBlock, PhoneBlock, NarrationBlock, ImageBlock, EditorState, ChatPlatform } from '@/types/chapt'
 import { ChatBlockEditor, PhoneBlockEditor, DialogueBlockEditor, NarrationBlockEditor } from './BlockEditors'
-import { PlusCircle, Save, Eye, Edit3, Type, MessageSquare, Smartphone, Users, SplitSquareVertical, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight, Maximize, Sparkles, X } from 'lucide-react'
+import { PlusCircle, Save, Eye, Edit3, Type, MessageSquare, Smartphone, Users, SplitSquareVertical, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight, Maximize, Sparkles, X, PanelRightOpen } from 'lucide-react'
 import RichTextEditor from './RichTextEditor'
+import EditorSidebar from './EditorSidebar'
 
 interface ChaptursEditorProps {
   workId: string
@@ -44,6 +45,9 @@ export default function ChaptursEditor({
   const [showGlossaryModal, setShowGlossaryModal] = useState(false)
   const [glossaryTerm, setGlossaryTerm] = useState('')
   const [glossaryDefinition, setGlossaryDefinition] = useState('')
+
+  // Sidebar state
+  const [showSidebar, setShowSidebar] = useState(false)
 
   // Track text selection
   useEffect(() => {
@@ -304,6 +308,19 @@ export default function ChaptursEditor({
 
         <div className="flex items-center gap-2">
           <button
+            onClick={() => setShowSidebar(!showSidebar)}
+            className={`px-3 py-1.5 text-sm border rounded hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors ${
+              showSidebar 
+                ? 'border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300' 
+                : 'border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100'
+            }`}
+            title="Toggle Resources Sidebar"
+          >
+            <PanelRightOpen size={16} />
+            Resources
+          </button>
+
+          <button
             onClick={toggleMode}
             className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-900 dark:text-gray-100"
           >
@@ -472,6 +489,22 @@ export default function ChaptursEditor({
           </div>
         </div>
       )}
+
+      {/* Editor Sidebar */}
+      <EditorSidebar
+        isOpen={showSidebar}
+        onClose={() => setShowSidebar(false)}
+        workId={workId}
+        currentChapterId={chapterId}
+        document={editorState.document}
+        onNavigateToChapter={(id) => {
+          // This would navigate to a different chapter
+          // For now, we could reload the page with new chapterId
+          if (workId) {
+            window.location.href = `/creator/editor?workId=${workId}&chapterId=${id}`
+          }
+        }}
+      />
     </div>
   )
 }

@@ -159,6 +159,21 @@ export default function CreatorEditorPage() {
   const loadSpecificChapter = async (workId: string, chapterId: string) => {
     try {
       console.log('Loading specific chapter:', { workId, chapterId })
+      
+      // Load work data first to get the title
+      const workResponse = await fetch(`/api/works/${workId}`)
+      if (workResponse.ok) {
+        const workData = await workResponse.json()
+        setCurrentWork(prev => ({
+          ...prev,
+          title: workData.title,
+          description: workData.description || '',
+          chaptersCount: workData.sectionsCount || 0,
+          wordsCount: workData.totalWords || 0,
+          hasContent: true
+        }))
+      }
+      
       const response = await fetch(`/api/works/${workId}/sections`)
       if (response.ok) {
         const result = await response.json()
@@ -513,7 +528,7 @@ export default function CreatorEditorPage() {
                 </div>
                 <div>
                   <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
-                    {mode === 'create' ? `New ${formatType}` : currentWork.title || 'Untitled Work'}
+                    {currentWork.title || (mode === 'create' ? `New ${formatType}` : 'Untitled Work')}
                     {currentWork.isDraft && (
                       <span className="ml-2 px-2 py-1 text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded-full">
                         DRAFT
@@ -521,11 +536,13 @@ export default function CreatorEditorPage() {
                     )}
                   </h1>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {mode === 'create' 
-                      ? currentWork.isDraft 
-                        ? 'Working on draft - not published yet' 
-                        : 'Create your next masterpiece'
-                      : `${currentWork.chaptersCount} chapters • ${currentWork.wordsCount.toLocaleString()} words`
+                    {currentWork.title 
+                      ? `${currentWork.chaptersCount} chapters • ${currentWork.wordsCount.toLocaleString()} words`
+                      : mode === 'create' 
+                        ? currentWork.isDraft 
+                          ? 'Working on draft - not published yet' 
+                          : 'Create your next masterpiece'
+                        : 'Loading...'
                     }
                   </p>
                 </div>
