@@ -633,6 +633,175 @@ model ValidationRule {
 }
 
 // ============================================================================
+// QUALITY ASSESSMENT SYSTEM (LLM-based content grading)
+// ============================================================================
+
+// Quality Assessment Queue - Stories waiting to be graded
+model QualityAssessmentQueue {
+  id          String   @id @default(cuid())
+  workId      String
+  sectionId   String   // First chapter
+  priority    String   @default("normal") // 'low', 'normal', 'high'
+  status      String   @default("queued") // 'queued', 'processing', 'completed', 'failed'
+  attempts    Int      @default(0)
+  lastAttempt DateTime?
+  completedAt DateTime?
+  error       String?  // Error message if failed
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([workId])
+  @@index([status])
+  @@index([priority])
+  @@index([createdAt])
+  @@map("quality_assessment_queue")
+}
+
+// Quality Assessment Results - LLM evaluation results
+model QualityAssessment {
+  id                String   @id @default(cuid())
+  workId            String
+  sectionId         String
+  
+  // Overall Quality Scores (0-100)
+  overallScore      Float    // Weighted composite score
+  writingQuality    Float    // Technical writing quality
+  storytelling      Float    // Narrative structure & pacing
+  characterization  Float    // Character development
+  worldBuilding     Float    // Setting & atmosphere
+  engagement        Float    // Reader engagement potential
+  originality       Float    // Uniqueness & creativity
+  
+  // Classification
+  qualityTier       String   // 'exceptional', 'strong', 'developing', 'needs_work'
+  
+  // Discovery & Tagging
+  discoveryTags     String   // JSON array of AI-suggested tags for discoverability
+  feedbackMessage   String   // Brief constructive feedback for author
+  
+  // Algorithm Boost Configuration
+  boostMultiplier   Float    @default(1.0) // 1.0 = no boost, >1.0 = boost, <1.0 = suppress
+  boostExpiry       DateTime? // When the boost expires
+  boostReason       String?  // Why this boost level was assigned
+  
+  // LLM Metadata
+  model             String   // LLM model used (e.g., 'gpt-4', 'claude-3')
+  version           String   // Assessment algorithm version
+  processingTime    Int?     // Milliseconds
+  tokenCount        Int?     // Tokens used
+  
+  // Validation & Review
+  status            String   @default("active") // 'active', 'under_review', 'overridden'
+  reviewedBy        String?  // Admin who reviewed/overrode
+  reviewNotes       String?  // Admin notes
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([workId, sectionId])
+  @@index([workId])
+  @@index([overallScore(sort: Desc)])
+  @@index([qualityTier])
+  @@index([boostMultiplier])
+  @@index([createdAt])
+  @@map("quality_assessments")
+}
+
+// Assessment History - Track changes over time
+model QualityAssessmentHistory {
+  id              String   @id @default(cuid())
+  workId          String
+  sectionId       String
+  assessmentId    String   // Reference to QualityAssessment
+  
+  previousScore   Float
+  newScore        Float
+  previousTier    String
+  newTier         String
+  
+  changeReason    String   // 'rewrite', 'periodic_review', 'manual_override'
+  changedBy       String?  // User ID if manual
+  
+  createdAt       DateTime @default(now())
+
+  @@index([workId])
+  @@index([assessmentId])
+  @@index([createdAt])
+  @@map("quality_assessment_history")
+}
+
+// Prompt Templates for different assessment aspects
+model AssessmentPromptTemplate {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  type            String   // 'overall', 'genre_specific', 'aspect_focused'
+  genre           String?  // Specific genre if genre_specific
+  aspect          String?  // Specific aspect if aspect_focused
+  
+  prompt          String   // The actual prompt template
+  systemMessage   String?  // System message for LLM
+  
+  isActive        Boolean  @default(true)
+  version         String   @default("1.0")
+  
+  // Performance metrics
+  avgProcessingTime Int?   // Average processing time in ms
+  successRate     Float?   // Success rate (0-1)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([type])
+  @@index([isActive])
+  @@map("assessment_prompt_templates")
+}
+
+// Assessment Feedback - Track human validation of LLM assessments
+model AssessmentFeedback {
+  id              String   @id @default(cuid())
+  assessmentId    String
+  workId          String
+  
+  feedbackType    String   // 'too_harsh', 'too_lenient', 'accurate', 'missed_issues'
+  details         String?  // Specific feedback
+  
+  submittedBy     String   // User ID (admin/moderator)
+  
+  createdAt       DateTime @default(now())
+
+  @@index([assessmentId])
+  @@index([feedbackType])
+  @@index([createdAt])
+  @@map("assessment_feedback")
+}
+
+// LLM Usage Tracking - Monitor costs and usage
+model LLMUsageLog {
+  id              String   @id @default(cuid())
+  service         String   // 'quality_assessment', 'content_moderation', etc.
+  model           String   // 'gpt-4', 'claude-3-opus', etc.
+  
+  promptTokens    Int
+  completionTokens Int
+  totalTokens     Int
+  
+  estimatedCost   Float?   // USD
+  
+  duration        Int?     // Milliseconds
+  success         Boolean
+  errorMessage    String?
+  
+  metadata        String?  // JSON with additional context
+  
+  createdAt       DateTime @default(now())
+
+  @@index([service])
+  @@index([model])
+  @@index([createdAt])
+  @@map("llm_usage_logs")
+}
+
+// ============================================================================
 // TRANSLATION SYSTEM
 // ============================================================================
 
