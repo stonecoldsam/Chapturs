@@ -10,11 +10,19 @@ import type {
   AssessmentConfig,
 } from './types'
 
-// Initialize Groq client (OpenAI-compatible)
-const groq = new OpenAI({
-  apiKey: process.env.GROQ_API_KEY,
-  baseURL: 'https://api.groq.com/openai/v1',
-})
+// Lazy initialization of Groq client (OpenAI-compatible)
+// This prevents initialization during build time when env vars aren't available
+let groq: OpenAI | null = null
+
+function getGroqClient(): OpenAI {
+  if (!groq) {
+    groq = new OpenAI({
+      apiKey: process.env.GROQ_API_KEY || '',
+      baseURL: 'https://api.groq.com/openai/v1',
+    })
+  }
+  return groq
+}
 
 // Default configuration
 export const DEFAULT_ASSESSMENT_CONFIG: AssessmentConfig = {
@@ -140,8 +148,11 @@ export async function assessContentQuality(
 
     const truncatedContext = { ...context, content: truncatedContent }
 
+    // Get Groq client (lazy initialization)
+    const groqClient = getGroqClient()
+
     // Call Groq API (OpenAI-compatible)
-    const response = await groq.chat.completions.create({
+    const response = await groqClient.chat.completions.create({
       model: config.model,
       temperature: config.temperature,
       max_tokens: config.maxTokens,
