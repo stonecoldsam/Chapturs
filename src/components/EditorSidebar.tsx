@@ -137,12 +137,13 @@ export default function EditorSidebar({
             )
           }
           if (block.type === 'heading') {
-            const HeadingTag = `h${block.level || 2}` as keyof JSX.IntrinsicElements
-            return (
-              <HeadingTag key={block.id || index} className="font-bold mt-6 mb-3">
-                {block.text}
-              </HeadingTag>
-            )
+            const level = block.level || 2
+            const headingClass = "font-bold mt-6 mb-3"
+            if (level === 1) return <h1 key={block.id || index} className={headingClass}>{block.text}</h1>
+            if (level === 2) return <h2 key={block.id || index} className={headingClass}>{block.text}</h2>
+            if (level === 3) return <h3 key={block.id || index} className={headingClass}>{block.text}</h3>
+            if (level === 4) return <h4 key={block.id || index} className={headingClass}>{block.text}</h4>
+            return <h2 key={block.id || index} className={headingClass}>{block.text}</h2>
           }
           if (block.type === 'dialogue') {
             return (
@@ -165,27 +166,16 @@ export default function EditorSidebar({
   if (!isOpen) return null
 
   return (
-    <>
-      {/* Overlay */}
-      <div 
-        className="fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity"
-        onClick={onClose}
-      />
-      
-      {/* Sidebar */}
-      <div className="fixed right-0 top-0 h-full w-96 bg-white dark:bg-gray-800 shadow-2xl z-50 flex flex-col transform transition-transform">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Editor Tools
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-          >
-            <X size={20} />
-          </button>
-        </div>
+    <div 
+      className="fixed right-0 top-[73px] bottom-0 w-96 bg-white dark:bg-gray-800 border-l border-gray-300 dark:border-gray-700 shadow-xl z-10 flex flex-col transform transition-transform"
+      style={{ height: 'calc(100vh - 73px)' }}
+    >
+      {/* Header - Simple without close button since we have the floating toggle */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-750">
+        <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+          Resources
+        </h2>
+      </div>
 
         {/* Tabs */}
         <div className="flex border-b border-gray-200 dark:border-gray-700">
@@ -359,7 +349,6 @@ export default function EditorSidebar({
             </>
           )}
         </div>
-      </div>
-    </>
+    </div>
   )
 }

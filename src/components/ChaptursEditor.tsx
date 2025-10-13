@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { ChaptDocument, ContentBlock, BlockType, ProseBlock, HeadingBlock, DividerBlock, DialogueBlock, ChatBlock, PhoneBlock, NarrationBlock, ImageBlock, EditorState, ChatPlatform } from '@/types/chapt'
 import { ChatBlockEditor, PhoneBlockEditor, DialogueBlockEditor, NarrationBlockEditor } from './BlockEditors'
-import { PlusCircle, Save, Eye, Edit3, Type, MessageSquare, Smartphone, Users, SplitSquareVertical, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight, Maximize, Sparkles, X, PanelRightOpen } from 'lucide-react'
+import { PlusCircle, Save, Eye, Edit3, Type, MessageSquare, Smartphone, Users, SplitSquareVertical, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight, Maximize, Sparkles, X, ChevronRight } from 'lucide-react'
 import RichTextEditor from './RichTextEditor'
 import EditorSidebar from './EditorSidebar'
 
@@ -273,7 +273,7 @@ export default function ChaptursEditor({
   const wordCount = editorState.document.metadata.wordCount
 
   return (
-    <div className="h-full flex flex-col bg-gray-900 overflow-hidden">
+    <div className="h-full flex flex-col bg-gray-900 overflow-hidden relative">
       {/* Toolbar */}
       <div className="bg-gray-800 border-b border-gray-700 px-6 py-3 flex items-center justify-between sticky top-0 z-10 flex-shrink-0">
         <div className="flex items-center gap-4">
@@ -307,19 +307,6 @@ export default function ChaptursEditor({
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowSidebar(!showSidebar)}
-            className={`px-3 py-1.5 text-sm border rounded hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors ${
-              showSidebar 
-                ? 'border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300' 
-                : 'border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100'
-            }`}
-            title="Toggle Resources Sidebar"
-          >
-            <PanelRightOpen size={16} />
-            Resources
-          </button>
-
           <button
             onClick={toggleMode}
             className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-900 dark:text-gray-100"
@@ -355,8 +342,26 @@ export default function ChaptursEditor({
         </div>
       </div>
 
+      {/* Floating Sidebar Toggle Button */}
+      <button
+        onClick={() => setShowSidebar(!showSidebar)}
+        className={`fixed right-0 top-[73px] z-20 py-3 px-2 rounded-l-lg shadow-lg transition-all ${
+          showSidebar 
+            ? 'bg-blue-600 text-white' 
+            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+        }`}
+        title={showSidebar ? 'Close Resources' : 'Open Resources'}
+      >
+        <ChevronRight 
+          size={20} 
+          className={`transform transition-transform ${showSidebar ? 'rotate-180' : ''}`}
+        />
+      </button>
+
       {/* Editor Content */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+      <div className={`flex-1 overflow-y-auto overflow-x-hidden transition-all duration-300 ${
+        showSidebar ? 'mr-96' : 'mr-0'
+      }`}>
         <div className="max-w-4xl mx-auto py-8 px-6 pb-96">
           {editorState.document.content.length === 0 ? (
             <div className="text-center py-12">
