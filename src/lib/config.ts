@@ -11,17 +11,32 @@ export const config = {
   // Add other config as needed
 };
 
-// Validate required environment variables
-const requiredEnvVars = [
+// Critical environment variables (required at runtime)
+const criticalEnvVars = [
   'DATABASE_URL',
-  'AUTH_GOOGLE_ID',
-  'AUTH_GOOGLE_SECRET',
   'AUTH_SECRET',
 ];
 
+// Optional environment variables (Google OAuth is optional)
+const optionalEnvVars = [
+  'AUTH_GOOGLE_ID',
+  'AUTH_GOOGLE_SECRET',
+];
+
+/**
+ * Validate environment variables
+ * Only validates in production runtime, not during build
+ */
 export function validateEnvironment() {
-  const missing = requiredEnvVars.filter(key => !process.env[key]);
+  // Skip validation during build process
+  if (process.env.NODE_ENV !== 'production' || process.env.NEXT_PHASE === 'phase-production-build') {
+    return;
+  }
+
+  const missing = criticalEnvVars.filter(key => !process.env[key]);
   if (missing.length > 0) {
-    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+    console.error(`❌ Missing required environment variables: ${missing.join(', ')}`);
+    console.error('⚠️  Application may not function correctly without these variables.');
+    // Don't throw during validation - let the app start and fail gracefully when needed
   }
 }

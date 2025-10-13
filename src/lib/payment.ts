@@ -3,10 +3,14 @@
 let stripe: any = null;
 
 try {
-  // Only load Stripe if available (optional dependency)
-  stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+  // Only load Stripe if the package is installed and API key is set
+  if (process.env.STRIPE_SECRET_KEY) {
+    const Stripe = require('stripe');
+    stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  }
 } catch (error) {
-  console.warn('Stripe not available, using simulation mode');
+  // Stripe package not installed - use simulation mode
+  console.warn('Stripe not available (package not installed or no API key), using simulation mode');
 }
 
 export class PaymentService {
