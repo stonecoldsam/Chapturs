@@ -216,7 +216,7 @@ model GlossaryEntry {
   definition        String
   type              String   @default("term") // term, character, place, item, concept
   category          String?  // Optional categorization
-  chapterIntroduced Int?     // Chapter where first mentioned
+  chapterIntroduced Int?     // Chapter where term first appears
   aliases           String?  // JSON array of alternative names
   metadata          String?  // JSON for additional data (appearance, role, etc.)
   createdAt         DateTime @default(now())
