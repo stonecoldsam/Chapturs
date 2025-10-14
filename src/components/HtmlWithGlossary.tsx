@@ -87,7 +87,17 @@ export default function HtmlWithGlossary({ html, glossaryTerms = [] }: HtmlWithG
         const attr = el.attributes[i]
         props[attr.name] = attr.value
       }
-      return React.createElement(Tag, { ...props, key: `${keyPrefix}-${Math.random()}` }, children)
+      
+      // Fix for React error #137: Spread children array instead of passing it as a single argument
+      // Previously: createElement(Tag, props, children) would pass [] as an object child, causing error
+      // Now: createElement(Tag, props, ...children) spreads the array correctly
+      // For void elements with no children, we can skip passing children entirely for better semantics
+      const voidElements = ['br', 'hr', 'img', 'input', 'meta', 'link', 'area', 'base', 'col', 'embed', 'param', 'source', 'track', 'wbr']
+      if (voidElements.includes(Tag) && children.length === 0) {
+        return React.createElement(Tag, { ...props, key: `${keyPrefix}-${Math.random()}` })
+      }
+      
+      return React.createElement(Tag, { ...props, key: `${keyPrefix}-${Math.random()}` }, ...children)
     }
 
     return null
