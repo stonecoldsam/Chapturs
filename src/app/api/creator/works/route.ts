@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/database/PrismaService'
 
-// GET /api/creator/works - Get all creator's works with counts
+// GET /api/creator/works - Get all creator's works with counts (FIXED: 2025-10-14)
 export async function GET(request: Request) {
   try {
     const session = await auth()
