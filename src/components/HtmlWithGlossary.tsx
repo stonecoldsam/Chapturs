@@ -87,7 +87,15 @@ export default function HtmlWithGlossary({ html, glossaryTerms = [] }: HtmlWithG
         const attr = el.attributes[i]
         props[attr.name] = attr.value
       }
-      return React.createElement(Tag, { ...props, key: `${keyPrefix}-${Math.random()}` }, children)
+      
+      // For void elements (self-closing tags), don't pass children if empty
+      // This prevents React error #137 when trying to render objects as children
+      const voidElements = ['br', 'hr', 'img', 'input', 'meta', 'link', 'area', 'base', 'col', 'embed', 'param', 'source', 'track', 'wbr']
+      if (voidElements.includes(Tag) && children.length === 0) {
+        return React.createElement(Tag, { ...props, key: `${keyPrefix}-${Math.random()}` })
+      }
+      
+      return React.createElement(Tag, { ...props, key: `${keyPrefix}-${Math.random()}` }, ...children)
     }
 
     return null
