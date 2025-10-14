@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '../../../../../../auth'
 import { prisma } from '@/lib/prisma'
+import { createCharacterProfileSchema } from '@/lib/api/schemas'
+import { ZodError } from 'zod'
 
 interface RouteParams {
   params: Promise<{
@@ -18,7 +20,30 @@ export async function POST(request: NextRequest, props: RouteParams) {
     }
 
     const workId = params.id
+    
+    // Parse and validate request body
     const body = await request.json()
+    let validatedData
+    
+    try {
+      validatedData = createCharacterProfileSchema.parse(body)
+    } catch (error) {
+      if (error instanceof ZodError) {
+        console.error('Character profile validation error:', error.errors)
+        return NextResponse.json(
+          { 
+            error: 'Validation failed',
+            details: error.errors.map(e => ({
+              field: e.path.join('.'),
+              message: e.message
+            }))
+          },
+          { status: 400 }
+        )
+      }
+      throw error
+    }
+
     const {
       name,
       aliases = [],
@@ -36,14 +61,7 @@ export async function POST(request: NextRequest, props: RouteParams) {
       developmentTimeline,
       authorNotes,
       metadata = {}
-    } = body
-
-    if (!name) {
-      return NextResponse.json(
-        { error: 'Character name is required' },
-        { status: 400 }
-      )
-    }
+    } = validatedData
 
     // Verify user owns this work
     const work = await prisma.work.findUnique({
@@ -112,12 +130,42 @@ export async function POST(request: NextRequest, props: RouteParams) {
     })
 
   } catch (error: any) {
-    console.error('Character profile creation error:', error)
+    console.error('Character profile creation error:', {
+      error,
+      message: error?.message,
+      code: error?.code,
+      detail: error?.detail,
+      stack: error?.stack
+    })
+    
+    // Check for specific database errors
+    if (error?.code === '42P01') {
+      return NextResponse.json(
+        { 
+          error: 'Database table not found',
+          details: 'The character_profiles table does not exist. Please run database migrations.',
+          hint: 'Run: npx prisma migrate deploy'
+        },
+        { status: 500 }
+      )
+    }
+    
+    if (error?.code === '23503') {
+      return NextResponse.json(
+        { 
+          error: 'Foreign key constraint violation',
+          details: 'The work ID does not exist or has been deleted.',
+        },
+        { status: 400 }
+      )
+    }
+    
     return NextResponse.json(
       { 
         error: 'Failed to create character profile',
         details: error?.message || 'Unknown error',
-        code: error?.code
+        code: error?.code,
+        hint: error?.hint || undefined
       },
       { status: 500 }
     )
@@ -219,11 +267,30 @@ export async function GET(request: NextRequest, props: RouteParams) {
     })
 
   } catch (error: any) {
-    console.error('Character profiles fetch error:', error)
+    console.error('Character profiles fetch error:', {
+      error,
+      message: error?.message,
+      code: error?.code,
+      detail: error?.detail
+    })
+    
+    // Check for specific database errors
+    if (error?.code === '42P01') {
+      return NextResponse.json(
+        { 
+          error: 'Database table not found',
+          details: 'The character_profiles table does not exist. Please run database migrations.',
+          hint: 'Run: npx prisma migrate deploy'
+        },
+        { status: 500 }
+      )
+    }
+    
     return NextResponse.json(
       { 
         error: 'Failed to fetch character profiles',
-        details: error?.message || 'Unknown error'
+        details: error?.message || 'Unknown error',
+        code: error?.code
       },
       { status: 500 }
     )

@@ -56,6 +56,30 @@ export const createGlossaryEntrySchema = z.object({
   definition: z.string().min(1, 'Definition is required').max(2000, 'Definition too long')
 })
 
+// Character profile schemas
+export const createCharacterProfileSchema = z.object({
+  name: z.string().min(1, 'Character name is required').max(100, 'Character name too long'),
+  aliases: z.array(z.string()).default([]),
+  role: z.string().max(100, 'Role too long').optional(),
+  firstAppearance: z.number().int().positive('First appearance must be positive').optional(),
+  imageUrl: z.string().url('Invalid image URL').optional().or(z.literal('')),
+  physicalDescription: z.string().max(5000, 'Physical description too long').optional(),
+  age: z.string().max(50, 'Age too long').optional(),
+  height: z.string().max(50, 'Height too long').optional(),
+  appearanceNotes: z.string().max(5000, 'Appearance notes too long').optional(),
+  backstory: z.string().max(10000, 'Backstory too long').optional(),
+  personalityTraits: z.array(z.string()).default([]),
+  motivations: z.string().max(5000, 'Motivations too long').optional(),
+  characterArc: z.string().max(5000, 'Character arc too long').optional(),
+  developmentTimeline: z.record(z.any()).optional(),
+  authorNotes: z.string().max(5000, 'Author notes too long').optional(),
+  metadata: z.record(z.any()).default({})
+})
+
+export const updateCharacterProfileSchema = createCharacterProfileSchema.partial().extend({
+  name: z.string().min(1, 'Character name is required').max(100, 'Character name too long').optional()
+})
+
 // Comment schemas (for future use)
 export const createCommentSchema = z.object({
   content: z.string().min(1, 'Comment content is required').max(2000, 'Comment too long'),
