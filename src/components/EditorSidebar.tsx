@@ -337,7 +337,7 @@ export default function EditorSidebar({
                     <div className="text-center text-gray-500 py-8">
                       <Users size={48} className="mx-auto mb-4 opacity-50" />
                       <p>No characters yet</p>
-                      <p className="text-sm mt-2">Select a character name in the editor and click "Character" to add a profile</p>
+                      <p className="text-sm mt-2">Select a character name in the editor and click &quot;Character&quot; to add a profile</p>
                     </div>
                   ) : (
                     propCharacters.map((character) => (
@@ -378,8 +378,6 @@ export default function EditorSidebar({
                       </div>
                     ))
                   )}
-                    <p className="text-sm mt-2">Track your characters, their relationships, and development</p>
-                  </div>
                 </div>
               )}
 

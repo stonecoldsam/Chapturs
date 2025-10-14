@@ -6,7 +6,7 @@ import { ChatBlockEditor, PhoneBlockEditor, DialogueBlockEditor, NarrationBlockE
 import { PlusCircle, Save, Eye, Edit3, Type, MessageSquare, Smartphone, Users, SplitSquareVertical, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight, Maximize, Sparkles, X, ChevronRight, UserPlus } from 'lucide-react'
 import RichTextEditor from './RichTextEditor'
 import EditorSidebar from './EditorSidebar'
-import HtmlWithGlossary from './HtmlWithGlossary'
+import HtmlWithHighlights from './HtmlWithHighlights'
 import CharacterProfileModal from './CharacterProfileModal'
 
 interface ChaptursEditorProps {
@@ -1030,8 +1030,12 @@ function ProseBlockEditor({
           className="prose max-w-none text-gray-900 dark:text-gray-100 text-base leading-relaxed mb-4" 
           style={{ textAlign: block.style?.textAlign }}
         >
-          {/* Use HtmlWithGlossary to highlight defined terms in preview */}
-          <HtmlWithGlossary html={block.text} glossaryTerms={(window as any).__CURRENT_GLOSSARY_TERMS__ || []} />
+          {/* Use HtmlWithHighlights to highlight both glossary terms and characters in preview */}
+          <HtmlWithHighlights 
+            html={block.text} 
+            glossaryTerms={(window as any).__CURRENT_GLOSSARY_TERMS__ || []}
+            characters={(window as any).__CURRENT_CHARACTERS__ || []}
+          />
         </div>
       </div>
     )
