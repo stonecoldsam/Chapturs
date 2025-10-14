@@ -14,7 +14,12 @@ import {
   ArrowLeftOnRectangleIcon,
   BookmarkIcon,
   DocumentTextIcon,
-  FolderIcon
+  PhotoIcon,
+  StarIcon,
+  LanguageIcon,
+  CurrencyDollarIcon,
+  UsersIcon,
+  DocumentDuplicateIcon
 } from '@heroicons/react/24/outline'
 
 interface SidebarProps {
@@ -44,12 +49,17 @@ export default function Sidebar({ currentHub, onHubChange }: SidebarProps) {
   ]
 
   const creatorItems = [
-    { icon: PencilIcon, label: 'Upload', href: '/creator/upload' },
     { icon: ChartBarIcon, label: 'Dashboard', href: '/creator/dashboard' },
-    { icon: DocumentTextIcon, label: 'Manage Stories', href: '/creator/dashboard?tab=published' },
-    { icon: FolderIcon, label: 'Draft Management', href: '/creator/dashboard?tab=drafts' },
-    { icon: CogIcon, label: 'Analytics', href: '/creator/analytics' },
-    { icon: UserIcon, label: 'Profile', href: '/creator/profile' },
+    { icon: PencilIcon, label: 'Upload', href: '/creator/upload' },
+    { icon: DocumentTextIcon, label: 'Manage Stories', href: '/creator/dashboard?tab=stories' },
+    { icon: PhotoIcon, label: 'Fanart', href: '/creator/fanart' },
+    { icon: StarIcon, label: 'Quality', href: '/creator/quality' },
+    { icon: ChartBarIcon, label: 'Analytics', href: '/creator/dashboard?tab=analytics' },
+    { icon: DocumentDuplicateIcon, label: 'Glossary', href: '/creator/glossary' },
+    { icon: UsersIcon, label: 'Characters', href: '/creator/characters' },
+    { icon: LanguageIcon, label: 'Translations', href: '/creator/translations' },
+    { icon: CurrencyDollarIcon, label: 'Monetization', href: '/creator/monetization' },
+    { icon: CogIcon, label: 'Settings', href: '/creator/settings' },
   ]
 
   const currentItems = currentHub === 'reader' ? readerItems : creatorItems
