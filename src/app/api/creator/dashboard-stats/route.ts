@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
         FROM likes l
         JOIN works w ON w.id = l."workId"
         WHERE w."authorId" = ${author.id}
-        AND l."createdAt" >= NOW() - INTERVAL '7 days'
+        AND l."likedAt" >= NOW() - INTERVAL '7 days'
       ` as Promise<Array<{ count: number }>>,
 
       // Recent comments (last 7 days) - placeholder, assuming comments exist
