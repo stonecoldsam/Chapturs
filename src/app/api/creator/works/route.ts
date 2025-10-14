@@ -11,13 +11,18 @@ export async function GET(request: Request) {
     }
 
     console.log('[GET /api/creator/works] Fetching works for userId:', session.user.id)
+    console.log('[GET /api/creator/works] Session user:', JSON.stringify({
+      id: session.user.id,
+      email: session.user.email,
+      name: session.user.name
+    }))
 
-    // Get author record
-    const author = await prisma.author.findFirst({
+    // Get author record - using findUnique since userId is @unique
+    const author = await prisma.author.findUnique({
       where: { userId: session.user.id }
     })
 
-    console.log('[GET /api/creator/works] Author found:', author ? `id=${author.id}` : 'NOT FOUND')
+    console.log('[GET /api/creator/works] Author found:', author ? `id=${author.id}, userId=${author.userId}` : 'NOT FOUND')
 
     if (!author) {
       // Create author if they don't exist yet

@@ -58,7 +58,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         provider: account?.provider,
         email,
         emailVerified,
-        userId: user.id
+        nextAuthUserId: user.id
       })
       
       if (!email) {
@@ -91,10 +91,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           },
         })
         
-        console.log('✅ User upserted:', dbUser.email)
+        console.log('✅ User upserted:', {
+          email: dbUser.email,
+          id: dbUser.id,
+          username: dbUser.username
+        })
 
         // Create or ensure author profile exists for this user
-        console.log('📝 Attempting to upsert author profile...')
+        console.log('📝 Attempting to upsert author profile for userId:', dbUser.id)
         
         await prisma.author.upsert({
           where: { userId: dbUser.id },
@@ -106,7 +110,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           },
         })
         
-        console.log('✅ Author profile ready')
+        console.log('✅ Author profile ready:', {
+          authorId: (await prisma.author.findUnique({ where: { userId: dbUser.id } }))?.id,
+          userId: dbUser.id
+        })
         console.log(`✅ User authenticated via ${account?.provider}:`, dbUser.email)
         return true
       } catch (error) {
@@ -126,19 +133,23 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       // Send properties to the client
       if (session.user && token.sub) {
         session.user.id = token.sub
+        console.log('[Session Callback] Setting session.user.id from token.sub:', token.sub)
         
         // Fetch user role from database
         try {
           const dbUser = await prisma.user.findUnique({
             where: { id: token.sub },
-            select: { role: true }
+            select: { role: true, email: true }
           })
           if (dbUser?.role) {
             session.user.role = dbUser.role
           }
+          console.log('[Session Callback] User found in DB:', dbUser ? `email=${dbUser.email}` : 'NOT FOUND')
         } catch (error) {
           console.error('Error fetching user role:', error)
         }
+      } else {
+        console.log('[Session Callback] Missing session.user or token.sub')
       }
       return session
     },

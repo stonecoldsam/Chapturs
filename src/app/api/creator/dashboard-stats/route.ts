@@ -19,12 +19,15 @@ export async function GET(request: NextRequest) {
     }
 
     const userId = session.user.id
+    console.log('[GET /api/creator/dashboard-stats] Fetching stats for userId:', userId)
 
-    // Get user's author profile
-    const author = await prisma.author.findFirst({
+    // Get user's author profile - using findUnique since userId is @unique
+    const author = await prisma.author.findUnique({
       where: { userId },
-      select: { id: true }
+      select: { id: true, userId: true }
     })
+
+    console.log('[GET /api/creator/dashboard-stats] Author found:', author ? `id=${author.id}, userId=${author.userId}` : 'NOT FOUND')
 
     if (!author) {
       return NextResponse.json({ error: 'Author profile not found' }, { status: 404 })
