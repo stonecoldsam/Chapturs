@@ -6,6 +6,7 @@ import { ChatBlockEditor, PhoneBlockEditor, DialogueBlockEditor, NarrationBlockE
 import { PlusCircle, Save, Eye, Edit3, Type, MessageSquare, Smartphone, Users, SplitSquareVertical, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight, Maximize, Sparkles, X, ChevronRight } from 'lucide-react'
 import RichTextEditor from './RichTextEditor'
 import EditorSidebar from './EditorSidebar'
+import HtmlWithGlossary from './HtmlWithGlossary'
 
 interface ChaptursEditorProps {
   workId: string
@@ -41,6 +42,7 @@ export default function ChaptursEditor({
   const autoSaveTimer = useRef<NodeJS.Timeout | null>(null)
 
   // Glossary system state
+        const [localGlossary, setLocalGlossary] = useState<any[]>([])
   const [selectedText, setSelectedText] = useState('')
   const [showGlossaryModal, setShowGlossaryModal] = useState(false)
   const [glossaryTerm, setGlossaryTerm] = useState('')
@@ -82,23 +84,49 @@ export default function ChaptursEditor({
     setShowGlossaryModal(true)
   }
 
+  // Load glossary entries for this work and expose them globally so preview/reader renderers can highlight
+  useEffect(() => {
+    let mounted = true
+    const loadGlossary = async () => {
+      try {
+        const currentChapterNum = editorState.document.metadata.chapterNumber || 1
+        const res = await fetch(`/api/works/${workId}/glossary?chapter=${currentChapterNum}`)
+        if (!res.ok) return
+        const data = await res.json()
+        const entries = data?.entries || []
+        if (!mounted) return
+        setLocalGlossary(entries)
+        try { (window as any).__CURRENT_GLOSSARY_TERMS__ = entries } catch (e) {}
+      } catch (e) {
+        console.error('Failed to load glossary for editor preview', e)
+      }
+    }
+
+    loadGlossary()
+
+    return () => { mounted = false }
+  }, [workId, glossaryRefreshKey, editorState.document.metadata.chapterNumber])
+
   const handleSaveGlossary = async () => {
     if (!glossaryTerm || !glossaryDefinition) return
 
     try {
+      const currentChapterNum = editorState.document.metadata.chapterNumber || 1
+      
       const response = await fetch(`/api/works/${workId}/glossary`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           term: glossaryTerm,
           definition: glossaryDefinition,
+          currentChapter: currentChapterNum, // Track which chapter this definition is for
           category: 'general',
-          chapters: [editorState.document.metadata.chapterNumber || 1]
+          chapters: [currentChapterNum]
         })
       })
 
       if (response.ok) {
-        console.log('Glossary entry saved successfully')
+        console.log('Glossary entry saved successfully for chapter', currentChapterNum)
         setShowGlossaryModal(false)
         setGlossaryTerm('')
         setGlossaryDefinition('')
@@ -357,7 +385,7 @@ export default function ChaptursEditor({
       >
         <ChevronRight 
           size={20} 
-          className={`transform transition-transform ${showSidebar ? 'rotate-180' : ''}`}
+          className={`transform transition-transform ${showSidebar ? '' : 'rotate-180'}`}
         />
       </button>
 
@@ -907,8 +935,10 @@ function ProseBlockEditor({
         <div 
           className="prose max-w-none text-gray-900 dark:text-gray-100 text-base leading-relaxed mb-4" 
           style={{ textAlign: block.style?.textAlign }}
-          dangerouslySetInnerHTML={{ __html: block.text }}
-        />
+        >
+          {/* Use HtmlWithGlossary to highlight defined terms in preview */}
+          <HtmlWithGlossary html={block.text} glossaryTerms={(window as any).__CURRENT_GLOSSARY_TERMS__ || []} />
+        </div>
       </div>
     )
   }

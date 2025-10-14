@@ -1,0 +1,93 @@
+"use client"
+
+import React from 'react'
+import { GlossaryEntry } from '@/types'
+import { GlossaryTooltip } from './GlossarySystem'
+
+interface HtmlWithGlossaryProps {
+  html: string
+  glossaryTerms?: GlossaryEntry[]
+}
+
+// Escape regex special characters in a string
+function escapeRegExp(string: string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+// Replace text nodes with React nodes wrapping glossary terms with GlossaryTooltip
+export default function HtmlWithGlossary({ html, glossaryTerms = [] }: HtmlWithGlossaryProps) {
+  // If no glossary, render raw HTML
+  if (!glossaryTerms || glossaryTerms.length === 0) {
+    return <div dangerouslySetInnerHTML={{ __html: html }} />
+  }
+
+  // Sort terms by length desc to avoid partial matches
+  const sorted = [...glossaryTerms].sort((a, b) => b.term.length - a.term.length)
+
+  // Build regex that matches any term with word boundaries, case-insensitive
+  const termPatterns = sorted.map(t => escapeRegExp(t.term))
+  if (termPatterns.length === 0) return <div dangerouslySetInnerHTML={{ __html: html }} />
+
+  const globalRegex = new RegExp(`\\b(${termPatterns.join('|')})\\b`, 'gi')
+
+  // Parse the HTML and walk nodes
+  const parser = typeof window !== 'undefined' ? new DOMParser() : null
+  if (!parser) return <div dangerouslySetInnerHTML={{ __html: html }} />
+
+  const doc = parser.parseFromString(html, 'text/html')
+
+  function nodeToReact(node: ChildNode, keyPrefix = ''): React.ReactNode {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent || ''
+      if (!globalRegex.test(text)) return text
+
+      const parts: React.ReactNode[] = []
+      let lastIndex = 0
+      text.replace(globalRegex, (match, p1, offset) => {
+        const before = text.slice(lastIndex, offset)
+        if (before) parts.push(before)
+
+        const term = match
+        // find glossary entry (case-insensitive match)
+        const entry = sorted.find(e => e.term.toLowerCase() === term.toLowerCase())
+        if (entry) {
+          parts.push(
+            <GlossaryTooltip key={`${keyPrefix}-${parts.length}-${term}`} term={entry.term} definition={entry.definition}>
+              {term}
+            </GlossaryTooltip>
+          )
+        } else {
+          parts.push(term)
+        }
+
+        lastIndex = offset + match.length
+        return match
+      })
+
+      const tail = text.slice(lastIndex)
+      if (tail) parts.push(tail)
+
+      return parts
+    }
+
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const el = node as Element
+      const children = Array.from(el.childNodes).map((child, i) => nodeToReact(child, `${keyPrefix}-${i}`))
+      const Tag = el.tagName.toLowerCase() as any
+      const props: any = {}
+      // copy attributes that are safe/useful
+      for (let i = 0; i < el.attributes.length; i++) {
+        const attr = el.attributes[i]
+        props[attr.name] = attr.value
+      }
+      return React.createElement(Tag, { ...props, key: `${keyPrefix}-${Math.random()}` }, children)
+    }
+
+    return null
+  }
+
+  const bodyChildren = Array.from(doc.body.childNodes)
+  const nodes = bodyChildren.map((n, i) => nodeToReact(n, `root-${i}`))
+
+  return <div>{nodes}</div>
+}

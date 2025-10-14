@@ -61,6 +61,18 @@ export default function ChapterPage() {
             // Find the current section
             const foundSection = sectionsArray.find((s: Section) => s.id === chapterId)
             if (foundSection) {
+              // Fetch chapter-aware glossary definitions
+              const chapterNum = foundSection.chapterNumber || 1
+              try {
+                const glossaryRes = await fetch(`/api/works/${storyId}/glossary?chapter=${chapterNum}`)
+                if (glossaryRes.ok) {
+                  const glossaryData = await glossaryRes.json()
+                  const entries = glossaryData?.entries || []
+                  try { (window as any).__CURRENT_GLOSSARY_TERMS__ = entries } catch (e) {}
+                }
+              } catch (e) {
+                console.error('Failed to load glossary:', e)
+              }
               console.log('Found section:', foundSection)
               console.log('Section content type:', typeof foundSection.content)
               console.log('Section content:', foundSection.content)

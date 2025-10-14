@@ -26,6 +26,14 @@ export default function WorkViewer({
   isLiked = false,
   isSubscribed = false
 }: WorkViewerProps) {
+  // Expose glossary terms to client-side renderers for highlighting.
+  if (typeof window !== 'undefined') {
+    try {
+      ;(window as any).__CURRENT_GLOSSARY_TERMS__ = work.glossary || []
+    } catch (e) {
+      // ignore
+    }
+  }
   const [activeTab, setActiveTab] = useState<'overview' | 'sections' | 'glossary'>('overview')
   const router = useRouter()
 

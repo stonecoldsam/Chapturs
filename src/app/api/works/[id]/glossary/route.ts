@@ -8,7 +8,7 @@ interface RouteParams {
   }>
 }
 
-// POST /api/works/[id]/glossary - Create/update glossary entry
+// POST /api/works/[id]/glossary - Create/update glossary entry with chapter versioning
 export async function POST(request: NextRequest, props: RouteParams) {
   const params = await props.params;
   try {
@@ -23,6 +23,7 @@ export async function POST(request: NextRequest, props: RouteParams) {
       term,
       definition,
       category,
+      currentChapter, // Chapter number where this definition is being created
       aliases = [],
       chapters = []
     } = body
@@ -35,7 +36,6 @@ export async function POST(request: NextRequest, props: RouteParams) {
     }
 
     // Verify user owns this work
-    // Need to check: User -> Author -> Work ownership
     const work = await prisma.work.findUnique({
       where: { id: workId },
       select: { 
@@ -54,13 +54,36 @@ export async function POST(request: NextRequest, props: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized - You do not own this work' }, { status: 403 })
     }
 
-    // Create glossary entry
-    // Note: updatedAt will be set by database DEFAULT CURRENT_TIMESTAMP
-    const glossaryEntry = await prisma.glossaryEntry.create({
-      data: {
+    // Find or create the base glossary entry
+    let glossaryEntry = await prisma.glossaryEntry.findFirst({
+      where: {
         workId,
-        term,
-        definition
+        term: {
+          equals: term,
+          mode: 'insensitive'
+        }
+      }
+    })
+
+    if (!glossaryEntry) {
+      // Create new glossary entry with initial definition
+      glossaryEntry = await prisma.glossaryEntry.create({
+        data: {
+          workId,
+          term,
+          definition,
+          chapterIntroduced: currentChapter || 1
+        }
+      })
+    }
+
+    // Create a new definition version for this chapter
+    await prisma.glossaryDefinitionVersion.create({
+      data: {
+        glossaryEntryId: glossaryEntry.id,
+        definition,
+        fromChapter: currentChapter || 1,
+        notes: `Updated in chapter ${currentChapter || 1}`
       }
     })
 
@@ -82,7 +105,7 @@ export async function POST(request: NextRequest, props: RouteParams) {
   }
 }
 
-// GET /api/works/[id]/glossary - Get work glossary entries
+// GET /api/works/[id]/glossary?chapter=X - Get work glossary entries with chapter-aware definitions
 export async function GET(request: NextRequest, props: RouteParams) {
   const params = await props.params;
   try {
@@ -92,16 +115,41 @@ export async function GET(request: NextRequest, props: RouteParams) {
     }
 
     const workId = params.id
+    const { searchParams } = new URL(request.url)
+    const currentChapter = parseInt(searchParams.get('chapter') || '999999')
 
-    // Fetch all glossary entries for this work
+    // Fetch all glossary entries for this work with their definition versions
     const glossaryEntries = await prisma.glossaryEntry.findMany({
       where: { workId },
+      include: {
+        definitions: {
+          where: {
+            fromChapter: { lte: currentChapter }
+          },
+          orderBy: { fromChapter: 'desc' }
+        }
+      },
       orderBy: { createdAt: 'asc' }
+    })
+
+    // Map entries to include the correct definition for the current chapter
+    const entriesWithCorrectDefinitions = glossaryEntries.map(entry => {
+      // Get the most recent definition version for this chapter
+      const applicableDefinition = entry.definitions[0] // Already sorted desc, so first is most recent
+      
+      return {
+        id: entry.id,
+        term: entry.term,
+        definition: applicableDefinition?.definition || entry.definition, // Use versioned or fallback to base
+        chapterIntroduced: entry.chapterIntroduced,
+        type: entry.type,
+        createdAt: entry.createdAt
+      }
     })
 
     return NextResponse.json({
       success: true,
-      entries: glossaryEntries
+      entries: entriesWithCorrectDefinitions
     })
 
   } catch (error: any) {

@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import HtmlWithGlossary from './HtmlWithGlossary'
 
 interface ContentBlock {
   id: string
@@ -74,11 +75,24 @@ function BlockRenderer({ block }: { block: ContentBlock }) {
 
 // Prose Block - Regular text content with HTML formatting
 function ProseBlock({ content }: { content: string }) {
+  // content is HTML string; attempt to highlight glossary terms at render-time.
+  // WorkViewer/parent should pass glossary terms via context or props; fallback to no highlighting here.
+  // For now we'll try to read a global injected variable `window.__CURRENT_GLOSSARY_TERMS__` which
+  // pages set when they fetch glossary entries. This is a safe opt-in: if not present, HtmlWithGlossary
+  // will render raw HTML.
+  let glossaryTerms: any[] | undefined = undefined
+  try {
+    if (typeof window !== 'undefined' && (window as any).__CURRENT_GLOSSARY_TERMS__) {
+      glossaryTerms = (window as any).__CURRENT_GLOSSARY_TERMS__
+    }
+  } catch (e) {
+    // ignore
+  }
+
   return (
-    <div 
-      className="prose-content leading-relaxed"
-      dangerouslySetInnerHTML={{ __html: content }}
-    />
+    <div className="prose-content leading-relaxed">
+      <HtmlWithGlossary html={content} glossaryTerms={glossaryTerms} />
+    </div>
   )
 }
 
