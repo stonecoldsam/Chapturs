@@ -1,5 +1,10 @@
+import AppLayout from '@/components/AppLayout'
 import CreatorFanartPage from '@/components/CreatorFanartPage'
 
 export default function FanartPage() {
-  return <CreatorFanartPage />
+  return (
+    <AppLayout>
+      <CreatorFanartPage />
+    </AppLayout>
+  )
 }

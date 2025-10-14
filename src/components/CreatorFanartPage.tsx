@@ -120,8 +120,8 @@ export default function CreatorFanartPage() {
       <div className="max-w-7xl mx-auto p-6">
         <div className="text-center py-12">
           <AlertCircle className="mx-auto mb-4 text-red-500" size={48} />
-          <h2 className="text-2xl font-bold mb-2">Unauthorized</h2>
-          <p className="text-gray-600">Please sign in to manage fanart submissions.</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Unauthorized</h2>
+          <p className="text-gray-600 dark:text-gray-400">Please sign in to manage fanart submissions.</p>
         </div>
       </div>
     )
