@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X, User, Image as ImageIcon, BookOpen, Users as UsersIcon, Upload } from 'lucide-react'
 
 interface Character {
@@ -37,10 +37,63 @@ export default function CharacterProfileViewModal({
   onClose
 }: CharacterProfileViewModalProps) {
   const [showSubmitFanart, setShowSubmitFanart] = useState(false)
+  const [approvedFanart, setApprovedFanart] = useState<any[]>([])
+  const [submitting, setSubmitting] = useState(false)
+  const [formData, setFormData] = useState({
+    imageUrl: '',
+    artistName: '',
+    artistLink: '',
+    artistHandle: '',
+    notes: ''
+  })
 
   // Get custom label or default
   const getLabel = (field: string, defaultLabel: string) => {
     return character.categoryLabels?.[field] || defaultLabel
+  }
+
+  // Fetch approved fanart when modal opens
+  useEffect(() => {
+    if (isOpen && character.allowUserSubmissions) {
+      fetch(`/api/works/${character.workId}/characters/${character.id}/submissions?status=approved`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            setApprovedFanart(data.submissions || [])
+          }
+        })
+        .catch(err => console.error('Failed to load fanart:', err))
+    }
+  }, [isOpen, character.id, character.workId, character.allowUserSubmissions])
+
+  const handleSubmitFanart = async () => {
+    if (!formData.imageUrl || !formData.artistName) {
+      alert('Image URL and Artist Name are required')
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      const res = await fetch(`/api/works/${character.workId}/characters/${character.id}/submissions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      })
+
+      const data = await res.json()
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'Submission failed')
+      }
+
+      alert('Fanart submitted! It will appear once the author approves it.')
+      setShowSubmitFanart(false)
+      setFormData({ imageUrl: '', artistName: '', artistLink: '', artistHandle: '', notes: '' })
+    } catch (error: any) {
+      alert(error.message || 'Failed to submit fanart')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   if (!isOpen) return null
@@ -207,6 +260,35 @@ export default function CharacterProfileViewModal({
                 <ImageIcon size={18} />
                 {getLabel('images', 'Fan Art Gallery')}
               </h3>
+              
+              {/* Display approved fanart */}
+              {approvedFanart.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                  {approvedFanart.map((art) => (
+                    <div key={art.id} className="group relative">
+                      <img
+                        src={art.imageUrl}
+                        alt={`Fan art by ${art.artistName}`}
+                        className="w-full h-48 object-cover rounded-lg shadow-md"
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 rounded-b-lg">
+                        <p className="text-white text-xs font-medium">{art.artistName}</p>
+                        {art.artistLink && (
+                          <a 
+                            href={art.artistLink} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-300 hover:text-blue-200 text-xs"
+                          >
+                            Portfolio →
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                 The author is accepting fan art submissions for this character!
               </p>
@@ -230,6 +312,8 @@ export default function CharacterProfileViewModal({
                       </label>
                       <input
                         type="text"
+                        value={formData.imageUrl}
+                        onChange={(e) => setFormData(prev => ({ ...prev, imageUrl: e.target.value }))}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                         placeholder="https://example.com/your-artwork.jpg"
                       />
@@ -241,6 +325,8 @@ export default function CharacterProfileViewModal({
                       </label>
                       <input
                         type="text"
+                        value={formData.artistName}
+                        onChange={(e) => setFormData(prev => ({ ...prev, artistName: e.target.value }))}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                         placeholder="Your name or handle"
                       />
@@ -253,6 +339,8 @@ export default function CharacterProfileViewModal({
                         </label>
                         <input
                           type="text"
+                          value={formData.artistLink}
+                          onChange={(e) => setFormData(prev => ({ ...prev, artistLink: e.target.value }))}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                           placeholder="https://yourportfolio.com"
                         />
@@ -264,6 +352,8 @@ export default function CharacterProfileViewModal({
                         </label>
                         <input
                           type="text"
+                          value={formData.artistHandle}
+                          onChange={(e) => setFormData(prev => ({ ...prev, artistHandle: e.target.value }))}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                           placeholder="@yourhandle"
                         />
@@ -275,6 +365,8 @@ export default function CharacterProfileViewModal({
                         Notes (Optional)
                       </label>
                       <textarea
+                        value={formData.notes}
+                        onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                         placeholder="Any notes about your artwork..."
                         rows={2}
@@ -282,12 +374,17 @@ export default function CharacterProfileViewModal({
                     </div>
 
                     <div className="flex gap-2">
-                      <button className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
-                        Submit
+                      <button 
+                        onClick={handleSubmitFanart}
+                        disabled={submitting}
+                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {submitting ? 'Submitting...' : 'Submit'}
                       </button>
                       <button
                         onClick={() => setShowSubmitFanart(false)}
-                        className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500"
+                        disabled={submitting}
+                        className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 disabled:opacity-50"
                       >
                         Cancel
                       </button>

@@ -58,6 +58,10 @@ export function CharacterTooltip({
     }
   }
 
+  // Auto-fill quickGlance if empty: "First seen in Chapter X"
+  const displayText = character.quickGlance || 
+    (character.firstAppearance ? `First seen in Chapter ${character.firstAppearance}` : 'Character profile')
+
   return (
     <span className="relative">
       <span
@@ -70,7 +74,7 @@ export function CharacterTooltip({
         {children}
       </span>
       
-      {isVisible && character.quickGlance && (
+      {isVisible && (
         <div
           ref={tooltipRef}
           className="fixed z-50 w-80 p-4 bg-gray-900 text-white rounded-lg shadow-xl pointer-events-none"
@@ -98,7 +102,7 @@ export function CharacterTooltip({
                 </div>
               )}
               <div className="text-sm text-gray-300">
-                {character.quickGlance}
+                {displayText}
               </div>
               <div className="text-xs text-green-400 mt-2">
                 Click for full profile →

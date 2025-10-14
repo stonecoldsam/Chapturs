@@ -190,7 +190,9 @@ export async function GET(request: NextRequest, props: RouteParams) {
     const { searchParams } = new URL(request.url)
     const currentChapter = parseInt(searchParams.get('chapter') || '999999')
 
-    // Get all character profiles for this work
+    // Get all character profiles for this work that should appear in current chapter
+    // Characters show retroactively: if firstAppearance=3 and character added in Ch5, 
+    // readers of Ch3 will still see the profile (even if blank)
     const characters = await prisma.$queryRaw`
       SELECT 
         cp.id,
@@ -217,6 +219,7 @@ export async function GET(request: NextRequest, props: RouteParams) {
         cp."updatedAt"
       FROM character_profiles cp
       WHERE cp."workId" = ${workId}
+        AND (cp."firstAppearance" IS NULL OR cp."firstAppearance" <= ${currentChapter})
       ORDER BY cp."createdAt" ASC
     ` as any[]
 
