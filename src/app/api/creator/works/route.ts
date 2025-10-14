@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/database/PrismaService'
 
 // GET /api/creator/works - Get all creator's works with counts
 export async function GET(request: Request) {
