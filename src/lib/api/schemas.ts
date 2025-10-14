@@ -73,7 +73,9 @@ export const createCharacterProfileSchema = z.object({
   characterArc: z.string().max(5000, 'Character arc too long').optional(),
   developmentTimeline: z.record(z.string(), z.any()).optional(),
   authorNotes: z.string().max(5000, 'Author notes too long').optional(),
-  metadata: z.record(z.string(), z.any()).default({})
+  metadata: z.record(z.string(), z.any()).default({}),
+  categoryLabels: z.record(z.string(), z.string()).optional(),
+  allowUserSubmissions: z.boolean().optional()
 })
 
 export const updateCharacterProfileSchema = createCharacterProfileSchema.partial().extend({

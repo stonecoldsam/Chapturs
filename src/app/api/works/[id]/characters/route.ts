@@ -60,7 +60,9 @@ export async function POST(request: NextRequest, props: RouteParams) {
       characterArc,
       developmentTimeline,
       authorNotes,
-      metadata = {}
+      metadata = {},
+      categoryLabels = {},
+      allowUserSubmissions = false
     } = validatedData
 
     // Verify user owns this work
@@ -89,6 +91,7 @@ export async function POST(request: NextRequest, props: RouteParams) {
         "imageUrl", "physicalDescription", age, height, "appearanceNotes",
         backstory, "personalityTraits", motivations,
         "characterArc", "developmentTimeline", "authorNotes", metadata,
+        "categoryLabels", "allowUserSubmissions",
         "createdAt", "updatedAt"
       )
       VALUES (
@@ -99,6 +102,7 @@ export async function POST(request: NextRequest, props: RouteParams) {
         ${backstory || null}, ${JSON.stringify(personalityTraits)}, ${motivations || null},
         ${characterArc || null}, ${developmentTimeline ? JSON.stringify(developmentTimeline) : null},
         ${authorNotes || null}, ${JSON.stringify(metadata)},
+        ${categoryLabels ? JSON.stringify(categoryLabels) : null}, ${allowUserSubmissions},
         NOW(), NOW()
       )
       RETURNING *
@@ -205,6 +209,8 @@ export async function GET(request: NextRequest, props: RouteParams) {
         cp."developmentTimeline",
         cp."authorNotes",
         cp.metadata,
+        cp."categoryLabels",
+        cp."allowUserSubmissions",
         cp."createdAt",
         cp."updatedAt"
       FROM character_profiles cp
@@ -254,6 +260,8 @@ export async function GET(request: NextRequest, props: RouteParams) {
           developmentTimeline: character.developmentTimeline ? JSON.parse(character.developmentTimeline) : null,
           authorNotes: character.authorNotes,
           metadata: character.metadata ? JSON.parse(character.metadata) : {},
+          categoryLabels: character.categoryLabels ? JSON.parse(character.categoryLabels) : {},
+          allowUserSubmissions: character.allowUserSubmissions || false,
           developmentNotes: versionData.developmentNotes || null,
           createdAt: character.createdAt,
           updatedAt: character.updatedAt

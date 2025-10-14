@@ -2,6 +2,7 @@
 
 import React from 'react'
 import HtmlWithGlossary from './HtmlWithGlossary'
+import HtmlWithHighlights from './HtmlWithHighlights'
 
 interface ContentBlock {
   id: string
@@ -76,12 +77,18 @@ function BlockRenderer({ block }: { block: ContentBlock }) {
 // Prose Block - Regular text content with HTML formatting
 function ProseBlock({ content }: { content: string }) {
   const [glossaryTerms, setGlossaryTerms] = React.useState<any[] | undefined>(undefined)
+  const [characters, setCharacters] = React.useState<any[] | undefined>(undefined)
 
-  // Only access window.__CURRENT_GLOSSARY_TERMS__ after mounting to avoid hydration mismatch
+  // Only access window globals after mounting to avoid hydration mismatch
   React.useEffect(() => {
     try {
-      if (typeof window !== 'undefined' && (window as any).__CURRENT_GLOSSARY_TERMS__) {
-        setGlossaryTerms((window as any).__CURRENT_GLOSSARY_TERMS__)
+      if (typeof window !== 'undefined') {
+        if ((window as any).__CURRENT_GLOSSARY_TERMS__) {
+          setGlossaryTerms((window as any).__CURRENT_GLOSSARY_TERMS__)
+        }
+        if ((window as any).__CURRENT_CHARACTERS__) {
+          setCharacters((window as any).__CURRENT_CHARACTERS__)
+        }
       }
     } catch (e) {
       // ignore
@@ -90,7 +97,11 @@ function ProseBlock({ content }: { content: string }) {
 
   return (
     <div className="prose-content leading-relaxed">
-      <HtmlWithGlossary html={content} glossaryTerms={glossaryTerms} />
+      <HtmlWithHighlights 
+        html={content} 
+        glossaryTerms={glossaryTerms} 
+        characters={characters}
+      />
     </div>
   )
 }

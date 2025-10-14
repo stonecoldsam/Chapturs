@@ -73,6 +73,19 @@ export default function ChapterPage() {
               } catch (e) {
                 console.error('Failed to load glossary:', e)
               }
+              
+              // Fetch chapter-aware character profiles
+              try {
+                const charactersRes = await fetch(`/api/works/${storyId}/characters?chapter=${chapterNum}`)
+                if (charactersRes.ok) {
+                  const charactersData = await charactersRes.json()
+                  const characters = charactersData?.characters || []
+                  try { (window as any).__CURRENT_CHARACTERS__ = characters } catch (e) {}
+                }
+              } catch (e) {
+                console.error('Failed to load characters:', e)
+              }
+              
               console.log('Found section:', foundSection)
               console.log('Section content type:', typeof foundSection.content)
               console.log('Section content:', foundSection.content)

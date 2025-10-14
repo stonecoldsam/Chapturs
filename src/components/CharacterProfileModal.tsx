@@ -3,6 +3,21 @@
 import { useState, useEffect } from 'react'
 import { X, User, Image as ImageIcon, BookOpen, Users as UsersIcon, Save } from 'lucide-react'
 
+interface CategoryLabels {
+  role?: string
+  visualInfo?: string
+  physicalDescription?: string
+  age?: string
+  height?: string
+  appearanceNotes?: string
+  backstory?: string
+  personalityTraits?: string
+  motivations?: string
+  characterArc?: string
+  authorNotes?: string
+  [key: string]: string | undefined
+}
+
 interface CharacterProfile {
   id?: string
   name: string
@@ -19,6 +34,8 @@ interface CharacterProfile {
   motivations?: string
   characterArc?: string
   authorNotes?: string
+  categoryLabels?: CategoryLabels
+  allowUserSubmissions?: boolean
 }
 
 interface CharacterProfileModalProps {
@@ -50,12 +67,15 @@ export default function CharacterProfileModal({
     personalityTraits: [],
     motivations: '',
     characterArc: '',
-    authorNotes: ''
+    authorNotes: '',
+    categoryLabels: {},
+    allowUserSubmissions: false
   })
 
   const [aliasInput, setAliasInput] = useState('')
   const [traitInput, setTraitInput] = useState('')
   const [saving, setSaving] = useState(false)
+  const [showCustomizeLabels, setShowCustomizeLabels] = useState(false)
 
   useEffect(() => {
     if (initialCharacter) {
@@ -374,9 +394,93 @@ export default function CharacterProfileModal({
             </div>
           </div>
 
+          {/* Customization Section */}
+          <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Profile Customization</h3>
+            
+            <div className="space-y-4">
+              {/* Allow User Submissions Toggle */}
+              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Allow Fanart Submissions
+                  </label>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Let readers submit fanart with artist credit
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCharacter(prev => ({ ...prev, allowUserSubmissions: !prev.allowUserSubmissions }))}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    character.allowUserSubmissions ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      character.allowUserSubmissions ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Customize Category Labels */}
+              <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => setShowCustomizeLabels(!showCustomizeLabels)}
+                  className="w-full flex items-center justify-between text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  <span>Customize Category Labels</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {showCustomizeLabels ? 'Hide' : 'Show'}
+                  </span>
+                </button>
+                
+                {showCustomizeLabels && (
+                  <div className="mt-4 space-y-3">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                      Rename categories to customize this profile (e.g., "Backstory" → "Inner Thoughts")
+                    </p>
+                    
+                    {[
+                      { key: 'role', default: 'Role/Archetype' },
+                      { key: 'visualInfo', default: 'Visual Information' },
+                      { key: 'physicalDescription', default: 'Physical Description' },
+                      { key: 'backstory', default: 'Backstory' },
+                      { key: 'personalityTraits', default: 'Personality Traits' },
+                      { key: 'motivations', default: 'Motivations/Goals' },
+                      { key: 'characterArc', default: 'Character Arc Notes' },
+                      { key: 'authorNotes', default: 'Private Author Notes' }
+                    ].map(({ key, default: defaultLabel }) => (
+                      <div key={key} className="grid grid-cols-2 gap-2 items-center">
+                        <span className="text-xs text-gray-600 dark:text-gray-400">{defaultLabel}</span>
+                        <input
+                          type="text"
+                          value={character.categoryLabels?.[key] || ''}
+                          onChange={(e) => setCharacter(prev => ({
+                            ...prev,
+                            categoryLabels: {
+                              ...prev.categoryLabels,
+                              [key]: e.target.value
+                            }
+                          }))}
+                          placeholder={defaultLabel}
+                          className="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Author Notes Section */}
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Author Notes</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              {character.categoryLabels?.authorNotes || 'Author Notes'}
+            </h3>
             
             <div className="space-y-4">
               <div>
