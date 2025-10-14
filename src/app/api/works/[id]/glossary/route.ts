@@ -130,8 +130,8 @@ export async function GET(request: NextRequest, props: RouteParams) {
            LIMIT 1),
           ge.definition
         ) as definition,
-        ge."chapterIntroduced",
-        ge.type,
+        COALESCE(ge."chapterIntroduced", 1) as "chapterIntroduced",
+        COALESCE(ge.type, 'term') as type,
         ge."createdAt"
       FROM glossary_entries ge
       WHERE ge."workId" = ${workId}
