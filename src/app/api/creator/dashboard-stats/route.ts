@@ -154,16 +154,25 @@ export async function GET(request: NextRequest) {
       }>>
     ])
 
-    // Calculate quality scores
-    const avgQualityScore = qualityAssessments.length > 0
-      ? Math.round(qualityAssessments.reduce((sum, qa) => sum + qa.overallScore, 0) / qualityAssessments.length)
+    console.log('[GET /api/creator/dashboard-stats] Raw data fetched:', {
+      worksCount: works?.length,
+      totalChapters,
+      recentLikes: recentLikes,
+      recentComments: recentComments,
+      qualityAssessments: qualityAssessments?.length,
+      adRevenue: adRevenue?.length
+    })
+
+    // Calculate quality scores (with null safety)
+    const avgQualityScore = qualityAssessments && qualityAssessments.length > 0
+      ? Math.round(qualityAssessments.reduce((sum, qa) => sum + (qa.overallScore || 0), 0) / qualityAssessments.length)
       : 0
 
-    const avgBoostMultiplier = qualityAssessments.length > 0
-      ? Number((qualityAssessments.reduce((sum, qa) => sum + qa.boostMultiplier, 0) / qualityAssessments.length).toFixed(2))
+    const avgBoostMultiplier = qualityAssessments && qualityAssessments.length > 0
+      ? Number((qualityAssessments.reduce((sum, qa) => sum + (qa.boostMultiplier || 0), 0) / qualityAssessments.length).toFixed(2))
       : 1.0
 
-    const dominantTier = qualityAssessments.length > 0
+    const dominantTier = qualityAssessments && qualityAssessments.length > 0
       ? qualityAssessments
           .map(qa => qa.qualityTier)
           .sort((a, b) => 
@@ -172,43 +181,43 @@ export async function GET(request: NextRequest) {
           )[0]
       : 'developing'
 
-    // Calculate revenue
+    // Calculate revenue (with null safety)
     const now = new Date()
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
     const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0)
 
-    const recentLikesCount = Array.isArray(recentLikes) && recentLikes.length > 0 ? recentLikes[0].count : 0
-    const recentCommentsCount = Array.isArray(recentComments) && recentComments.length > 0 ? recentComments[0].count : 0
+    const recentLikesCount = Array.isArray(recentLikes) && recentLikes.length > 0 ? (recentLikes[0].count || 0) : 0
+    const recentCommentsCount = Array.isArray(recentComments) && recentComments.length > 0 ? (recentComments[0].count || 0) : 0
 
-    const thisMonthRevenue = adRevenue
+    const thisMonthRevenue = Array.isArray(adRevenue) ? adRevenue
       .filter(m => m.date >= thisMonthStart)
-      .reduce((sum, m) => sum + Number(m.revenue), 0)
+      .reduce((sum, m) => sum + Number(m.revenue || 0), 0) : 0
 
-    const lastMonthRevenue = adRevenue
+    const lastMonthRevenue = Array.isArray(adRevenue) ? adRevenue
       .filter(m => m.date >= lastMonthStart && m.date <= lastMonthEnd)
-      .reduce((sum, m) => sum + Number(m.revenue), 0)
+      .reduce((sum, m) => sum + Number(m.revenue || 0), 0) : 0
 
-    const pendingRevenue = adRevenue
+    const pendingRevenue = Array.isArray(adRevenue) ? adRevenue
       .filter(m => !m.isPaid)
-      .reduce((sum, m) => sum + Number(m.revenue), 0)
+      .reduce((sum, m) => sum + Number(m.revenue || 0), 0) : 0
 
     // Build response
     return NextResponse.json({
       success: true,
       overview: {
-        totalWorks: works.length,
-        totalChapters,
-        totalReads,
-        totalLikes,
-        totalBookmarks,
-        totalSubscriptions
+        totalWorks: works?.length || 0,
+        totalChapters: totalChapters || 0,
+        totalReads: totalReads || 0,
+        totalLikes: totalLikes || 0,
+        totalBookmarks: totalBookmarks || 0,
+        totalSubscriptions: totalSubscriptions || 0
       },
       recentActivity: {
-        newReads: recentReads,
+        newReads: recentReads || 0,
         newLikes: recentLikesCount,
         newComments: recentCommentsCount,
-        pendingFanart
+        pendingFanart: pendingFanart || 0
       },
       qualityScores: {
         averageScore: avgQualityScore,
@@ -220,7 +229,7 @@ export async function GET(request: NextRequest) {
         lastMonth: Number(lastMonthRevenue.toFixed(2)),
         pending: Number(pendingRevenue.toFixed(2))
       },
-      works: works.map(w => ({
+      works: (works || []).map((w: any) => ({
         id: w.id,
         title: w.title
       }))
