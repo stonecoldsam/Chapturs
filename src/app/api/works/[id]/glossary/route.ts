@@ -35,41 +35,31 @@ export async function POST(request: NextRequest, props: RouteParams) {
     }
 
     // Verify user owns this work
+    // Need to check: User -> Author -> Work ownership
     const work = await prisma.work.findUnique({
       where: { id: workId },
-      select: { authorId: true }
+      select: { 
+        authorId: true,
+        author: {
+          select: { userId: true }
+        }
+      }
     })
 
     if (!work) {
       return NextResponse.json({ error: 'Work not found' }, { status: 404 })
     }
 
-    if (work.authorId !== session.user.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    if (work.author.userId !== session.user.id) {
+      return NextResponse.json({ error: 'Unauthorized - You do not own this work' }, { status: 403 })
     }
 
-    // Create glossary entry with chapter-aware definition
-    const currentChapter = chapters && chapters.length > 0 ? chapters[0] : 1
-    
+    // Create glossary entry
     const glossaryEntry = await prisma.glossaryEntry.create({
       data: {
         workId,
         term,
-        definition,
-        type: category === 'character' ? 'character' : 'term',
-        category,
-        chapterIntroduced: currentChapter,
-        aliases: aliases && aliases.length > 0 ? JSON.stringify(aliases) : null,
-        definitions: {
-          create: {
-            definition,
-            fromChapter: currentChapter,
-            notes: `Initial definition from chapter ${currentChapter}`
-          }
-        }
-      },
-      include: {
-        definitions: true
+        definition
       }
     })
 
