@@ -115,21 +115,12 @@ export async function GET(request: NextRequest, props: RouteParams) {
     const { searchParams } = new URL(request.url)
     const currentChapter = parseInt(searchParams.get('chapter') || '999999')
 
-    // Fetch glossary entries with chapter-aware definitions using raw SQL
-    // This avoids Prisma client version conflicts with new schema fields
-    const entriesWithCorrectDefinitions = await prisma.$queryRaw`
+    // First, get all glossary entries for this work
+    const glossaryEntries = await prisma.$queryRaw`
       SELECT 
         ge.id,
         ge.term,
-        COALESCE(
-          (SELECT gdv.definition 
-           FROM glossary_definition_versions gdv 
-           WHERE gdv."glossaryEntryId" = ge.id 
-             AND gdv."fromChapter" <= ${currentChapter}
-           ORDER BY gdv."fromChapter" DESC 
-           LIMIT 1),
-          ge.definition
-        ) as definition,
+        ge.definition,
         COALESCE(ge."chapterIntroduced", 1) as "chapterIntroduced",
         COALESCE(ge.type, 'term') as type,
         ge."createdAt"
@@ -137,6 +128,29 @@ export async function GET(request: NextRequest, props: RouteParams) {
       WHERE ge."workId" = ${workId}
       ORDER BY ge."createdAt" ASC
     ` as any[]
+
+    // For each entry, get the most recent applicable definition version
+    const entriesWithCorrectDefinitions = await Promise.all(
+      (glossaryEntries as any[]).map(async (entry: any) => {
+        const versionResult = await prisma.$queryRaw`
+          SELECT definition
+          FROM glossary_definition_versions
+          WHERE "glossaryEntryId" = ${entry.id}
+            AND "fromChapter" <= ${currentChapter}
+          ORDER BY "fromChapter" DESC
+          LIMIT 1
+        ` as any[]
+
+        return {
+          id: entry.id,
+          term: entry.term,
+          definition: versionResult.length > 0 ? versionResult[0].definition : entry.definition,
+          chapterIntroduced: entry.chapterIntroduced,
+          type: entry.type,
+          createdAt: entry.createdAt
+        }
+      })
+    )
 
     return NextResponse.json({
       success: true,
