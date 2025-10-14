@@ -30,7 +30,8 @@ export async function POST(request: NextRequest) {
     const session = await auth()
     requireAuth(session)
 
-    console.log('Creating work for user:', session.user.id, session.user.email)
+    console.log('[POST /api/works] Creating work for user:', session.user.id, session.user.email)
+    console.log('[POST /api/works] Session user ID:', session.user.id)
 
     // Validation
     const validatedData = await validateRequest(request, createWorkSchema)
@@ -70,7 +71,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (!author) {
-      console.log('Author profile not found, creating for user:', session.user.id)
+      console.log('[POST /api/works] Author profile not found, creating for user:', session.user.id)
       // Create author profile automatically
       author = await prisma.author.create({
         data: {
@@ -79,9 +80,13 @@ export async function POST(request: NextRequest) {
           socialLinks: '[]',
         }
       })
+      console.log('[POST /api/works] Created author with ID:', author.id, 'for userId:', author.userId)
+    } else {
+      console.log('[POST /api/works] Found existing author with ID:', author.id, 'for userId:', author.userId)
     }
 
     // Create work using Prisma directly for better type safety
+    console.log('[POST /api/works] Creating work with authorId:', author.id)
     const work = await prisma.work.create({
       data: {
         title,
@@ -112,6 +117,14 @@ export async function POST(request: NextRequest) {
         }
       }
     })
+
+    console.log('[POST /api/works] ✅ Work created successfully!')
+    console.log('[POST /api/works] Work ID:', work.id)
+    console.log('[POST /api/works] Work authorId:', work.authorId)
+    console.log('[POST /api/works] Work title:', work.title)
+    console.log('[POST /api/works] Author userId:', work.author.userId)
+    console.log('[POST /api/works] Session userId:', session.user.id)
+    console.log('[POST /api/works] IDs match:', work.author.userId === session.user.id ? '✅ YES' : '❌ NO')
 
     const response = createSuccessResponse({
       work: {
