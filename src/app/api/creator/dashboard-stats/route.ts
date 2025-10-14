@@ -144,8 +144,7 @@ export async function GET(request: NextRequest) {
       prisma.$queryRaw`
         SELECT 
           apm.revenue,
-          apm."lastUpdated" as date,
-          apm."isPaid"
+          apm."lastUpdated" as date
         FROM ad_placement_metrics apm
         JOIN ad_placements ap ON ap.id = apm."placementId"
         JOIN works w ON w.id = ap."workId"
@@ -154,7 +153,6 @@ export async function GET(request: NextRequest) {
       ` as Promise<Array<{
         revenue: number
         date: Date
-        isPaid: boolean
       }>>
     ])
     } catch (fetchError: any) {
@@ -218,8 +216,8 @@ export async function GET(request: NextRequest) {
       .filter(m => m.date >= lastMonthStart && m.date <= lastMonthEnd)
       .reduce((sum, m) => sum + Number(m.revenue || 0), 0) : 0
 
+    // All revenue is pending since payment tracking not implemented yet
     const pendingRevenue = Array.isArray(adRevenue) ? adRevenue
-      .filter(m => !m.isPaid)
       .reduce((sum, m) => sum + Number(m.revenue || 0), 0) : 0
 
     // Build response
