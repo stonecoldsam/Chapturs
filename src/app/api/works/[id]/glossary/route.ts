@@ -68,10 +68,14 @@ export async function POST(request: NextRequest, props: RouteParams) {
       entry: glossaryEntry
     })
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Glossary entry creation error:', error)
     return NextResponse.json(
-      { error: 'Failed to create glossary entry' },
+      { 
+        error: 'Failed to create glossary entry',
+        details: error?.message || 'Unknown error',
+        code: error?.code
+      },
       { status: 500 }
     )
   }
@@ -99,10 +103,13 @@ export async function GET(request: NextRequest, props: RouteParams) {
       entries: glossaryEntries
     })
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Glossary fetch error:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch glossary' },
+      { 
+        error: 'Failed to fetch glossary',
+        details: error?.message || 'Unknown error'
+      },
       { status: 500 }
     )
   }
