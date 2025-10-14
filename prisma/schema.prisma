@@ -98,6 +98,7 @@ model Work {
   likes           Like[]
   readingHistory  ReadingHistory[]
   glossaryEntries GlossaryEntry[]
+  characterProfiles CharacterProfile[]
   
   // Recommendation system relations
   userSignals            UserSignal[]
@@ -248,6 +249,89 @@ model GlossaryDefinitionVersion {
   @@index([glossaryEntryId])
   @@index([fromChapter])
   @@map("glossary_definition_versions")
+}
+
+// Character Profile System - Enhanced character tracking with metadata
+model CharacterProfile {
+  id                String   @id @default(cuid())
+  workId            String
+  name              String
+  aliases           String?  // JSON array of alternative names
+  role              String?  // protagonist, antagonist, supporting, etc.
+  firstAppearance   Int?     // Chapter number where character first appears
+  
+  // Visual information
+  imageUrl          String?
+  physicalDescription String?
+  age               String?
+  height            String?
+  appearanceNotes   String?
+  
+  // Background
+  backstory         String?  // Rich text/markdown
+  personalityTraits String?  // JSON array
+  motivations       String?  // Character goals and motivations
+  
+  // Metadata
+  characterArc      String?  // Notes about character development
+  developmentTimeline String? // JSON object tracking changes
+  authorNotes       String?  // Private notes for author only
+  metadata          String?  // Additional JSON metadata
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  work              Work                     @relation(fields: [workId], references: [id], onDelete: Cascade)
+  versions          CharacterVersion[]
+  relationshipsFrom CharacterRelationship[]  @relation("CharacterFrom")
+  relationshipsTo   CharacterRelationship[]  @relation("CharacterTo")
+
+  @@index([workId])
+  @@index([name])
+  @@map("character_profiles")
+}
+
+// Character Relationships - Track connections between characters
+model CharacterRelationship {
+  id                  String   @id @default(cuid())
+  characterId         String
+  relatedCharacterId  String
+  relationshipType    String   // family, friend, enemy, ally, mentor, rival, etc.
+  notes               String?  // Details about the relationship
+  fromChapter         Int?     // When this relationship started/was revealed
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Relations
+  character         CharacterProfile @relation("CharacterFrom", fields: [characterId], references: [id], onDelete: Cascade)
+  relatedCharacter  CharacterProfile @relation("CharacterTo", fields: [relatedCharacterId], references: [id], onDelete: Cascade)
+
+  @@index([characterId])
+  @@index([relatedCharacterId])
+  @@map("character_relationships")
+}
+
+// Chapter-specific character development versions
+model CharacterVersion {
+  id              String   @id @default(cuid())
+  characterId     String
+  description     String?  // Updated description for this chapter range
+  physicalDescription String?
+  backstory       String?
+  personalityTraits String?
+  motivations     String?
+  developmentNotes String? // What changed about the character
+  fromChapter     Int      // Applies from this chapter onwards
+  toChapter       Int?     // Until this chapter (null = ongoing)
+  createdAt       DateTime @default(now())
+
+  // Relations
+  character CharacterProfile @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@index([characterId])
+  @@index([fromChapter])
+  @@map("character_versions")
 }
 
 // === RECOMMENDATION SYSTEM TABLES === //
