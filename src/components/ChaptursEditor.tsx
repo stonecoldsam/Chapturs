@@ -3,10 +3,11 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { ChaptDocument, ContentBlock, BlockType, ProseBlock, HeadingBlock, DividerBlock, DialogueBlock, ChatBlock, PhoneBlock, NarrationBlock, ImageBlock, EditorState, ChatPlatform } from '@/types/chapt'
 import { ChatBlockEditor, PhoneBlockEditor, DialogueBlockEditor, NarrationBlockEditor } from './BlockEditors'
-import { PlusCircle, Save, Eye, Edit3, Type, MessageSquare, Smartphone, Users, SplitSquareVertical, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight, Maximize, Sparkles, X, ChevronRight } from 'lucide-react'
+import { PlusCircle, Save, Eye, Edit3, Type, MessageSquare, Smartphone, Users, SplitSquareVertical, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight, Maximize, Sparkles, X, ChevronRight, UserPlus } from 'lucide-react'
 import RichTextEditor from './RichTextEditor'
 import EditorSidebar from './EditorSidebar'
-import HtmlWithGlossary from './HtmlWithGlossary'
+import HtmlWithHighlights from './HtmlWithHighlights'
+import CharacterProfileModal from './CharacterProfileModal'
 
 interface ChaptursEditorProps {
   workId: string
@@ -48,9 +49,14 @@ export default function ChaptursEditor({
   const [glossaryTerm, setGlossaryTerm] = useState('')
   const [glossaryDefinition, setGlossaryDefinition] = useState('')
 
+  // Character profile state
+  const [localCharacters, setLocalCharacters] = useState<any[]>([])
+  const [showCharacterModal, setShowCharacterModal] = useState(false)
+
   // Sidebar state
   const [showSidebar, setShowSidebar] = useState(false)
   const [glossaryRefreshKey, setGlossaryRefreshKey] = useState(0)
+  const [characterRefreshKey, setCharacterRefreshKey] = useState(0)
 
   // Track text selection
   useEffect(() => {
@@ -84,6 +90,12 @@ export default function ChaptursEditor({
     setShowGlossaryModal(true)
   }
 
+  // Character handlers
+  const handleAddCharacterProfile = () => {
+    if (!selectedText) return
+    setShowCharacterModal(true)
+  }
+
   // Load glossary entries for this work and expose them globally so preview/reader renderers can highlight
   useEffect(() => {
     let mounted = true
@@ -106,6 +118,29 @@ export default function ChaptursEditor({
 
     return () => { mounted = false }
   }, [workId, glossaryRefreshKey, editorState.document.metadata.chapterNumber])
+
+  // Load character profiles for this work
+  useEffect(() => {
+    let mounted = true
+    const loadCharacters = async () => {
+      try {
+        const currentChapterNum = editorState.document.metadata.chapterNumber || 1
+        const res = await fetch(`/api/works/${workId}/characters?chapter=${currentChapterNum}`)
+        if (!res.ok) return
+        const data = await res.json()
+        const characters = data?.characters || []
+        if (!mounted) return
+        setLocalCharacters(characters)
+        try { (window as any).__CURRENT_CHARACTERS__ = characters } catch (e) {}
+      } catch (e) {
+        console.error('Failed to load characters for editor preview', e)
+      }
+    }
+
+    loadCharacters()
+
+    return () => { mounted = false }
+  }, [workId, characterRefreshKey, editorState.document.metadata.chapterNumber])
 
   const handleSaveGlossary = async () => {
     if (!glossaryTerm || !glossaryDefinition) return
@@ -140,6 +175,35 @@ export default function ChaptursEditor({
     } catch (error) {
       console.error('Error saving glossary:', error)
       alert('Failed to save glossary entry. Please try again.')
+    }
+  }
+
+  const handleSaveCharacter = async (characterData: any) => {
+    try {
+      const currentChapterNum = editorState.document.metadata.chapterNumber || 1
+      
+      const response = await fetch(`/api/works/${workId}/characters`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...characterData,
+          firstAppearance: characterData.firstAppearance || currentChapterNum
+        })
+      })
+
+      if (response.ok) {
+        console.log('Character profile saved successfully for chapter', currentChapterNum)
+        setShowCharacterModal(false)
+        setSelectedText('')
+        // Trigger sidebar to reload characters
+        setCharacterRefreshKey(prev => prev + 1)
+      } else {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to save character')
+      }
+    } catch (error) {
+      console.error('Error saving character:', error)
+      throw error
     }
   }
 
@@ -324,16 +388,27 @@ export default function ChaptursEditor({
           />
           <span className="text-sm text-gray-900 dark:text-gray-100 font-medium">{wordCount} words</span>
           
-          {/* Glossary Define button - shows when text is selected */}
+          {/* Action buttons for selected text - shows when text is selected */}
           {selectedText && editorState.mode === 'edit' && (
-            <button
-              onClick={handleAddToGlossary}
-              className="px-3 py-1.5 text-xs bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 flex items-center gap-1.5 animate-in fade-in duration-200"
-              title="Add to Glossary"
-            >
-              <Sparkles size={14} />
-              Define "{selectedText.substring(0, 20)}{selectedText.length > 20 ? '...' : ''}"
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleAddToGlossary}
+                className="px-3 py-1.5 text-xs bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 flex items-center gap-1.5 animate-in fade-in duration-200"
+                title="Add to Glossary"
+              >
+                <Sparkles size={14} />
+                Define "{selectedText.substring(0, 20)}{selectedText.length > 20 ? '...' : ''}"
+              </button>
+              
+              <button
+                onClick={handleAddCharacterProfile}
+                className="px-3 py-1.5 text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded hover:bg-green-200 dark:hover:bg-green-800 flex items-center gap-1.5 animate-in fade-in duration-200"
+                title="Add Character Profile"
+              >
+                <UserPlus size={14} />
+                Character
+              </button>
+            </div>
           )}
         </div>
 
@@ -455,6 +530,23 @@ export default function ChaptursEditor({
         </>
       )}
 
+      {/* Character Profile Modal */}
+      <CharacterProfileModal
+        isOpen={showCharacterModal}
+        onClose={() => {
+          setShowCharacterModal(false)
+          setSelectedText('')
+        }}
+        onSave={handleSaveCharacter}
+        initialCharacter={selectedText ? { 
+          name: selectedText, 
+          aliases: [], 
+          role: '', 
+          personalityTraits: [] 
+        } : null}
+        currentChapter={editorState.document.metadata.chapterNumber || 1}
+      />
+
       {/* Glossary Modal */}
       {showGlossaryModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -528,12 +620,14 @@ export default function ChaptursEditor({
 
       {/* Editor Sidebar */}
       <EditorSidebar
-        key={glossaryRefreshKey}
+        key={`${glossaryRefreshKey}-${characterRefreshKey}`}
         isOpen={showSidebar}
         onClose={() => setShowSidebar(false)}
         workId={workId}
         currentChapterId={chapterId}
         document={editorState.document}
+        characters={localCharacters}
+        onCharacterRefresh={() => setCharacterRefreshKey(prev => prev + 1)}
         onNavigateToChapter={(id) => {
           // This would navigate to a different chapter
           // For now, we could reload the page with new chapterId
@@ -936,8 +1030,12 @@ function ProseBlockEditor({
           className="prose max-w-none text-gray-900 dark:text-gray-100 text-base leading-relaxed mb-4" 
           style={{ textAlign: block.style?.textAlign }}
         >
-          {/* Use HtmlWithGlossary to highlight defined terms in preview */}
-          <HtmlWithGlossary html={block.text} glossaryTerms={(window as any).__CURRENT_GLOSSARY_TERMS__ || []} />
+          {/* Use HtmlWithHighlights to highlight both glossary terms and characters in preview */}
+          <HtmlWithHighlights 
+            html={block.text} 
+            glossaryTerms={(window as any).__CURRENT_GLOSSARY_TERMS__ || []}
+            characters={(window as any).__CURRENT_CHARACTERS__ || []}
+          />
         </div>
       </div>
     )

@@ -32,7 +32,13 @@ interface GlossaryEntry {
 interface Character {
   id: string
   name: string
-  description: string
+  role?: string
+  description?: string
+  physicalDescription?: string
+  imageUrl?: string
+  firstAppearance?: number
+  aliases?: string[]
+  personalityTraits?: string[]
   relationships?: string[]
 }
 
@@ -42,6 +48,8 @@ interface EditorSidebarProps {
   workId?: string
   currentChapterId?: string
   document?: ChaptDocument
+  characters?: Character[]
+  onCharacterRefresh?: () => void
   onNavigateToChapter?: (chapterId: string) => void
 }
 
@@ -53,12 +61,13 @@ export default function EditorSidebar({
   workId,
   currentChapterId,
   document,
+  characters: propCharacters = [],
+  onCharacterRefresh,
   onNavigateToChapter
 }: EditorSidebarProps) {
   const [activeTab, setActiveTab] = useState<SidebarTab>('chapters')
   const [chapters, setChapters] = useState<Chapter[]>([])
   const [glossaryEntries, setGlossaryEntries] = useState<GlossaryEntry[]>([])
-  const [characters, setCharacters] = useState<Character[]>([])
   const [loading, setLoading] = useState(false)
   
   // Load chapters when sidebar opens
@@ -324,16 +333,51 @@ export default function EditorSidebar({
               {/* Characters Tab */}
               {activeTab === 'characters' && (
                 <div className="space-y-3">
-                  <button className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center">
-                    <Plus size={16} className="mr-2" />
-                    Add Character
-                  </button>
-                  
-                  <div className="text-center text-gray-500 py-8">
-                    <Users size={48} className="mx-auto mb-4 opacity-50" />
-                    <p>Character profiles coming soon</p>
-                    <p className="text-sm mt-2">Track your characters, their relationships, and development</p>
-                  </div>
+                  {propCharacters.length === 0 ? (
+                    <div className="text-center text-gray-500 py-8">
+                      <Users size={48} className="mx-auto mb-4 opacity-50" />
+                      <p>No characters yet</p>
+                      <p className="text-sm mt-2">Select a character name in the editor and click &quot;Character&quot; to add a profile</p>
+                    </div>
+                  ) : (
+                    propCharacters.map((character) => (
+                      <div key={character.id} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                        <div className="flex items-start gap-3">
+                          {character.imageUrl ? (
+                            <img 
+                              src={character.imageUrl} 
+                              alt={character.name}
+                              className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg bg-gray-200 dark:bg-gray-600 flex items-center justify-center flex-shrink-0">
+                              <Users size={24} className="text-gray-400 dark:text-gray-500" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-gray-900 dark:text-white truncate">
+                              {character.name}
+                            </div>
+                            {character.role && (
+                              <div className="text-xs text-gray-600 dark:text-gray-400 capitalize mt-0.5">
+                                {character.role.replace('_', ' ')}
+                              </div>
+                            )}
+                            {character.firstAppearance && (
+                              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                                First appeared: Ch. {character.firstAppearance}
+                              </p>
+                            )}
+                            {character.physicalDescription && (
+                              <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">
+                                {character.physicalDescription}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               )}
 
