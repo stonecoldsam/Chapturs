@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
 
 // GET /api/creator/works - Get all creator's works with counts
 export async function GET(request: Request) {
@@ -40,28 +38,25 @@ export async function GET(request: Request) {
       })
     }
 
-    // Get all works with counts using raw SQL (using correct table names for Supabase)
+    // Get all works with counts using Prisma (consistent with dashboard-stats)
     console.log('[GET /api/creator/works] Querying works for authorId:', author.id)
     
-    const works = await prisma.$queryRaw`
-      SELECT 
-        w.id,
-        w.title,
-        w."coverImage",
-        (SELECT COUNT(*)::int FROM sections s WHERE s."workId" = w.id) as "chapterCount",
-        (SELECT COUNT(*)::int FROM glossary_entries ge WHERE ge."workId" = w.id) as "glossaryCount",
-        (SELECT COUNT(*)::int FROM character_profiles cp WHERE cp."workId" = w.id) as "characterCount"
-      FROM works w
-      WHERE w."authorId" = ${author.id}
-      ORDER BY w."createdAt" DESC
-    ` as Array<{
-      id: string
-      title: string
-      coverImage: string | null
-      chapterCount: number
-      glossaryCount: number
-      characterCount: number
-    }>
+    const works = await prisma.work.findMany({
+      where: { authorId: author.id },
+      select: {
+        id: true,
+        title: true,
+        coverImage: true,
+        _count: {
+          select: {
+            sections: true,
+            glossaryEntries: true,
+            characterProfiles: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    })
 
     console.log('[GET /api/creator/works] Found', works.length, 'works')
     if (works.length > 0) {
@@ -75,9 +70,9 @@ export async function GET(request: Request) {
         title: work.title,
         coverImage: work.coverImage,
         _count: {
-          chapters: work.chapterCount || 0,
-          glossaryTerms: work.glossaryCount || 0,
-          characters: work.characterCount || 0
+          chapters: work._count.sections,
+          glossaryTerms: work._count.glossaryEntries,
+          characters: work._count.characterProfiles
         }
       }
       console.log('[GET /api/creator/works] Transformed work:', result.title, result._count)
