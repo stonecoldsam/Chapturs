@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '../../../../../../auth'
+import { prisma } from '@/lib/prisma'
 
 interface RouteParams {
   params: Promise<{
@@ -33,17 +34,44 @@ export async function POST(request: NextRequest, props: RouteParams) {
       )
     }
 
-    // For now, return a mock response since we need to implement glossary methods
-    const glossaryEntry = {
-      id: Date.now().toString(),
-      term,
-      definition,
-      category: category || 'general',
-      aliases,
-      chapters,
-      workId,
-      createdAt: new Date().toISOString()
+    // Verify user owns this work
+    const work = await prisma.work.findUnique({
+      where: { id: workId },
+      select: { authorId: true }
+    })
+
+    if (!work) {
+      return NextResponse.json({ error: 'Work not found' }, { status: 404 })
     }
+
+    if (work.authorId !== session.user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    }
+
+    // Create glossary entry with chapter-aware definition
+    const currentChapter = chapters && chapters.length > 0 ? chapters[0] : 1
+    
+    const glossaryEntry = await prisma.glossaryEntry.create({
+      data: {
+        workId,
+        term,
+        definition,
+        type: category === 'character' ? 'character' : 'term',
+        category,
+        chapterIntroduced: currentChapter,
+        aliases: aliases && aliases.length > 0 ? JSON.stringify(aliases) : null,
+        definitions: {
+          create: {
+            definition,
+            fromChapter: currentChapter,
+            notes: `Initial definition from chapter ${currentChapter}`
+          }
+        }
+      },
+      include: {
+        definitions: true
+      }
+    })
 
     return NextResponse.json({
       success: true,
@@ -70,12 +98,15 @@ export async function GET(request: NextRequest, props: RouteParams) {
 
     const workId = params.id
 
-    // For now, return empty array since we need to implement getWorkGlossary
-    const glossaryEntries: any[] = []
+    // Fetch all glossary entries for this work
+    const glossaryEntries = await prisma.glossaryEntry.findMany({
+      where: { workId },
+      orderBy: { createdAt: 'asc' }
+    })
 
     return NextResponse.json({
       success: true,
-      glossary: glossaryEntries
+      entries: glossaryEntries
     })
 
   } catch (error) {

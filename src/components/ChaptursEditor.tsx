@@ -48,6 +48,7 @@ export default function ChaptursEditor({
 
   // Sidebar state
   const [showSidebar, setShowSidebar] = useState(false)
+  const [glossaryRefreshKey, setGlossaryRefreshKey] = useState(0)
 
   // Track text selection
   useEffect(() => {
@@ -102,6 +103,8 @@ export default function ChaptursEditor({
         setGlossaryTerm('')
         setGlossaryDefinition('')
         setSelectedText('')
+        // Trigger sidebar to reload glossary
+        setGlossaryRefreshKey(prev => prev + 1)
       } else {
         const error = await response.json()
         alert(`Failed to save glossary entry: ${error.error}`)
@@ -497,6 +500,7 @@ export default function ChaptursEditor({
 
       {/* Editor Sidebar */}
       <EditorSidebar
+        key={glossaryRefreshKey}
         isOpen={showSidebar}
         onClose={() => setShowSidebar(false)}
         workId={workId}

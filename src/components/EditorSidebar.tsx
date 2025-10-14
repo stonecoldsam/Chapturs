@@ -167,24 +167,24 @@ export default function EditorSidebar({
 
   return (
     <div 
-      className="absolute right-0 top-[57px] bottom-0 w-96 bg-white dark:bg-gray-800 border-l border-gray-300 dark:border-gray-700 shadow-xl z-10 flex flex-col transform transition-transform"
+      className="absolute right-0 top-[57px] bottom-0 w-96 bg-gray-100 dark:bg-gray-800 border-l border-gray-300 dark:border-gray-700 shadow-xl z-10 flex flex-col transform transition-transform"
       style={{ height: 'calc(100% - 57px)' }}
     >
       {/* Header - Simple without close button since we have the floating toggle */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-750">
-        <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-300 dark:border-gray-700 bg-gray-800 dark:bg-gray-900">
+        <h2 className="text-base font-semibold text-white">
           Resources
         </h2>
       </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-200 dark:border-gray-700">
+        <div className="flex border-b border-gray-300 dark:border-gray-700 bg-gray-200 dark:bg-gray-800">
           <button
             onClick={() => setActiveTab('chapters')}
             className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
               activeTab === 'chapters'
-                ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-white dark:bg-gray-700'
+                : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
             }`}
           >
             <List size={16} className="inline mr-1" />
@@ -194,8 +194,8 @@ export default function EditorSidebar({
             onClick={() => setActiveTab('glossary')}
             className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
               activeTab === 'glossary'
-                ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-white dark:bg-gray-700'
+                : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
             }`}
           >
             <BookOpen size={16} className="inline mr-1" />
@@ -205,8 +205,8 @@ export default function EditorSidebar({
             onClick={() => setActiveTab('characters')}
             className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
               activeTab === 'characters'
-                ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-white dark:bg-gray-700'
+                : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
             }`}
           >
             <Users size={16} className="inline mr-1" />
@@ -216,8 +216,8 @@ export default function EditorSidebar({
             onClick={() => setActiveTab('preview')}
             className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
               activeTab === 'preview'
-                ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-white dark:bg-gray-700'
+                : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
             }`}
           >
             <Eye size={16} className="inline mr-1" />

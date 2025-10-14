@@ -208,18 +208,46 @@ model ReadingHistory {
   @@map("reading_history")
 }
 
-// Glossary Entry model
+// Glossary Entry model - Enhanced for chapter-aware definitions
 model GlossaryEntry {
-  id         String   @id @default(cuid())
-  workId     String
-  term       String
-  definition String
-  createdAt  DateTime @default(now())
+  id                String   @id @default(cuid())
+  workId            String
+  term              String
+  definition        String
+  type              String   @default("term") // term, character, place, item, concept
+  category          String?  // Optional categorization
+  chapterIntroduced Int?     // Chapter where first mentioned
+  aliases           String?  // JSON array of alternative names
+  metadata          String?  // JSON for additional data (appearance, role, etc.)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   // Relations
-  work Work @relation(fields: [workId], references: [id], onDelete: Cascade)
+  work        Work                     @relation(fields: [workId], references: [id], onDelete: Cascade)
+  definitions GlossaryDefinitionVersion[]
 
+  @@index([workId])
+  @@index([term])
+  @@index([type])
   @@map("glossary_entries")
+}
+
+// Chapter-specific definition versions
+model GlossaryDefinitionVersion {
+  id              String   @id @default(cuid())
+  glossaryEntryId String
+  definition      String
+  fromChapter     Int      // Definition applies from this chapter onwards
+  toChapter       Int?     // Until this chapter (null = ongoing)
+  notes           String?  // Author notes about the change
+  createdAt       DateTime @default(now())
+
+  // Relations
+  glossaryEntry GlossaryEntry @relation(fields: [glossaryEntryId], references: [id], onDelete: Cascade)
+
+  @@index([glossaryEntryId])
+  @@index([fromChapter])
+  @@map("glossary_definition_versions")
 }
 
 // === RECOMMENDATION SYSTEM TABLES === //
