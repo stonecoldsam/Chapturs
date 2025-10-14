@@ -1,10 +1,10 @@
 import AppLayout from '@/components/AppLayout'
-import CreatorDashboard from '@/components/CreatorDashboard'
+import CreatorDashboardNew from '@/components/CreatorDashboardNew'
 
 export default function CreatorDashboardPage() {
   return (
     <AppLayout>
-      <CreatorDashboard />
+      <CreatorDashboardNew />
     </AppLayout>
   )
 }
