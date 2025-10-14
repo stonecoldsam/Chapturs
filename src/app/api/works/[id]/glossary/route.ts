@@ -67,25 +67,22 @@ export async function POST(request: NextRequest, props: RouteParams) {
 
     if (!glossaryEntry) {
       // Create new glossary entry with initial definition
-      glossaryEntry = await prisma.glossaryEntry.create({
-        data: {
-          workId,
-          term,
-          definition,
-          chapterIntroduced: currentChapter || 1
-        }
-      })
+      // Use raw SQL to avoid Prisma client version conflicts with new fields
+      const result = await prisma.$queryRaw`
+        INSERT INTO glossary_entries (id, "workId", term, definition, "chapterIntroduced", type, "createdAt", "updatedAt")
+        VALUES (gen_random_uuid()::text, ${workId}, ${term}, ${definition}, ${currentChapter || 1}, 'term', NOW(), NOW())
+        RETURNING *
+      ` as any[]
+      
+      glossaryEntry = result[0]
     }
 
     // Create a new definition version for this chapter
-    await prisma.glossaryDefinitionVersion.create({
-      data: {
-        glossaryEntryId: glossaryEntry.id,
-        definition,
-        fromChapter: currentChapter || 1,
-        notes: `Updated in chapter ${currentChapter || 1}`
-      }
-    })
+    // Use raw SQL to avoid Prisma client version conflicts
+    await prisma.$executeRaw`
+      INSERT INTO glossary_definition_versions (id, "glossaryEntryId", definition, "fromChapter", notes, "createdAt")
+      VALUES (gen_random_uuid()::text, ${glossaryEntry!.id}, ${definition}, ${currentChapter || 1}, ${'Updated in chapter ' + (currentChapter || 1)}, NOW())
+    `
 
     return NextResponse.json({
       success: true,
@@ -118,34 +115,28 @@ export async function GET(request: NextRequest, props: RouteParams) {
     const { searchParams } = new URL(request.url)
     const currentChapter = parseInt(searchParams.get('chapter') || '999999')
 
-    // Fetch all glossary entries for this work with their definition versions
-    const glossaryEntries = await prisma.glossaryEntry.findMany({
-      where: { workId },
-      include: {
-        definitions: {
-          where: {
-            fromChapter: { lte: currentChapter }
-          },
-          orderBy: { fromChapter: 'desc' }
-        }
-      },
-      orderBy: { createdAt: 'asc' }
-    })
-
-    // Map entries to include the correct definition for the current chapter
-    const entriesWithCorrectDefinitions = glossaryEntries.map(entry => {
-      // Get the most recent definition version for this chapter
-      const applicableDefinition = entry.definitions[0] // Already sorted desc, so first is most recent
-      
-      return {
-        id: entry.id,
-        term: entry.term,
-        definition: applicableDefinition?.definition || entry.definition, // Use versioned or fallback to base
-        chapterIntroduced: entry.chapterIntroduced,
-        type: entry.type,
-        createdAt: entry.createdAt
-      }
-    })
+    // Fetch glossary entries with chapter-aware definitions using raw SQL
+    // This avoids Prisma client version conflicts with new schema fields
+    const entriesWithCorrectDefinitions = await prisma.$queryRaw`
+      SELECT 
+        ge.id,
+        ge.term,
+        COALESCE(
+          (SELECT gdv.definition 
+           FROM glossary_definition_versions gdv 
+           WHERE gdv."glossaryEntryId" = ge.id 
+             AND gdv."fromChapter" <= ${currentChapter}
+           ORDER BY gdv."fromChapter" DESC 
+           LIMIT 1),
+          ge.definition
+        ) as definition,
+        ge."chapterIntroduced",
+        ge.type,
+        ge."createdAt"
+      FROM glossary_entries ge
+      WHERE ge."workId" = ${workId}
+      ORDER BY ge."createdAt" ASC
+    ` as any[]
 
     return NextResponse.json({
       success: true,
