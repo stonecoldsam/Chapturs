@@ -62,7 +62,7 @@ export const createCharacterProfileSchema = z.object({
   aliases: z.array(z.string()).default([]),
   role: z.string().max(100, 'Role too long').optional(),
   firstAppearance: z.number().int().positive('First appearance must be positive').optional(),
-  imageUrl: z.string().url('Invalid image URL').optional().or(z.literal('')),
+  imageUrl: z.union([z.string().url('Invalid image URL'), z.literal('')]).optional(),
   physicalDescription: z.string().max(5000, 'Physical description too long').optional(),
   age: z.string().max(50, 'Age too long').optional(),
   height: z.string().max(50, 'Height too long').optional(),
@@ -71,9 +71,9 @@ export const createCharacterProfileSchema = z.object({
   personalityTraits: z.array(z.string()).default([]),
   motivations: z.string().max(5000, 'Motivations too long').optional(),
   characterArc: z.string().max(5000, 'Character arc too long').optional(),
-  developmentTimeline: z.record(z.any()).optional(),
+  developmentTimeline: z.record(z.string(), z.any()).optional(),
   authorNotes: z.string().max(5000, 'Author notes too long').optional(),
-  metadata: z.record(z.any()).default({})
+  metadata: z.record(z.string(), z.any()).default({})
 })
 
 export const updateCharacterProfileSchema = createCharacterProfileSchema.partial().extend({
