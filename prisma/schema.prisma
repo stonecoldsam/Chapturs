@@ -265,6 +265,7 @@ model CharacterProfile {
   
   // Visual information
   imageUrl          String?
+  quickGlance       String?  // Short description shown in tooltip on hover
   physicalDescription String?
   age               String?
   height            String?

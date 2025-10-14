@@ -50,6 +50,7 @@ export async function POST(request: NextRequest, props: RouteParams) {
       role,
       firstAppearance,
       imageUrl,
+      quickGlance,
       physicalDescription,
       age,
       height,
@@ -88,7 +89,7 @@ export async function POST(request: NextRequest, props: RouteParams) {
     const result = await prisma.$queryRaw`
       INSERT INTO character_profiles (
         id, "workId", name, aliases, role, "firstAppearance",
-        "imageUrl", "physicalDescription", age, height, "appearanceNotes",
+        "imageUrl", "quickGlance", "physicalDescription", age, height, "appearanceNotes",
         backstory, "personalityTraits", motivations,
         "characterArc", "developmentTimeline", "authorNotes", metadata,
         "categoryLabels", "allowUserSubmissions",
@@ -97,7 +98,7 @@ export async function POST(request: NextRequest, props: RouteParams) {
       VALUES (
         gen_random_uuid()::text, ${workId}, ${name}, 
         ${JSON.stringify(aliases)}, ${role || null}, ${firstAppearance || null},
-        ${imageUrl || null}, ${physicalDescription || null}, 
+        ${imageUrl || null}, ${quickGlance || null}, ${physicalDescription || null}, 
         ${age || null}, ${height || null}, ${appearanceNotes || null},
         ${backstory || null}, ${JSON.stringify(personalityTraits)}, ${motivations || null},
         ${characterArc || null}, ${developmentTimeline ? JSON.stringify(developmentTimeline) : null},
@@ -198,6 +199,7 @@ export async function GET(request: NextRequest, props: RouteParams) {
         cp.role,
         cp."firstAppearance",
         cp."imageUrl",
+        cp."quickGlance",
         cp."physicalDescription",
         cp.age,
         cp.height,
@@ -247,6 +249,7 @@ export async function GET(request: NextRequest, props: RouteParams) {
           role: character.role,
           firstAppearance: character.firstAppearance,
           imageUrl: character.imageUrl,
+          quickGlance: character.quickGlance,
           physicalDescription: versionData.physicalDescription || character.physicalDescription,
           age: character.age,
           height: character.height,

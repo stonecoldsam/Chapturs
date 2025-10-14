@@ -3,18 +3,21 @@
 import { useState, useEffect, useRef } from 'react'
 
 interface CharacterTooltipProps {
-  name: string
-  role?: string
-  imageUrl?: string
-  description?: string
+  character: {
+    id: string
+    name: string
+    role?: string
+    imageUrl?: string
+    quickGlance?: string
+    [key: string]: any
+  }
+  onCharacterClick?: (character: any) => void
   children: React.ReactNode
 }
 
 export function CharacterTooltip({ 
-  name, 
-  role, 
-  imageUrl, 
-  description, 
+  character,
+  onCharacterClick,
   children 
 }: CharacterTooltipProps) {
   const [isVisible, setIsVisible] = useState(false)
@@ -48,18 +51,26 @@ export function CharacterTooltip({
     return () => document.removeEventListener('mousemove', handleMouseMove)
   }, [isVisible])
 
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    if (onCharacterClick) {
+      onCharacterClick(character)
+    }
+  }
+
   return (
     <span className="relative">
       <span
         ref={triggerRef}
         onMouseEnter={() => setIsVisible(true)}
         onMouseLeave={() => setIsVisible(false)}
-        className="cursor-help border-b-2 border-dotted border-green-500 text-green-600 dark:text-green-400 hover:border-solid transition-all font-medium"
+        onClick={handleClick}
+        className="cursor-pointer border-b-2 border-dotted border-green-500 text-green-600 dark:text-green-400 hover:border-solid hover:text-green-700 dark:hover:text-green-300 transition-all font-medium"
       >
         {children}
       </span>
       
-      {isVisible && (
+      {isVisible && character.quickGlance && (
         <div
           ref={tooltipRef}
           className="fixed z-50 w-80 p-4 bg-gray-900 text-white rounded-lg shadow-xl pointer-events-none"
@@ -70,27 +81,28 @@ export function CharacterTooltip({
           }}
         >
           <div className="flex items-start gap-3">
-            {imageUrl && (
+            {character.imageUrl && (
               <div className="flex-shrink-0">
                 <img
-                  src={imageUrl}
-                  alt={name}
+                  src={character.imageUrl}
+                  alt={character.name}
                   className="w-16 h-16 rounded-lg object-cover"
                 />
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <div className="font-bold text-lg mb-1">{name}</div>
-              {role && (
+              <div className="font-bold text-lg mb-1">{character.name}</div>
+              {character.role && (
                 <div className="text-xs text-green-400 mb-2 uppercase tracking-wide">
-                  {role}
+                  {character.role}
                 </div>
               )}
-              {description && (
-                <div className="text-sm text-gray-300 line-clamp-3">
-                  {description}
-                </div>
-              )}
+              <div className="text-sm text-gray-300">
+                {character.quickGlance}
+              </div>
+              <div className="text-xs text-green-400 mt-2">
+                Click for full profile →
+              </div>
             </div>
           </div>
         </div>

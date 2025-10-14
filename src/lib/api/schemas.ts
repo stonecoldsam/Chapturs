@@ -63,6 +63,7 @@ export const createCharacterProfileSchema = z.object({
   role: z.string().max(100, 'Role too long').optional(),
   firstAppearance: z.number().int().positive('First appearance must be positive').optional(),
   imageUrl: z.union([z.string().url('Invalid image URL'), z.literal('')]).optional(),
+  quickGlance: z.string().max(500, 'Quick glance text too long').optional(),
   physicalDescription: z.string().max(5000, 'Physical description too long').optional(),
   age: z.string().max(50, 'Age too long').optional(),
   height: z.string().max(50, 'Height too long').optional(),

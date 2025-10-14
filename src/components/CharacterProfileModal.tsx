@@ -25,6 +25,7 @@ interface CharacterProfile {
   role: string
   firstAppearance?: number
   imageUrl?: string
+  quickGlance?: string
   physicalDescription?: string
   age?: string
   height?: string
@@ -59,6 +60,7 @@ export default function CharacterProfileModal({
     role: '',
     firstAppearance: currentChapter || undefined,
     imageUrl: '',
+    quickGlance: '',
     physicalDescription: '',
     age: '',
     height: '',
@@ -265,6 +267,22 @@ export default function CharacterProfileModal({
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   placeholder="https://example.com/image.jpg"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Quick Glance (Tooltip Text)
+                </label>
+                <textarea
+                  value={character.quickGlance || ''}
+                  onChange={(e) => setCharacter(prev => ({ ...prev, quickGlance: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  placeholder="Jimbo is Dave's dad who we first saw carrying a big bag out of his backdoor Tuesday night after Vince went missing."
+                  rows={3}
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  This short description appears when readers hover over the character's name. Keep it brief and intriguing!
+                </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

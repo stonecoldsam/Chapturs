@@ -4,14 +4,17 @@ import React, { useState, useEffect } from 'react'
 import { GlossaryEntry } from '@/types'
 import { GlossaryTooltip } from './GlossarySystem'
 import { CharacterTooltip } from './CharacterTooltip'
+import CharacterProfileViewModal from './CharacterProfileViewModal'
 
 interface Character {
   id: string
   name: string
   role?: string
   imageUrl?: string
+  quickGlance?: string
   physicalDescription?: string
   aliases?: string[]
+  [key: string]: any
 }
 
 interface HtmlWithHighlightsProps {
@@ -32,6 +35,7 @@ export default function HtmlWithHighlights({
   characters = [] 
 }: HtmlWithHighlightsProps) {
   const [mounted, setMounted] = useState(false)
+  const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null)
 
   // Only render with highlighting after mounting (client-side only)
   useEffect(() => {
@@ -96,10 +100,8 @@ export default function HtmlWithHighlights({
           parts.push(
             <CharacterTooltip 
               key={`${keyPrefix}-${parts.length}-char-${term}`}
-              name={charMatch.character.name}
-              role={charMatch.character.role}
-              imageUrl={charMatch.character.imageUrl}
-              description={charMatch.character.physicalDescription}
+              character={charMatch.character}
+              onCharacterClick={(char) => setSelectedCharacter(char)}
             >
               {term}
             </CharacterTooltip>
@@ -161,5 +163,16 @@ export default function HtmlWithHighlights({
   const bodyChildren = Array.from(doc.body.childNodes)
   const nodes = bodyChildren.map((n, i) => nodeToReact(n, `root-${i}`))
 
-  return <div>{nodes}</div>
+  return (
+    <>
+      <div>{nodes}</div>
+      {selectedCharacter && (
+        <CharacterProfileViewModal
+          character={selectedCharacter}
+          isOpen={!!selectedCharacter}
+          onClose={() => setSelectedCharacter(null)}
+        />
+      )}
+    </>
+  )
 }
