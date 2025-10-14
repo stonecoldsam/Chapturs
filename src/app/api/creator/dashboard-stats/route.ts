@@ -33,21 +33,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Author profile not found' }, { status: 404 })
     }
 
-    // Fetch all data in parallel
-    const [
-      works,
-      totalChapters,
-      totalReads,
-      totalLikes,
-      totalBookmarks,
-      totalSubscriptions,
-      recentReads,
-      recentLikes,
-      recentComments,
-      pendingFanart,
-      qualityAssessments,
-      adRevenue
-    ] = await Promise.all([
+    // Fetch all data in parallel with individual error handling
+    let works, totalChapters, totalReads, totalLikes, totalBookmarks, totalSubscriptions
+    let recentReads, recentLikes, recentComments, pendingFanart, qualityAssessments, adRevenue
+
+    try {
+      [
+        works,
+        totalChapters,
+        totalReads,
+        totalLikes,
+        totalBookmarks,
+        totalSubscriptions,
+        recentReads,
+        recentLikes,
+        recentComments,
+        pendingFanart,
+        qualityAssessments,
+        adRevenue
+      ] = await Promise.all([
       // Total works
       prisma.work.findMany({
         where: { authorId: author.id },
@@ -153,6 +157,22 @@ export async function GET(request: NextRequest) {
         isPaid: boolean
       }>>
     ])
+    } catch (fetchError: any) {
+      console.error('[GET /api/creator/dashboard-stats] Error fetching data:', fetchError.message)
+      // Set defaults for any failed queries
+      works = works || []
+      totalChapters = totalChapters || 0
+      totalReads = totalReads || 0
+      totalLikes = totalLikes || 0
+      totalBookmarks = totalBookmarks || 0
+      totalSubscriptions = totalSubscriptions || 0
+      recentReads = recentReads || 0
+      recentLikes = recentLikes || []
+      recentComments = recentComments || []
+      pendingFanart = pendingFanart || 0
+      qualityAssessments = qualityAssessments || []
+      adRevenue = adRevenue || []
+    }
 
     console.log('[GET /api/creator/dashboard-stats] Raw data fetched:', {
       worksCount: works?.length,
