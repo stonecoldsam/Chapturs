@@ -55,6 +55,7 @@ export async function POST(request: NextRequest, props: RouteParams) {
     }
 
     // Create glossary entry
+    // Note: updatedAt will be set by database DEFAULT CURRENT_TIMESTAMP
     const glossaryEntry = await prisma.glossaryEntry.create({
       data: {
         workId,
