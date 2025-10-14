@@ -122,9 +122,11 @@ export async function POST(request: NextRequest) {
     console.log('[POST /api/works] Work ID:', work.id)
     console.log('[POST /api/works] Work authorId:', work.authorId)
     console.log('[POST /api/works] Work title:', work.title)
+    console.log('[POST /api/works] Author ID:', work.author.id)
     console.log('[POST /api/works] Author userId:', work.author.userId)
-    console.log('[POST /api/works] Session userId:', session.user.id)
-    console.log('[POST /api/works] IDs match:', work.author.userId === session.user.id ? '✅ YES' : '❌ NO')
+    console.log('[POST /api/works] Session user.id:', session.user.id)
+    console.log('[POST /api/works] Session user.email:', session.user.email)
+    console.log('[POST /api/works] ✅ IDs match:', work.author.userId === session.user.id ? 'YES' : `NO - author.userId=${work.author.userId} vs session.user.id=${session.user.id}`)
 
     const response = createSuccessResponse({
       work: {
