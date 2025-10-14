@@ -8,6 +8,7 @@ import {
   Loader2, Users, BookOpen, Star
 } from 'lucide-react'
 import Link from 'next/link'
+import CharacterModal from './CharacterModal'
 
 interface CharacterProfile {
   id: string
@@ -323,27 +324,21 @@ export default function WorkCharactersPage() {
         </div>
       )}
 
-      {/* Add/Edit Modal - Placeholder for now */}
-      {(showAddModal || editingCharacter) && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full p-6">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-              {editingCharacter ? 'Edit Character' : 'Add New Character'}
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
-              Modal form coming next... (for now, close this)
-            </p>
-            <button
-              onClick={() => {
-                setShowAddModal(false)
-                setEditingCharacter(null)
-              }}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-            >
-              Close
-            </button>
-          </div>
-        </div>
+      {/* Add/Edit Modal */}
+      {showAddModal && (
+        <CharacterModal
+          workId={workId}
+          onClose={() => setShowAddModal(false)}
+          onSuccess={fetchWorkAndCharacters}
+        />
+      )}
+      {editingCharacter && (
+        <CharacterModal
+          workId={workId}
+          character={editingCharacter}
+          onClose={() => setEditingCharacter(null)}
+          onSuccess={fetchWorkAndCharacters}
+        />
       )}
     </div>
   )
