@@ -37,6 +37,14 @@ interface DashboardStats {
   }
 }
 
+// Helper function to format tier names
+const formatTierName = (tier: string) => {
+  return tier
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ')
+}
+
 export default function CreatorDashboardNew() {
   const { userId, isAuthenticated, isLoading, userName } = useUser()
   const [stats, setStats] = useState<DashboardStats | null>(null)
@@ -131,31 +139,39 @@ export default function CreatorDashboardNew() {
           icon={<BookOpen className="text-blue-500" />}
           label="Total Works"
           value={stats?.overview.totalWorks || 0}
-          change="+2 this month"
-          trend="up"
+          subtitle={`${stats?.overview.totalChapters || 0} chapters`}
         />
         <StatCard
           icon={<Eye className="text-green-500" />}
           label="Total Reads"
           value={stats?.overview.totalReads || 0}
-          change="+24% vs last month"
-          trend="up"
+          subtitle={`${stats?.recentActivity.newReads || 0} this week`}
+          change={stats?.recentActivity.newReads ? `+${stats.recentActivity.newReads} this week` : undefined}
+          trend={stats?.recentActivity.newReads ? 'up' : 'neutral'}
         />
         <StatCard
           icon={<Heart className="text-pink-500" />}
           label="Engagement"
           value={`${stats?.overview.totalLikes || 0}`}
-          subtitle={`${stats?.overview.totalBookmarks || 0} bookmarks`}
-          change="+12% this week"
-          trend="up"
+          subtitle={`${stats?.overview.totalBookmarks || 0} bookmarks, ${stats?.overview.totalSubscriptions || 0} subscribers`}
+          change={stats?.recentActivity.newLikes ? `+${stats.recentActivity.newLikes} likes this week` : undefined}
+          trend={stats?.recentActivity.newLikes ? 'up' : 'neutral'}
         />
         <StatCard
           icon={<DollarSign className="text-yellow-500" />}
           label="Revenue (MTD)"
-          value={`$${stats?.revenue.thisMonth.toFixed(2) || '0.00'}`}
-          subtitle={`$${stats?.revenue.pending.toFixed(2)} pending`}
-          change="+8% vs last month"
-          trend="up"
+          value={`$${stats?.revenue.thisMonth?.toFixed(2) || '0.00'}`}
+          subtitle={`$${stats?.revenue.pending?.toFixed(2) || '0.00'} pending`}
+          change={
+            stats?.revenue.thisMonth && stats?.revenue.lastMonth && stats.revenue.lastMonth > 0
+              ? `${stats.revenue.thisMonth > stats.revenue.lastMonth ? '+' : ''}${(((stats.revenue.thisMonth - stats.revenue.lastMonth) / stats.revenue.lastMonth) * 100).toFixed(1)}% vs last month`
+              : undefined
+          }
+          trend={
+            stats?.revenue.thisMonth && stats?.revenue.lastMonth
+              ? stats.revenue.thisMonth > stats.revenue.lastMonth ? 'up' : stats.revenue.thisMonth < stats.revenue.lastMonth ? 'down' : 'neutral'
+              : 'neutral'
+          }
         />
       </div>
 
@@ -194,7 +210,6 @@ export default function CreatorDashboardNew() {
           title="Translations"
           description="Manage community translations"
           href="/creator/translations"
-          badge="3 pending"
         />
         <QuickActionCard
           icon={<DollarSign className="text-emerald-500" />}
@@ -213,27 +228,42 @@ export default function CreatorDashboardNew() {
             Recent Activity
           </h2>
           <div className="space-y-3">
-            <ActivityItem
-              icon={<Eye className="text-blue-500" size={16} />}
-              text="42 new reads in the last 24 hours"
-              time="Just now"
-            />
-            <ActivityItem
-              icon={<Heart className="text-pink-500" size={16} />}
-              text="8 new likes on 'Chapter 15: The Reveal'"
-              time="2 hours ago"
-            />
-            <ActivityItem
-              icon={<Image className="text-purple-500" size={16} />}
-              text="2 fanart submissions awaiting review"
-              time="5 hours ago"
-              actionable
-            />
-            <ActivityItem
-              icon={<MessageSquare className="text-green-500" size={16} />}
-              text="12 new comments across your stories"
-              time="1 day ago"
-            />
+                        {stats && stats.recentActivity.newReads > 0 && (
+              <ActivityItem
+                icon={<Eye size={16} />}
+                text={`${stats.recentActivity.newReads} new ${stats.recentActivity.newReads === 1 ? 'read' : 'reads'} in the last 7 days`}
+                time="This week"
+              />
+            )}
+            {stats && stats.recentActivity.newLikes > 0 && (
+              <ActivityItem
+                icon={<Heart size={16} />}
+                text={`${stats.recentActivity.newLikes} new ${stats.recentActivity.newLikes === 1 ? 'like' : 'likes'} across your stories`}
+                time="This week"
+              />
+            )}
+            {stats && stats.recentActivity.pendingFanart > 0 && (
+              <ActivityItem
+                icon={<Image size={16} />}
+                text={`${stats.recentActivity.pendingFanart} fanart ${stats.recentActivity.pendingFanart === 1 ? 'submission' : 'submissions'} awaiting review`}
+                time="Pending"
+                actionable
+              />
+            )}
+            {stats && stats.recentActivity.newComments > 0 && (
+              <ActivityItem
+                icon={<MessageSquare size={16} />}
+                text={`${stats.recentActivity.newComments} new ${stats.recentActivity.newComments === 1 ? 'comment' : 'comments'} across your stories`}
+                time="This week"
+              />
+            )}
+            {(!stats || (stats.recentActivity.newReads === 0 && stats.recentActivity.newLikes === 0 && stats.recentActivity.pendingFanart === 0 && stats.recentActivity.newComments === 0)) && (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <Clock size={32} className="mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No recent activity</p>
+                <p className="text-xs mt-1">Share your stories to get started!</p>
+              </div>
+            )}
           </div>
           <Link
             href="/creator/activity"
@@ -250,49 +280,66 @@ export default function CreatorDashboardNew() {
             Quality Insights
           </h2>
           
-          <div className="space-y-4">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Average Quality Score</span>
-                <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {stats?.qualityScores.averageScore || 0}/100
-                </span>
-              </div>
-              <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
-                  style={{ width: `${stats?.qualityScores.averageScore || 0}%` }}
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded-lg">
+          {stats && stats.qualityScores.averageScore > 0 ? (
+            <div className="space-y-4">
               <div>
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Current Tier</p>
-                <p className="text-lg font-bold text-gray-900 dark:text-white capitalize">
-                  {stats?.qualityScores.tier || 'Developing'}
-                </p>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Average Quality Score</span>
+                  <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                    {stats.qualityScores.averageScore}/100
+                  </span>
+                </div>
+                <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-500"
+                    style={{ width: `${stats.qualityScores.averageScore}%` }}
+                  />
+                </div>
               </div>
-              <Zap className="text-yellow-500" size={24} />
-            </div>
 
-            <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded-lg">
-              <div>
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Visibility Boost</p>
-                <p className="text-lg font-bold text-gray-900 dark:text-white">
-                  {stats?.qualityScores.boostMultiplier}x
-                </p>
+              <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded-lg">
+                <div>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Current Tier</p>
+                  <p className="text-lg font-bold text-gray-900 dark:text-white">
+                    {formatTierName(stats.qualityScores.tier)}
+                  </p>
+                </div>
+                <Zap className="text-yellow-500" size={24} />
               </div>
-              <TrendingUp className="text-green-500" size={24} />
-            </div>
-          </div>
 
-          <Link
-            href="/creator/quality"
-            className="mt-4 block text-center text-sm text-blue-600 dark:text-blue-400 hover:underline"
-          >
-            View detailed analysis →
-          </Link>
+              <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded-lg">
+                <div>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Visibility Boost</p>
+                  <p className="text-lg font-bold text-gray-900 dark:text-white">
+                    {stats.qualityScores.boostMultiplier.toFixed(1)}x
+                  </p>
+                </div>
+                <TrendingUp className={`${stats.qualityScores.boostMultiplier > 1 ? 'text-green-500' : stats.qualityScores.boostMultiplier < 1 ? 'text-orange-500' : 'text-gray-500'}`} size={24} />
+              </div>
+
+              <Link
+                href="/creator/quality"
+                className="mt-4 block text-center text-sm text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                View detailed analysis →
+              </Link>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Sparkles size={32} className="mx-auto mb-3 text-purple-400 opacity-50" />
+              <p className="text-sm text-gray-700 dark:text-gray-300 font-medium mb-1">No Quality Assessment Yet</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-4">
+                Publish your first chapter to get AI-powered quality insights and visibility boosts!
+              </p>
+              <Link
+                href="/creator/upload"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+              >
+                <Upload size={16} />
+                Upload First Chapter
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 
