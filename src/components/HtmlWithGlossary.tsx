@@ -1,6 +1,6 @@
 "use client"
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { GlossaryEntry } from '@/types'
 import { GlossaryTooltip } from './GlossarySystem'
 
@@ -16,8 +16,15 @@ function escapeRegExp(string: string) {
 
 // Replace text nodes with React nodes wrapping glossary terms with GlossaryTooltip
 export default function HtmlWithGlossary({ html, glossaryTerms = [] }: HtmlWithGlossaryProps) {
-  // If no glossary, render raw HTML
-  if (!glossaryTerms || glossaryTerms.length === 0) {
+  const [mounted, setMounted] = useState(false)
+
+  // Only render with glossary highlighting after mounting (client-side only)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // During SSR or before mount, render raw HTML (no glossary highlighting)
+  if (!mounted || !glossaryTerms || glossaryTerms.length === 0) {
     return <div dangerouslySetInnerHTML={{ __html: html }} />
   }
 
@@ -30,8 +37,8 @@ export default function HtmlWithGlossary({ html, glossaryTerms = [] }: HtmlWithG
 
   const globalRegex = new RegExp(`\\b(${termPatterns.join('|')})\\b`, 'gi')
 
-  // Parse the HTML and walk nodes
-  const parser = typeof window !== 'undefined' ? new DOMParser() : null
+  // Parse the HTML and walk nodes (client-side only)
+  const parser = new DOMParser()
   if (!parser) return <div dangerouslySetInnerHTML={{ __html: html }} />
 
   const doc = parser.parseFromString(html, 'text/html')
