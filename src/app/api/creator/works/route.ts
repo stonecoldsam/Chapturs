@@ -51,85 +51,34 @@ export async function GET(request: Request) {
       })
     }
 
-    // Get all works with counts using Prisma (consistent with dashboard-stats)
+    // Get all works - simplified query matching dashboard-stats exactly
     console.log('[GET /api/creator/works] Querying works for authorId:', author.id)
     
     const works = await prisma.work.findMany({
       where: { authorId: author.id },
-      select: {
-        id: true,
-        title: true,
-        coverImage: true,
-        _count: {
-          select: {
-            sections: true,
-            glossaryEntries: true,
-            characterProfiles: true
-          }
-        }
+      select: { 
+        id: true, 
+        title: true, 
+        coverImage: true 
       },
       orderBy: { createdAt: 'desc' }
     })
 
     console.log('[GET /api/creator/works] Found', works.length, 'works')
     if (works.length > 0) {
-      console.log('[GET /api/creator/works] First work sample:', {
+      console.log('[GET /api/creator/works] First work:', {
         id: works[0].id,
         title: works[0].title,
-        coverImage: works[0].coverImage,
-        counts: works[0]._count
+        coverImage: works[0].coverImage
       })
-    } else {
-      console.log('[GET /api/creator/works] ⚠️  NO WORKS FOUND for authorId:', author.id)
-      console.log('[GET /api/creator/works] Checking if there are ANY works in the database...')
-      
-      // Let's check if there are ANY works in the database at all
-      const anyWorks = await prisma.work.findMany({
-        take: 10,
-        select: { 
-          id: true, 
-          title: true, 
-          authorId: true, 
-          status: true,
-          createdAt: true 
-        },
-        orderBy: { createdAt: 'desc' }
-      })
-      console.log('[GET /api/creator/works] Recent works in ENTIRE database:', JSON.stringify(anyWorks, null, 2))
-      
-      // Check if any of these works should belong to this user
-      if (anyWorks.length > 0) {
-        const authorIds = [...new Set(anyWorks.map(w => w.authorId))]
-        const allAuthors = await prisma.author.findMany({
-          where: { id: { in: authorIds } },
-          select: { id: true, userId: true }
-        })
-        console.log('[GET /api/creator/works] Authors of these works:', JSON.stringify(allAuthors, null, 2))
-      }
     }
 
-    // Transform the data to match expected format
-    const transformedWorks = works.map((work: any) => {
-      const result = {
-        id: work.id,
-        title: work.title,
-        coverImage: work.coverImage,
-        _count: {
-          chapters: work._count.sections,
-          glossaryTerms: work._count.glossaryEntries,
-          characters: work._count.characterProfiles
-        }
-      }
-      return result
-    })
-
-    console.log('[GET /api/creator/works] Returning', transformedWorks.length, 'transformed works')
+    console.log('[GET /api/creator/works] Returning', works.length, 'works')
     console.log('[GET /api/creator/works] ========== END REQUEST ==========')
-
 
     return NextResponse.json({
       success: true,
-      works: transformedWorks
+      works: works
     })
 
   } catch (error: any) {
