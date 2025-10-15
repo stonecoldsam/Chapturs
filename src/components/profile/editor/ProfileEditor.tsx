@@ -1,0 +1,431 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import BlockPicker from '@/components/profile/editor/BlockPicker'
+import BasicInfoEditor from '@/components/profile/editor/BasicInfoEditor'
+import ProfileLayout from '@/components/profile/ProfileLayout'
+import { 
+  EyeIcon, 
+  ArrowLeftIcon, 
+  CheckIcon,
+  Cog6ToothIcon,
+  PaintBrushIcon
+} from '@heroicons/react/24/outline'
+
+interface ProfileData {
+  displayName: string
+  bio: string
+  profileImage?: string
+  coverImage?: string
+  featuredType: 'work' | 'block' | 'none'
+  featuredWorkId?: string
+  accentColor: string
+  fontStyle: string
+  backgroundStyle: string
+  isPublished: boolean
+  blocks: any[]
+}
+
+/**
+ * ProfileEditor - v0.1
+ * Full profile editing interface with block management
+ */
+export default function ProfileEditor() {
+  const router = useRouter()
+  const [activeTab, setActiveTab] = useState<'basic' | 'blocks' | 'style'>('basic')
+  const [previewMode, setPreviewMode] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+
+  // Profile data state
+  const [profileData, setProfileData] = useState<ProfileData>({
+    displayName: '',
+    bio: '',
+    featuredType: 'none',
+    accentColor: '#3B82F6',
+    fontStyle: 'default',
+    backgroundStyle: 'solid',
+    isPublished: false,
+    blocks: []
+  })
+
+  // Load profile data on mount
+  useEffect(() => {
+    loadProfile()
+  }, [])
+
+  const loadProfile = async () => {
+    try {
+      const response = await fetch('/api/creator/profile')
+      if (response.ok) {
+        const data = await response.json()
+        setProfileData(data)
+      }
+    } catch (error) {
+      console.error('Failed to load profile:', error)
+    }
+  }
+
+  const handleUpdate = (field: string, value: any) => {
+    setProfileData(prev => ({ ...prev, [field]: value }))
+    setHasUnsavedChanges(true)
+  }
+
+  const handleImageUpload = async (type: 'profile' | 'cover', file: File) => {
+    // TODO: Implement image upload to storage
+    console.log('Upload image:', type, file)
+    setHasUnsavedChanges(true)
+  }
+
+  const handleAddBlock = (blockType: string) => {
+    // Find next available position in grid
+    const nextY = profileData.blocks.length > 0
+      ? Math.max(...profileData.blocks.map(b => b.gridY + b.height))
+      : 0
+
+    const newBlock = {
+      id: `temp-${Date.now()}`,
+      type: blockType,
+      data: '{}', // Empty data, will be configured
+      gridX: 0,
+      gridY: nextY,
+      width: 1,
+      height: 1,
+      isVisible: true,
+      order: profileData.blocks.length
+    }
+
+    setProfileData(prev => ({
+      ...prev,
+      blocks: [...prev.blocks, newBlock]
+    }))
+    setHasUnsavedChanges(true)
+  }
+
+  const handleDeleteBlock = (blockId: string) => {
+    setProfileData(prev => ({
+      ...prev,
+      blocks: prev.blocks.filter(b => b.id !== blockId)
+    }))
+    setHasUnsavedChanges(true)
+  }
+
+  const handleExpandBlock = (blockId: string, direction: 'width' | 'height') => {
+    setProfileData(prev => ({
+      ...prev,
+      blocks: prev.blocks.map(b =>
+        b.id === blockId
+          ? {
+              ...b,
+              [direction]: direction === 'width' ? 2 : b.width,
+              height: direction === 'height' ? 2 : b.height
+            }
+          : b
+      )
+    }))
+    setHasUnsavedChanges(true)
+  }
+
+  const handleSave = async (publish = false) => {
+    setIsSaving(true)
+    try {
+      const response = await fetch('/api/creator/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...profileData,
+          isPublished: publish ? true : profileData.isPublished
+        })
+      })
+
+      if (response.ok) {
+        setHasUnsavedChanges(false)
+        if (publish) {
+          // Redirect to public profile
+          const data = await response.json()
+          router.push(`/profile/${data.username}`)
+        }
+      } else {
+        console.error('Failed to save profile')
+      }
+    } catch (error) {
+      console.error('Save error:', error)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-900 flex">
+      {/* Left Sidebar - Block Picker or Settings */}
+      {!previewMode && (
+        <div className="flex-shrink-0">
+          {activeTab === 'blocks' ? (
+            <BlockPicker onAddBlock={handleAddBlock} />
+          ) : activeTab === 'style' ? (
+            <StyleEditor
+              accentColor={profileData.accentColor}
+              fontStyle={profileData.fontStyle}
+              backgroundStyle={profileData.backgroundStyle}
+              onUpdate={handleUpdate}
+            />
+          ) : (
+            <div className="w-80 bg-gray-800 border-r border-gray-700 p-4 overflow-y-auto">
+              <BasicInfoEditor
+                displayName={profileData.displayName}
+                bio={profileData.bio}
+                profileImage={profileData.profileImage}
+                coverImage={profileData.coverImage}
+                onUpdate={handleUpdate}
+                onImageUpload={handleImageUpload}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Top Bar */}
+        <div className="h-16 bg-gray-800 border-b border-gray-700 flex items-center justify-between px-6">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.back()}
+              className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              <ArrowLeftIcon className="w-5 h-5 text-gray-400" />
+            </button>
+            <h1 className="text-lg font-bold text-gray-100">
+              Edit Profile
+            </h1>
+            {hasUnsavedChanges && (
+              <span className="text-xs text-yellow-500">• Unsaved changes</span>
+            )}
+          </div>
+
+          {/* Tab Controls */}
+          {!previewMode && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setActiveTab('basic')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === 'basic'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}
+              >
+                <Cog6ToothIcon className="w-4 h-4 inline mr-1" />
+                Basic Info
+              </button>
+              <button
+                onClick={() => setActiveTab('blocks')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === 'blocks'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}
+              >
+                Blocks
+              </button>
+              <button
+                onClick={() => setActiveTab('style')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === 'style'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}
+              >
+                <PaintBrushIcon className="w-4 h-4 inline mr-1" />
+                Style
+              </button>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPreviewMode(!previewMode)}
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+            >
+              <EyeIcon className="w-4 h-4" />
+              {previewMode ? 'Edit' : 'Preview'}
+            </button>
+            <button
+              onClick={() => handleSave(false)}
+              disabled={!hasUnsavedChanges || isSaving}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:text-gray-500 rounded-lg text-sm font-medium transition-colors"
+            >
+              {isSaving ? 'Saving...' : 'Save Draft'}
+            </button>
+            <button
+              onClick={() => handleSave(true)}
+              disabled={isSaving}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+            >
+              <CheckIcon className="w-4 h-4" />
+              Publish
+            </button>
+          </div>
+        </div>
+
+        {/* Preview/Edit Area */}
+        <div className="flex-1 overflow-y-auto bg-gray-900">
+          {previewMode ? (
+            <div className="max-w-7xl mx-auto px-6 py-8">
+              <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-4 mb-6">
+                <p className="text-sm text-blue-300">
+                  <EyeIcon className="w-4 h-4 inline mr-1" />
+                  Preview Mode - This is how your profile will appear to visitors
+                </p>
+              </div>
+              {/* TODO: Render actual profile preview with ProfileSidebar, FeaturedSpace, BlockGrid */}
+              <div className="bg-gray-800 border border-gray-700 rounded-lg p-8 text-center">
+                <p className="text-gray-400">Profile preview coming soon</p>
+                <pre className="text-xs text-left mt-4 bg-gray-900 p-4 rounded">
+                  {JSON.stringify(profileData, null, 2)}
+                </pre>
+              </div>
+            </div>
+          ) : (
+            <div className="p-8">
+              <div className="max-w-4xl mx-auto space-y-6">
+                {/* Editor Instructions */}
+                <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+                  <h3 className="font-semibold text-gray-100 mb-2">
+                    {activeTab === 'basic' && '✏️ Edit Your Basic Info'}
+                    {activeTab === 'blocks' && '🧩 Add Content Blocks'}
+                    {activeTab === 'style' && '🎨 Customize Your Style'}
+                  </h3>
+                  <p className="text-sm text-gray-400">
+                    {activeTab === 'basic' && 'Use the panel on the left to edit your profile picture, display name, and bio.'}
+                    {activeTab === 'blocks' && 'Click blocks from the left panel to add them to your profile. Blocks can be expanded in one direction.'}
+                    {activeTab === 'style' && 'Choose your accent color, font style, and background to match your brand.'}
+                  </p>
+                </div>
+
+                {/* Block List (when in blocks tab) */}
+                {activeTab === 'blocks' && (
+                  <div className="space-y-3">
+                    <h4 className="font-semibold text-gray-200">Your Blocks ({profileData.blocks.length})</h4>
+                    {profileData.blocks.length === 0 ? (
+                      <div className="bg-gray-800 border border-gray-700 rounded-lg p-8 text-center">
+                        <p className="text-gray-400">
+                          No blocks yet. Add some from the left panel!
+                        </p>
+                      </div>
+                    ) : (
+                      profileData.blocks.map((block, index) => (
+                        <div
+                          key={block.id}
+                          className="bg-gray-800 border border-gray-700 rounded-lg p-4 flex items-center justify-between"
+                        >
+                          <div>
+                            <h5 className="font-medium text-gray-100">
+                              Block {index + 1}: {block.type}
+                            </h5>
+                            <p className="text-xs text-gray-400">
+                              Size: {block.width}×{block.height} | Position: ({block.gridX}, {block.gridY})
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteBlock(block.id)}
+                            className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-sm"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Style Editor Component
+function StyleEditor({
+  accentColor,
+  fontStyle,
+  backgroundStyle,
+  onUpdate
+}: {
+  accentColor: string
+  fontStyle: string
+  backgroundStyle: string
+  onUpdate: (field: string, value: string) => void
+}) {
+  const colors = [
+    { name: 'Blue', value: '#3B82F6' },
+    { name: 'Purple', value: '#9333EA' },
+    { name: 'Pink', value: '#EC4899' },
+    { name: 'Red', value: '#EF4444' },
+    { name: 'Orange', value: '#F97316' },
+    { name: 'Green', value: '#10B981' },
+  ]
+
+  return (
+    <div className="w-80 bg-gray-800 border-r border-gray-700 p-4 overflow-y-auto">
+      <h2 className="text-lg font-bold text-gray-100 mb-4">Style Settings</h2>
+
+      {/* Accent Color */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-gray-300 mb-3">
+          Accent Color
+        </label>
+        <div className="grid grid-cols-3 gap-2">
+          {colors.map(color => (
+            <button
+              key={color.value}
+              onClick={() => onUpdate('accentColor', color.value)}
+              className={`h-12 rounded-lg border-2 transition-all ${
+                accentColor === color.value
+                  ? 'border-white scale-105'
+                  : 'border-gray-700 hover:border-gray-600'
+              }`}
+              style={{ backgroundColor: color.value }}
+              title={color.name}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Font Style */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-gray-300 mb-3">
+          Font Style
+        </label>
+        <select
+          value={fontStyle}
+          onChange={(e) => onUpdate('fontStyle', e.target.value)}
+          className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-gray-100"
+        >
+          <option value="default">Default</option>
+          <option value="serif">Serif</option>
+          <option value="mono">Monospace</option>
+        </select>
+      </div>
+
+      {/* Background Style */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-gray-300 mb-3">
+          Background
+        </label>
+        <select
+          value={backgroundStyle}
+          onChange={(e) => onUpdate('backgroundStyle', e.target.value)}
+          className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-gray-100"
+        >
+          <option value="solid">Solid</option>
+          <option value="gradient">Gradient</option>
+          <option value="pattern">Pattern</option>
+        </select>
+      </div>
+    </div>
+  )
+}
