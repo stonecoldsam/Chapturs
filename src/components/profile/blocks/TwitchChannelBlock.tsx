@@ -41,6 +41,16 @@ export default function TwitchChannelBlock({
   const [liveData, setLiveData] = useState<TwitchData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+
+  const formatAgo = (date: Date) => {
+    const s = Math.floor((Date.now() - date.getTime()) / 1000)
+    if (s < 60) return 'just now'
+    const m = Math.floor(s / 60)
+    if (m < 60) return `${m}m ago`
+    const h = Math.floor(m / 60)
+    return `${h}h ago`
+  }
 
   const channelUrl = `https://twitch.tv/${data.channelName}`
   
@@ -57,6 +67,7 @@ export default function TwitchChannelBlock({
         const twitchData: TwitchData = await res.json()
         setLiveData(twitchData)
         setError(null)
+  setLastUpdated(new Date())
       } catch (err) {
         console.error('Error fetching Twitch data:', err)
         setError(err instanceof Error ? err.message : 'Unknown error')
@@ -147,6 +158,11 @@ export default function TwitchChannelBlock({
               <div className="flex items-center gap-1 bg-red-500 px-2 py-1 rounded text-xs font-bold">
                 <SignalIcon className="w-3 h-3" />
                 LIVE
+              </div>
+            )}
+            {!displayData.isLive && lastUpdated && (
+              <div className="text-[10px] text-white/60">
+                Updated {formatAgo(lastUpdated)}
               </div>
             )}
           </div>

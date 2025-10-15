@@ -41,6 +41,16 @@ export default function DiscordInviteBlock({
   const [live, setLive] = useState<{ memberCount: number; presenceCount: number; name?: string; iconUrl?: string } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+
+  const formatAgo = (date: Date) => {
+    const s = Math.floor((Date.now() - date.getTime()) / 1000)
+    if (s < 60) return 'just now'
+    const m = Math.floor(s / 60)
+    if (m < 60) return `${m}m ago`
+    const h = Math.floor(m / 60)
+    return `${h}h ago`
+  }
 
   useEffect(() => {
     let mounted = true
@@ -59,6 +69,7 @@ export default function DiscordInviteBlock({
             iconUrl: json.iconUrl,
           })
           setError(null)
+          setLastUpdated(new Date())
         }
       } catch (e) {
         console.error('Discord widget fetch error', e)
@@ -157,6 +168,11 @@ export default function DiscordInviteBlock({
             />
           </svg>
         </div>
+        {lastUpdated && (
+          <div className="absolute bottom-2 left-2 text-[10px] text-white/70">
+            Updated {formatAgo(lastUpdated)}
+          </div>
+        )}
       </div>
     </BaseBlock>
   )

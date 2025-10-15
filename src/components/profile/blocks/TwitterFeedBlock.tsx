@@ -44,6 +44,16 @@ export default function TwitterFeedBlock({
   const [displayName, setDisplayName] = useState<string | undefined>(data.displayName)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+
+  const formatAgo = (date: Date) => {
+    const s = Math.floor((Date.now() - date.getTime()) / 1000)
+    if (s < 60) return 'just now'
+    const m = Math.floor(s / 60)
+    if (m < 60) return `${m}m ago`
+    const h = Math.floor(m / 60)
+    return `${h}h ago`
+  }
 
   useEffect(() => {
     let mounted = true
@@ -56,8 +66,9 @@ export default function TwitterFeedBlock({
         setFollowers(formatCount(json.publicMetrics?.followers_count) || data.followerCount)
         setAvatar(json.profileImageUrl || data.profileImage)
         setBio(json.description || data.bio)
-        setDisplayName(json.name || data.displayName)
+  setDisplayName(json.name || data.displayName)
         setError(null)
+  setLastUpdated(new Date())
       } catch (e) {
         console.error('X fetch error', e)
         if (mounted) setError('Unable to load latest data')
@@ -129,7 +140,7 @@ export default function TwitterFeedBlock({
           )}
         </div>
 
-        {/* Timeline/Feed Area */}
+  {/* Timeline/Feed Area */}
         <div className="flex-1 overflow-hidden">
           {data.embedType === 'timeline' ? (
             // Twitter Timeline Embed
@@ -172,6 +183,11 @@ export default function TwitterFeedBlock({
         >
           View full profile on X →
         </a>
+        {lastUpdated && (
+          <div className="absolute bottom-2 left-2 text-[10px] text-white/60">
+            Updated {formatAgo(lastUpdated)}
+          </div>
+        )}
       </div>
     </BaseBlock>
   )

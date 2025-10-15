@@ -45,6 +45,16 @@ export default function YouTubeChannelBlock({
   const [desc, setDesc] = useState<string | undefined>(data.description)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+
+  const formatAgo = (date: Date) => {
+    const s = Math.floor((Date.now() - date.getTime()) / 1000)
+    if (s < 60) return 'just now'
+    const m = Math.floor(s / 60)
+    if (m < 60) return `${m}m ago`
+    const h = Math.floor(m / 60)
+    return `${h}h ago`
+  }
 
   useEffect(() => {
     let mounted = true
@@ -65,6 +75,7 @@ export default function YouTubeChannelBlock({
           setAvatar(json.thumbnails?.high || json.thumbnails?.medium || data.channelImage)
           setDesc(json.description || data.description)
           setError(null)
+          setLastUpdated(new Date())
         }
       } catch (e) {
         console.error('YouTube fetch error', e)
@@ -179,6 +190,11 @@ export default function YouTubeChannelBlock({
             <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
           </svg>
         </div>
+        {lastUpdated && (
+          <div className="absolute top-2 left-2 text-[10px] text-white/70">
+            Updated {formatAgo(lastUpdated)}
+          </div>
+        )}
       </a>
     </BaseBlock>
   )
