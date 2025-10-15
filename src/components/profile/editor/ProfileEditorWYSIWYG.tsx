@@ -27,6 +27,81 @@ import {
   ArrowLeftIcon
 } from '@heroicons/react/24/outline'
 import Modal from '@/components/ui/Modal'
+import { useDroppable } from '@dnd-kit/core'
+
+/**
+ * Internal: FeaturedDropZone component to handle droppable featured area and confirmation modal
+ */
+function FeaturedDropZone({
+  type,
+  workData,
+  blockData,
+  onSelectFeatured,
+  onEditFeatured,
+  onConfirmFeatured
+}: {
+  type: 'work' | 'block' | 'none'
+  workData?: any
+  blockData?: any
+  onSelectFeatured: () => void
+  onEditFeatured: () => void
+  onConfirmFeatured: (blockId: string) => void
+}) {
+  const { isOver, setNodeRef } = useDroppable({ id: 'featured-dropzone' })
+  const [showFeaturedConfirm, setShowFeaturedConfirm] = useState(false)
+  const [pendingFeaturedBlockId, setPendingFeaturedBlockId] = useState<string | null>(null)
+
+  const handleNativeDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    const blockId = e.dataTransfer.getData('blockId')
+    if (blockId) {
+      setPendingFeaturedBlockId(blockId)
+      setShowFeaturedConfirm(true)
+    }
+  }
+
+  const cancelFeaturedBlock = () => {
+    setShowFeaturedConfirm(false)
+    setPendingFeaturedBlockId(null)
+  }
+
+  const confirmFeaturedBlock = () => {
+    if (pendingFeaturedBlockId) {
+      onConfirmFeatured(pendingFeaturedBlockId)
+    }
+    setShowFeaturedConfirm(false)
+    setPendingFeaturedBlockId(null)
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`relative ${isOver ? 'ring-4 ring-blue-500' : ''}`}
+      style={{ minHeight: 500 }}
+      onDrop={handleNativeDrop}
+      onDragOver={(e) => e.preventDefault()}
+    >
+      <EditableFeaturedSpace
+        type={type}
+        workData={workData}
+        blockData={blockData}
+        onSelectFeatured={onSelectFeatured}
+        onEditFeatured={onEditFeatured}
+      />
+      {showFeaturedConfirm && (
+        <Modal isOpen={true} onClose={cancelFeaturedBlock} title="Feature this block?">
+          <div className="p-6">
+            <p className="mb-4">Are you sure you want to feature this block in your profile's featured area?</p>
+            <div className="flex gap-4 justify-end">
+              <button className="px-4 py-2 bg-gray-700 rounded" onClick={cancelFeaturedBlock}>Cancel</button>
+              <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={confirmFeaturedBlock}>Confirm</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </div>
+  )
+}
 
 interface ProfileData {
   displayName: string
@@ -348,80 +423,23 @@ export default function ProfileEditorWYSIWYG() {
           />
         }
         featured={
-          (() => {
-            // Drag-and-drop drop zone for featured area
-            const { useDroppable } = require('@dnd-kit/core');
-            const droppable = useDroppable({ id: 'featured-dropzone' });
-            const [showFeaturedConfirm, setShowFeaturedConfirm] = useState(false);
-            const [pendingFeaturedBlockId, setPendingFeaturedBlockId] = useState<string | null>(null);
-
-            // Handler for when a block is dropped
-            const handleBlockDrop = (blockId: string) => {
-              setPendingFeaturedBlockId(blockId);
-              setShowFeaturedConfirm(true);
-            };
-
-            // Handler for confirming featured block
-            const confirmFeaturedBlock = () => {
-              if (pendingFeaturedBlockId) {
-                setProfileData(prev => ({
-                  ...prev,
-                  featuredType: 'block',
-                  featuredBlockId: pendingFeaturedBlockId
-                }));
-                setHasUnsavedChanges(true);
-              }
-              setShowFeaturedConfirm(false);
-              setPendingFeaturedBlockId(null);
-            };
-
-            // Handler for canceling featured block
-            const cancelFeaturedBlock = () => {
-              setShowFeaturedConfirm(false);
-              setPendingFeaturedBlockId(null);
-            };
-
-            return (
-              <div
-                ref={droppable.setNodeRef}
-                className={
-                  `relative ${droppable.isOver ? 'ring-4 ring-blue-500' : ''}`
-                }
-                style={{ minHeight: 500 }}
-                onDrop={e => {
-                  // Only handle block drops
-                  const blockId = e.dataTransfer.getData('blockId');
-                  if (blockId) handleBlockDrop(blockId);
-                }}
-              >
-                <EditableFeaturedSpace
-                  type={profileData.featuredType}
-                  workData={getFeaturedWorkData()}
-                  blockData={getFeaturedBlockData()}
-                  onSelectFeatured={() => {
-                    // TODO: Open featured selection modal
-                    alert('Featured selection modal coming soon!')
-                  }}
-                  onEditFeatured={() => {
-                    // TODO: Open featured selection modal
-                    alert('Featured selection modal coming soon!')
-                  }}
-                />
-                {/* Confirmation Modal */}
-                {showFeaturedConfirm && (
-                  <Modal isOpen={true} onClose={cancelFeaturedBlock} title="Feature this block?">
-                    <div className="p-6">
-                      <p className="mb-4">Are you sure you want to feature this block in your profile's featured area?</p>
-                      <div className="flex gap-4 justify-end">
-                        <button className="px-4 py-2 bg-gray-700 rounded" onClick={cancelFeaturedBlock}>Cancel</button>
-                        <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={confirmFeaturedBlock}>Confirm</button>
-                      </div>
-                    </div>
-                  </Modal>
-                )}
-              </div>
-            );
-          })()
+          <FeaturedDropZone
+            type={profileData.featuredType}
+            workData={getFeaturedWorkData()}
+            blockData={getFeaturedBlockData()}
+            onSelectFeatured={() => {
+              // TODO: Open featured selection modal
+              alert('Featured selection modal coming soon!')
+            }}
+            onEditFeatured={() => {
+              // TODO: Open featured selection modal
+              alert('Featured selection modal coming soon!')
+            }}
+            onConfirmFeatured={(blockId: string) => {
+              setProfileData(prev => ({ ...prev, featuredType: 'block', featuredBlockId: blockId }))
+              setHasUnsavedChanges(true)
+            }}
+          />
         }
         blocks={
           <EditableBlockGrid
