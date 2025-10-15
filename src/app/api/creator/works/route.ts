@@ -51,7 +51,7 @@ export async function GET(request: Request) {
       })
     }
 
-    // Get all works - simplified query matching dashboard-stats exactly
+    // Get all works with counts for glossary and characters pages
     console.log('[GET /api/creator/works] Querying works for authorId:', author.id)
     
     const works = await prisma.work.findMany({
@@ -59,7 +59,14 @@ export async function GET(request: Request) {
       select: { 
         id: true, 
         title: true, 
-        coverImage: true 
+        coverImage: true,
+        _count: {
+          select: {
+            sections: true,
+            glossaryEntries: true,
+            characterProfiles: true
+          }
+        }
       },
       orderBy: { createdAt: 'desc' }
     })
@@ -69,7 +76,8 @@ export async function GET(request: Request) {
       console.log('[GET /api/creator/works] First work:', {
         id: works[0].id,
         title: works[0].title,
-        coverImage: works[0].coverImage
+        coverImage: works[0].coverImage,
+        counts: works[0]._count
       })
     }
 
@@ -78,7 +86,16 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       success: true,
-      works: works
+      works: works.map((work: any) => ({
+        id: work.id,
+        title: work.title,
+        coverImage: work.coverImage,
+        _count: {
+          chapters: work._count.sections,
+          glossaryTerms: work._count.glossaryEntries,
+          characters: work._count.characterProfiles
+        }
+      }))
     })
 
   } catch (error: any) {
