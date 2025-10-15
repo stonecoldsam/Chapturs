@@ -1,12 +1,13 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/auth'
-import AppLayout from '@/components/AppLayout'
-import ProfileEditor from '@/components/profile/editor/ProfileEditor'
+import ProfileEditorWYSIWYG from '@/components/profile/editor/ProfileEditorWYSIWYG'
 
 /**
- * Creator Profile Editor Page - v0.1.5
- * Full editing interface for creator profiles
- * Now integrated with AppLayout sidebar
+ * Creator Profile Editor Page - v1.0 WYSIWYG
+ * True WYSIWYG editing interface for creator profiles
+ * - Looks exactly like the public profile with edit controls
+ * - No separate preview mode needed
+ * - Inline editing with hover controls
  */
 export default async function CreatorProfileEditPage() {
   const session = await auth()
@@ -15,9 +16,6 @@ export default async function CreatorProfileEditPage() {
     redirect('/api/auth/signin')
   }
 
-  return (
-    <AppLayout>
-      <ProfileEditor />
-    </AppLayout>
-  )
+  // WYSIWYG editor includes its own layout, no AppLayout wrapper needed
+  return <ProfileEditorWYSIWYG />
 }
