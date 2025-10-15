@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSession, signIn, signOut } from 'next-auth/react'
 import { 
   BookOpenIcon, 
@@ -25,7 +25,18 @@ interface SidebarProps {
 
 export default function Sidebar({ currentHub, onHubChange }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [username, setUsername] = useState<string | null>(null)
   const { data: session, status } = useSession()
+
+  // Fetch username when session is available
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetch('/api/user/profile')
+        .then(res => res.json())
+        .then(data => setUsername(data.username))
+        .catch(err => console.error('Failed to fetch username:', err))
+    }
+  }, [session?.user?.id])
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: '/' })
@@ -208,24 +219,40 @@ export default function Sidebar({ currentHub, onHubChange }: SidebarProps) {
             </div>
           ) : session ? (
             <div className="space-y-3">
-              {/* User Info */}
-              {!isCollapsed && (
-                <div className="flex items-center space-x-3">
+              {/* User Profile Link */}
+              <a
+                href={currentHub === 'creator' ? '/creator/profile/edit' : `/profile/${username || session.user?.id}`}
+                className={`
+                  flex items-center w-full px-3 py-2 rounded-lg
+                  hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors
+                  ${isCollapsed ? 'justify-center' : ''}
+                `}
+                title={isCollapsed ? 'View Profile' : undefined}
+              >
+                {!isCollapsed ? (
+                  <>
+                    <img
+                      src={session.user?.image || ''}
+                      alt="Profile"
+                      className="w-8 h-8 rounded-full flex-shrink-0"
+                    />
+                    <div className="flex-1 min-w-0 ml-3">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        {session.user?.name}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        {currentHub === 'creator' ? 'Edit Profile →' : 'View Profile →'}
+                      </p>
+                    </div>
+                  </>
+                ) : (
                   <img
                     src={session.user?.image || ''}
                     alt="Profile"
                     className="w-8 h-8 rounded-full"
                   />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                      {session.user?.name}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                      {session.user?.email}
-                    </p>
-                  </div>
-                </div>
-              )}
+                )}
+              </a>
               
               {/* Sign Out Button */}
               <button

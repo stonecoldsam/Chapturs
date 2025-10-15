@@ -6,6 +6,12 @@ import BlockPicker from '@/components/profile/editor/BlockPicker'
 import BasicInfoEditor from '@/components/profile/editor/BasicInfoEditor'
 import ProfileLayout from '@/components/profile/ProfileLayout'
 import { 
+  WorkCardConfig,
+  TextBoxConfig,
+  YouTubeVideoConfig,
+  ExternalLinkConfig
+} from '@/components/profile/config'
+import { 
   EyeIcon, 
   ArrowLeftIcon, 
   CheckIcon,
@@ -27,9 +33,16 @@ interface ProfileData {
   blocks: any[]
 }
 
+interface ConfigModalState {
+  isOpen: boolean
+  blockType: string | null
+  blockId?: string
+  initialData?: any
+}
+
 /**
- * ProfileEditor - v0.1
- * Full profile editing interface with block management
+ * ProfileEditor - v0.1.5
+ * Full profile editing interface with block configuration modals
  */
 export default function ProfileEditor() {
   const router = useRouter()
@@ -37,6 +50,13 @@ export default function ProfileEditor() {
   const [previewMode, setPreviewMode] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [availableWorks, setAvailableWorks] = useState<any[]>([])
+
+  // Configuration modal state
+  const [configModal, setConfigModal] = useState<ConfigModalState>({
+    isOpen: false,
+    blockType: null
+  })
 
   // Profile data state
   const [profileData, setProfileData] = useState<ProfileData>({
@@ -50,9 +70,10 @@ export default function ProfileEditor() {
     blocks: []
   })
 
-  // Load profile data on mount
+  // Load profile data and works on mount
   useEffect(() => {
     loadProfile()
+    loadWorks()
   }, [])
 
   const loadProfile = async () => {
@@ -64,6 +85,18 @@ export default function ProfileEditor() {
       }
     } catch (error) {
       console.error('Failed to load profile:', error)
+    }
+  }
+
+  const loadWorks = async () => {
+    try {
+      const response = await fetch('/api/creator/works')
+      if (response.ok) {
+        const data = await response.json()
+        setAvailableWorks(data.works || [])
+      }
+    } catch (error) {
+      console.error('Failed to load works:', error)
     }
   }
 
@@ -79,28 +112,69 @@ export default function ProfileEditor() {
   }
 
   const handleAddBlock = (blockType: string) => {
-    // Find next available position in grid
-    const nextY = profileData.blocks.length > 0
-      ? Math.max(...profileData.blocks.map(b => b.gridY + b.height))
-      : 0
+    // Open configuration modal for this block type
+    setConfigModal({
+      isOpen: true,
+      blockType,
+      initialData: undefined
+    })
+  }
 
-    const newBlock = {
-      id: `temp-${Date.now()}`,
-      type: blockType,
-      data: '{}', // Empty data, will be configured
-      gridX: 0,
-      gridY: nextY,
-      width: 1,
-      height: 1,
-      isVisible: true,
-      order: profileData.blocks.length
+  const handleConfigSave = (data: any) => {
+    const { blockType, blockId } = configModal
+
+    if (blockId) {
+      // Update existing block
+      setProfileData(prev => ({
+        ...prev,
+        blocks: prev.blocks.map(b =>
+          b.id === blockId
+            ? { ...b, data: JSON.stringify(data) }
+            : b
+        )
+      }))
+    } else {
+      // Add new block
+      const nextY = profileData.blocks.length > 0
+        ? Math.max(...profileData.blocks.map((b: any) => b.gridY + b.height))
+        : 0
+
+      const newBlock = {
+        id: `temp-${Date.now()}`,
+        type: blockType,
+        data: JSON.stringify(data),
+        gridX: 0,
+        gridY: nextY,
+        width: 1,
+        height: 1,
+        isVisible: true,
+        order: profileData.blocks.length
+      }
+
+      setProfileData(prev => ({
+        ...prev,
+        blocks: [...prev.blocks, newBlock]
+      }))
     }
 
-    setProfileData(prev => ({
-      ...prev,
-      blocks: [...prev.blocks, newBlock]
-    }))
     setHasUnsavedChanges(true)
+    setConfigModal({ isOpen: false, blockType: null })
+  }
+
+  const handleEditBlock = (blockId: string) => {
+    const block = profileData.blocks.find((b: any) => b.id === blockId)
+    if (!block) return
+
+    const data = typeof block.data === 'string' 
+      ? JSON.parse(block.data) 
+      : block.data
+
+    setConfigModal({
+      isOpen: true,
+      blockType: block.type,
+      blockId,
+      initialData: data
+    })
   }
 
   const handleDeleteBlock = (blockId: string) => {
@@ -318,9 +392,9 @@ export default function ProfileEditor() {
                       profileData.blocks.map((block, index) => (
                         <div
                           key={block.id}
-                          className="bg-gray-800 border border-gray-700 rounded-lg p-4 flex items-center justify-between"
+                          className="bg-gray-800 border border-gray-700 rounded-lg p-4 flex items-center justify-between hover:bg-gray-750 transition-colors"
                         >
-                          <div>
+                          <div className="flex-1">
                             <h5 className="font-medium text-gray-100">
                               Block {index + 1}: {block.type}
                             </h5>
@@ -328,12 +402,20 @@ export default function ProfileEditor() {
                               Size: {block.width}×{block.height} | Position: ({block.gridX}, {block.gridY})
                             </p>
                           </div>
-                          <button
-                            onClick={() => handleDeleteBlock(block.id)}
-                            className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-sm"
-                          >
-                            Delete
-                          </button>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleEditBlock(block.id)}
+                              className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm"
+                            >
+                              Configure
+                            </button>
+                            <button
+                              onClick={() => handleDeleteBlock(block.id)}
+                              className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-sm"
+                            >
+                              Delete
+                            </button>
+                          </div>
                         </div>
                       ))
                     )}
@@ -344,6 +426,44 @@ export default function ProfileEditor() {
           )}
         </div>
       </div>
+
+      {/* Configuration Modals */}
+      {configModal.blockType === 'work-card' && (
+        <WorkCardConfig
+          isOpen={configModal.isOpen}
+          onClose={() => setConfigModal({ isOpen: false, blockType: null })}
+          onSave={handleConfigSave}
+          initialData={configModal.initialData}
+          availableWorks={availableWorks}
+        />
+      )}
+
+      {configModal.blockType === 'text-box' && (
+        <TextBoxConfig
+          isOpen={configModal.isOpen}
+          onClose={() => setConfigModal({ isOpen: false, blockType: null })}
+          onSave={handleConfigSave}
+          initialData={configModal.initialData}
+        />
+      )}
+
+      {configModal.blockType === 'youtube-video' && (
+        <YouTubeVideoConfig
+          isOpen={configModal.isOpen}
+          onClose={() => setConfigModal({ isOpen: false, blockType: null })}
+          onSave={handleConfigSave}
+          initialData={configModal.initialData}
+        />
+      )}
+
+      {configModal.blockType === 'external-link' && (
+        <ExternalLinkConfig
+          isOpen={configModal.isOpen}
+          onClose={() => setConfigModal({ isOpen: false, blockType: null })}
+          onSave={handleConfigSave}
+          initialData={configModal.initialData}
+        />
+      )}
     </div>
   )
 }
