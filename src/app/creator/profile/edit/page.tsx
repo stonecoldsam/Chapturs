@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/auth'
 import ProfileEditorWYSIWYG from '@/components/profile/editor/ProfileEditorWYSIWYG'
+import AppLayout from '@/components/AppLayout'
 
 /**
  * Creator Profile Editor Page - v1.0 WYSIWYG
@@ -16,6 +17,10 @@ export default async function CreatorProfileEditPage() {
     redirect('/api/auth/signin')
   }
 
-  // WYSIWYG editor includes its own layout, no AppLayout wrapper needed
-  return <ProfileEditorWYSIWYG />
+  // Wrap editor with AppLayout to include the global sidebar/navigation
+  return (
+    <AppLayout>
+      <ProfileEditorWYSIWYG />
+    </AppLayout>
+  )
 }
