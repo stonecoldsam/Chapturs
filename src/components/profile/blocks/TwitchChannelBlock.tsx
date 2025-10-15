@@ -1,7 +1,9 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { PlayCircleIcon, SignalIcon } from '@heroicons/react/24/outline'
 import BaseBlock from './BaseBlock'
+import type { TwitchData } from '@/lib/api/twitch'
 
 interface TwitchChannelBlockData {
   channelName: string
@@ -36,8 +38,52 @@ export default function TwitchChannelBlock({
   onDelete,
   onExpand
 }: TwitchChannelBlockProps) {
+  const [liveData, setLiveData] = useState<TwitchData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
   const channelUrl = `https://twitch.tv/${data.channelName}`
   
+  // Fetch live data from API
+  useEffect(() => {
+    async function fetchTwitchData() {
+      try {
+        const res = await fetch(`/api/social/twitch/channel/${data.channelName}`)
+        
+        if (!res.ok) {
+          throw new Error('Failed to fetch Twitch data')
+        }
+        
+        const twitchData: TwitchData = await res.json()
+        setLiveData(twitchData)
+        setError(null)
+      } catch (err) {
+        console.error('Error fetching Twitch data:', err)
+        setError(err instanceof Error ? err.message : 'Unknown error')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchTwitchData()
+
+    // Refresh every 5 minutes
+    const interval = setInterval(fetchTwitchData, 5 * 60 * 1000)
+
+    return () => clearInterval(interval)
+  }, [data.channelName])
+
+  // Use live data if available, otherwise fallback to config data
+  const displayData = liveData ? {
+    channelName: data.channelName,
+    displayName: liveData.channel.displayName || data.displayName,
+    profileImage: liveData.channel.profileImage || data.profileImage,
+    isLive: liveData.stream?.isLive || false,
+    streamTitle: liveData.stream?.title,
+    game: liveData.stream?.gameName,
+    viewerCount: liveData.stream?.viewerCount,
+  } : data
+
   // Can expand height only (already 2 wide)
   const canExpandHeight = height < 2
 
@@ -69,10 +115,10 @@ export default function TwitchChannelBlock({
           <div className="flex items-center gap-3 mb-3">
             {/* Profile Image */}
             <div className="relative">
-              {data.profileImage ? (
+              {displayData.profileImage ? (
                 <img
-                  src={data.profileImage}
-                  alt={data.displayName || data.channelName}
+                  src={displayData.profileImage}
+                  alt={displayData.displayName || displayData.channelName}
                   className="w-12 h-12 rounded-full border-2 border-white/20"
                 />
               ) : (
@@ -81,7 +127,7 @@ export default function TwitchChannelBlock({
                 </div>
               )}
               {/* Live Indicator */}
-              {data.isLive && (
+              {displayData.isLive && (
                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-[#9146FF] animate-pulse" />
               )}
             </div>
@@ -89,15 +135,15 @@ export default function TwitchChannelBlock({
             {/* Channel Info */}
             <div className="flex-1 min-w-0">
               <h3 className="font-bold text-sm truncate">
-                {data.displayName || data.channelName}
+                {displayData.displayName || displayData.channelName}
               </h3>
               <p className="text-xs text-white/70 truncate">
-                twitch.tv/{data.channelName}
+                twitch.tv/{displayData.channelName}
               </p>
             </div>
 
             {/* Live Badge */}
-            {data.isLive && (
+            {displayData.isLive && (
               <div className="flex items-center gap-1 bg-red-500 px-2 py-1 rounded text-xs font-bold">
                 <SignalIcon className="w-3 h-3" />
                 LIVE
@@ -106,21 +152,21 @@ export default function TwitchChannelBlock({
           </div>
 
           {/* Stream Info (when live) */}
-          {data.isLive && (
+          {displayData.isLive && (
             <div className="flex-1 flex flex-col justify-center">
-              {data.streamTitle && (
+              {displayData.streamTitle && (
                 <p className="text-sm font-medium mb-1 line-clamp-2">
-                  {data.streamTitle}
+                  {displayData.streamTitle}
                 </p>
               )}
               <div className="flex items-center gap-3 text-xs text-white/80">
-                {data.game && (
-                  <span className="truncate">{data.game}</span>
+                {displayData.game && (
+                  <span className="truncate">{displayData.game}</span>
                 )}
-                {data.viewerCount !== undefined && (
+                {displayData.viewerCount !== undefined && (
                   <span className="flex items-center gap-1">
                     <span className="w-2 h-2 rounded-full bg-red-500" />
-                    {data.viewerCount.toLocaleString()} viewers
+                    {displayData.viewerCount.toLocaleString()} viewers
                   </span>
                 )}
               </div>
@@ -128,9 +174,9 @@ export default function TwitchChannelBlock({
           )}
 
           {/* Offline State */}
-          {!data.isLive && (
+          {!displayData.isLive && (
             <div className="flex-1 flex items-center justify-center text-white/60 text-sm">
-              Channel is offline
+              {loading ? 'Loading...' : error ? 'Failed to load data' : 'Channel is offline'}
             </div>
           )}
 
