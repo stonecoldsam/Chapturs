@@ -54,6 +54,11 @@ model User {
   // Image submissions
   imageSubmissions       ImageSubmission[]
 
+  // Comment system relations
+  comments               Comment[]
+  commentLikes           CommentLike[]
+  commentReports         CommentReport[]
+
   @@map("users")
 }
 
@@ -121,6 +126,9 @@ model Work {
   contentValidations     ContentValidation[]
   moderationQueue        ContentModerationQueue[]
 
+  // Comment system relations
+  comments               Comment[]
+
   @@map("works")
 }
 
@@ -144,6 +152,9 @@ model Section {
   // Content moderation relations
   contentValidations ContentValidation[]
   moderationQueue    ContentModerationQueue[]
+
+  // Comment system relations
+  comments           Comment[]
 
   @@map("sections")
 }
@@ -1101,6 +1112,78 @@ model BlockComment {
   @@index([userId])
   @@index([parentId])
   @@map("block_comments")
+}
+
+// ============================================================================
+// COMMENT SYSTEM (Work & Chapter Comments)
+// ============================================================================
+
+// Work and chapter-level comments with moderation
+model Comment {
+  id            String   @id @default(cuid())
+  workId        String
+  sectionId     String?  // null = work-level comment
+  userId        String
+  content       String   @db.Text
+  parentId      String?  // For reply threads
+  
+  // Inline comment positioning (optional feature)
+  paragraphIndex Int?
+  textStart     Int?
+  textEnd       Int?
+  highlightedText String? @db.Text
+  
+  isEdited      Boolean  @default(false)
+  isPinned      Boolean  @default(false)
+  isHidden      Boolean  @default(false)
+  editedAt      DateTime?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  work          Work     @relation(fields: [workId], references: [id], onDelete: Cascade)
+  section       Section? @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent        Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies       Comment[] @relation("CommentReplies")
+  likes         CommentLike[]
+  reports       CommentReport[]
+  
+  @@index([workId])
+  @@index([sectionId])
+  @@index([userId])
+  @@index([parentId])
+  @@index([createdAt])
+  @@map("comments")
+}
+
+model CommentLike {
+  id        String   @id @default(cuid())
+  commentId String
+  userId    String
+  createdAt DateTime @default(now())
+  
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([commentId, userId])
+  @@map("comment_likes")
+}
+
+model CommentReport {
+  id        String   @id @default(cuid())
+  commentId String
+  userId    String
+  reason    String   // 'spam', 'harassment', 'spoiler', 'other'
+  details   String?  @db.Text
+  status    String   @default("pending") // 'pending', 'reviewed', 'actioned'
+  createdAt DateTime @default(now())
+  
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("comment_reports")
 }
 
 // Tracks which users voted on translation suggestions
