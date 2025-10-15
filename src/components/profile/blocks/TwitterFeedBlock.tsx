@@ -1,7 +1,9 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline'
 import BaseBlock from './BaseBlock'
+import { formatCount } from '@/lib/api/x'
 
 interface TwitterFeedBlockData {
   twitterHandle: string
@@ -36,6 +38,37 @@ export default function TwitterFeedBlock({
   onExpand
 }: TwitterFeedBlockProps) {
   const twitterUrl = `https://twitter.com/${data.twitterHandle}`
+  const [followers, setFollowers] = useState<string | undefined>(data.followerCount)
+  const [avatar, setAvatar] = useState<string | undefined>(data.profileImage)
+  const [bio, setBio] = useState<string | undefined>(data.bio)
+  const [displayName, setDisplayName] = useState<string | undefined>(data.displayName)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let mounted = true
+    async function fetchX() {
+      try {
+        const res = await fetch(`/api/social/x/user/${data.twitterHandle}`)
+        if (!res.ok) throw new Error(`Failed to fetch X data (${res.status})`)
+        const json = await res.json()
+        if (!mounted) return
+        setFollowers(formatCount(json.publicMetrics?.followers_count) || data.followerCount)
+        setAvatar(json.profileImageUrl || data.profileImage)
+        setBio(json.description || data.bio)
+        setDisplayName(json.name || data.displayName)
+        setError(null)
+      } catch (e) {
+        console.error('X fetch error', e)
+        if (mounted) setError('Unable to load latest data')
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    }
+    fetchX()
+    const interval = setInterval(fetchX, 12 * 60 * 60 * 1000) // refresh every 12h
+    return () => { mounted = false; clearInterval(interval) }
+  }, [data.twitterHandle])
   
   // Can expand width only (already 2 tall for timeline)
   const canExpandWidth = width < 2
@@ -55,10 +88,10 @@ export default function TwitterFeedBlock({
         <div className="p-4 border-b border-gray-800">
           <div className="flex items-start gap-3">
             {/* Profile Image */}
-            {data.profileImage ? (
+            {(avatar || data.profileImage) ? (
               <img
-                src={data.profileImage}
-                alt={data.displayName || data.twitterHandle}
+                src={(avatar || data.profileImage) as string}
+                alt={(displayName || data.twitterHandle) as string}
                 className="w-12 h-12 rounded-full"
               />
             ) : (
@@ -70,14 +103,14 @@ export default function TwitterFeedBlock({
             {/* Profile Info */}
             <div className="flex-1 min-w-0">
               <h3 className="font-bold text-sm truncate">
-                {data.displayName || data.twitterHandle}
+                {displayName || data.displayName || data.twitterHandle}
               </h3>
               <p className="text-xs text-gray-500 truncate">
                 @{data.twitterHandle}
               </p>
-              {data.followerCount && (
+              {(followers || data.followerCount) && (
                 <p className="text-xs text-gray-400 mt-1">
-                  {data.followerCount} followers
+                  {(followers || data.followerCount)} followers
                 </p>
               )}
             </div>
@@ -89,9 +122,9 @@ export default function TwitterFeedBlock({
           </div>
 
           {/* Bio */}
-          {data.bio && (
+          {(bio || data.bio) && (
             <p className="text-xs text-gray-300 mt-3 line-clamp-3">
-              {data.bio}
+              {bio || data.bio}
             </p>
           )}
         </div>
