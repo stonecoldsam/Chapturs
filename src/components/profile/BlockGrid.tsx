@@ -1,22 +1,40 @@
 'use client'
 
 import { PlusIcon } from '@heroicons/react/24/outline'
+import { getBlockComponent, BlockType } from './blocks'
+
+interface ProfileBlock {
+  id: string
+  type: BlockType
+  data: any // JSON data parsed from string
+  gridX: number
+  gridY: number
+  width: number
+  height: number
+  title?: string
+  order: number
+}
 
 interface BlockGridProps {
-  blocks?: any[] // Will be typed properly in v0.2
+  blocks?: ProfileBlock[]
   isOwner?: boolean
   onAddBlock?: () => void
+  onDeleteBlock?: (blockId: string) => void
+  onExpandBlock?: (blockId: string, direction: 'width' | 'height') => void
 }
 
 /**
  * BlockGrid - v0.1
  * Right section "ghost area" for customizable content blocks
  * Empty by default, encouraging intentional curation
+ * Renders blocks in a 2-column grid system
  */
 export default function BlockGrid({
   blocks = [],
   isOwner = false,
-  onAddBlock
+  onAddBlock,
+  onDeleteBlock,
+  onExpandBlock
 }: BlockGridProps) {
   // Empty state for owners
   if (blocks.length === 0 && isOwner) {
@@ -77,7 +95,7 @@ export default function BlockGrid({
     )
   }
 
-  // Block display (will be implemented in v0.2)
+  // Block display
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -93,15 +111,39 @@ export default function BlockGrid({
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        {blocks.map((block, index) => (
-          <div
-            key={index}
-            className="aspect-[3/4] bg-gray-800 border border-gray-700 rounded-lg flex items-center justify-center"
-          >
-            <p className="text-gray-500 text-sm">Block {index + 1}</p>
-          </div>
-        ))}
+      {/* Grid Layout - 2 columns, auto rows */}
+      <div className="grid grid-cols-2 auto-rows-fr gap-4">
+        {blocks.map((block) => {
+          const BlockComponent = getBlockComponent(block.type as BlockType)
+          
+          if (!BlockComponent) {
+            return (
+              <div
+                key={block.id}
+                className="aspect-[3/4] bg-gray-800 border border-gray-700 rounded-lg flex items-center justify-center"
+              >
+                <p className="text-gray-500 text-sm">Unknown block type</p>
+              </div>
+            )
+          }
+
+          // Parse data if it's a string
+          const blockData = typeof block.data === 'string' 
+            ? JSON.parse(block.data) 
+            : block.data
+
+          return (
+            <BlockComponent
+              key={block.id}
+              data={blockData}
+              width={block.width}
+              height={block.height}
+              isOwner={isOwner}
+              onDelete={onDeleteBlock ? () => onDeleteBlock(block.id) : undefined}
+              onExpand={onExpandBlock ? (direction) => onExpandBlock(block.id, direction) : undefined}
+            />
+          )
+        })}
       </div>
     </div>
   )
