@@ -4,37 +4,12 @@ import { useState, useEffect } from 'react'
 import { MessageSquare } from 'lucide-react'
 import CommentForm from './CommentForm'
 import CommentItem from './CommentItem'
-
-interface Comment {
-  id: string
-  workId: string
-  sectionId: string | null
-  userId: string
-  content: string
-  parentId: string | null
-  isEdited: boolean
-  isPinned: boolean
-  isHidden: boolean
-  editedAt: string | null
-  createdAt: string
-  updatedAt: string
-  user: {
-    id: string
-    username: string
-    displayName: string | null
-    avatar: string | null
-  }
-  likeCount: number
-  replyCount: number
-  hasMoreReplies: boolean
-  replies: Comment[]
-}
+import type { Comment } from '@/types/comment'
 
 interface CommentSectionProps {
   workId: string
   sectionId?: string
   canComment: boolean
-  isCreator: boolean
   currentUserId?: string
 }
 
@@ -42,7 +17,6 @@ export default function CommentSection({
   workId,
   sectionId,
   canComment,
-  isCreator,
   currentUserId
 }: CommentSectionProps) {
   const [comments, setComments] = useState<Comment[]>([])
@@ -51,6 +25,8 @@ export default function CommentSection({
   const [hasMore, setHasMore] = useState(false)
   const [nextCursor, setNextCursor] = useState<string | null>(null)
   const [loadingMore, setLoadingMore] = useState(false)
+  // For now, let backend handle authorization. UI will show moderation actions based on API responses
+  const isCreator = false
 
   const fetchComments = async (cursor?: string) => {
     try {
@@ -92,6 +68,7 @@ export default function CommentSection({
   useEffect(() => {
     setLoading(true)
     fetchComments()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workId, sectionId, sort])
 
   const handleCommentAdded = (newComment: Comment) => {

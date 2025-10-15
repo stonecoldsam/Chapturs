@@ -87,12 +87,12 @@ export async function GET(
     })
 
     // Transform data to include like counts
-    const transformedComments = comments.map(comment => ({
+    const transformedComments = comments.map((comment: any) => ({
       ...comment,
       likeCount: comment.likes.length,
       replyCount: comment._count.replies,
       hasMoreReplies: comment._count.replies > 3,
-      replies: comment.replies.map(reply => ({
+      replies: comment.replies.map((reply: any) => ({
         ...reply,
         likeCount: reply.likes.length
       }))

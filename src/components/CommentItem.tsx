@@ -14,32 +14,7 @@ import {
   Eye
 } from 'lucide-react'
 import CommentForm from './CommentForm'
-
-interface Comment {
-  id: string
-  workId: string
-  sectionId: string | null
-  userId: string
-  content: string
-  parentId: string | null
-  isEdited: boolean
-  isPinned: boolean
-  isHidden: boolean
-  editedAt: string | null
-  createdAt: string
-  updatedAt: string
-  user: {
-    id: string
-    username: string
-    displayName: string | null
-    avatar: string | null
-  }
-  likeCount: number
-  replyCount: number
-  hasMoreReplies?: boolean
-  replies?: Comment[]
-  likes?: { userId: string }[]
-}
+import type { Comment } from '@/types/comment'
 
 interface CommentItemProps {
   comment: Comment

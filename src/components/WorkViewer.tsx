@@ -293,8 +293,7 @@ export default function WorkViewer({
             <CommentSection
               workId={work.id}
               canComment={isAuthenticated}
-              isCreator={userId === work.author.userId}
-              currentUserId={userId}
+              currentUserId={userId || undefined}
             />
           </div>
         )}

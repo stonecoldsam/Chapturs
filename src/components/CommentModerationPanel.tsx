@@ -45,6 +45,7 @@ export default function CommentModerationPanel() {
 
   useEffect(() => {
     fetchReports()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status])
 
   const fetchReports = async () => {

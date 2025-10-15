@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
       select: { id: true }
     })
 
-    const workIds = works.map(w => w.id)
+    const workIds = works.map((w: { id: string }) => w.id)
 
     if (workIds.length === 0) {
       return NextResponse.json({
@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
       _count: true
     })
 
-    const statusCounts = counts.reduce((acc, item) => {
+    const statusCounts = counts.reduce((acc: Record<string, number>, item: { status: string; _count: number }) => {
       acc[item.status] = item._count
       return acc
     }, {} as Record<string, number>)
