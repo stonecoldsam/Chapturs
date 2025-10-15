@@ -7,6 +7,9 @@ export async function GET(
   { params }: { params: Promise<{ username: string }> }
 ) {
   try {
+    if (process.env.ENABLE_X_API !== 'true' || !process.env.TWITTER_BEARER_TOKEN) {
+      return NextResponse.json({ error: 'X integration disabled' }, { status: 503 })
+    }
     const { username } = await params
     if (!username) {
       return NextResponse.json({ error: 'Username is required' }, { status: 400 })

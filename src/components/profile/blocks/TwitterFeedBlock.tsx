@@ -38,6 +38,7 @@ export default function TwitterFeedBlock({
   onExpand
 }: TwitterFeedBlockProps) {
   const twitterUrl = `https://twitter.com/${data.twitterHandle}`
+  const enableX = process.env.NEXT_PUBLIC_ENABLE_X === 'true'
   const [followers, setFollowers] = useState<string | undefined>(data.followerCount)
   const [avatar, setAvatar] = useState<string | undefined>(data.profileImage)
   const [bio, setBio] = useState<string | undefined>(data.bio)
@@ -58,6 +59,11 @@ export default function TwitterFeedBlock({
   useEffect(() => {
     let mounted = true
     async function fetchX() {
+      if (!enableX) {
+        // Integration disabled; show static config
+        setLoading(false)
+        return
+      }
       try {
         const res = await fetch(`/api/social/x/user/${data.twitterHandle}`)
         if (!res.ok) throw new Error(`Failed to fetch X data (${res.status})`)
@@ -79,7 +85,7 @@ export default function TwitterFeedBlock({
     fetchX()
     const interval = setInterval(fetchX, 12 * 60 * 60 * 1000) // refresh every 12h
     return () => { mounted = false; clearInterval(interval) }
-  }, [data.twitterHandle])
+  }, [data.twitterHandle, enableX])
   
   // Can expand width only (already 2 tall for timeline)
   const canExpandWidth = width < 2
