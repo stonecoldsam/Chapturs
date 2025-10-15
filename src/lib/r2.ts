@@ -55,12 +55,16 @@ export async function generatePresignedUploadUrl(
     Bucket: R2_BUCKET_NAME,
     Key: key,
     ContentType: contentType,
-    // Enforce size limit at upload
-    ContentLength: maxSize,
+    // Don't set ContentLength in presigned URL - causes CORS preflight issues
+    // Size validation happens server-side after upload
   })
 
   // 10 minute expiry (security best practice)
-  return await getSignedUrl(r2Client, command, { expiresIn: 600 })
+  // Disable checksum verification for CORS compatibility
+  return await getSignedUrl(r2Client, command, { 
+    expiresIn: 600,
+    unhoistableHeaders: new Set(['x-amz-checksum-crc32'])
+  })
 }
 
 /**

@@ -3,7 +3,7 @@
 
 'use client'
 
-import { useState, useRef, ChangeEvent } from 'react'
+import { useState, useRef, useEffect, ChangeEvent } from 'react'
 import { EntityType } from '@/lib/image-processing'
 
 interface ImageUploadProps {
@@ -56,12 +56,15 @@ export default function ImageUpload({
   const [usageWarning, setUsageWarning] = useState<UsageWarning | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Check usage on mount
-  useState(() => {
+  // Check usage on mount (client-side only)
+  useEffect(() => {
     checkUsageStatus()
-  })
+  }, [])
 
   async function checkUsageStatus() {
+    // Only run on client-side
+    if (typeof window === 'undefined') return
+    
     try {
       const res = await fetch('/api/upload/request')
       if (res.ok) {
