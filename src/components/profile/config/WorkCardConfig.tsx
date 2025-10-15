@@ -86,7 +86,7 @@ export default function WorkCardConfig({
                   {selectedWork.title}
                 </h4>
                 <div className="flex flex-wrap gap-1">
-                  {selectedWork.genres.slice(0, 2).map(genre => (
+                  {(selectedWork.genres || []).slice(0, 2).map(genre => (
                     <span 
                       key={genre}
                       className="px-2 py-0.5 bg-blue-900/30 text-blue-300 text-xs rounded"

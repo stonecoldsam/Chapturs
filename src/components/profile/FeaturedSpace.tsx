@@ -96,7 +96,7 @@ export default function FeaturedSpace({
               {workData.title}
             </h2>
             <div className="flex items-center gap-2 flex-wrap">
-              {workData.genres.slice(0, 3).map((genre) => (
+              {(workData.genres || []).slice(0, 3).map((genre) => (
                 <span
                   key={genre}
                   className="px-2 py-1 text-xs font-medium bg-gray-800 text-gray-300 rounded-full"

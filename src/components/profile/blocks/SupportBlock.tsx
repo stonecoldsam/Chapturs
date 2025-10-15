@@ -116,7 +116,7 @@ export default function SupportBlock({
           {/* Secondary links (de-emphasized) */}
           {data.secondaryLinks && data.secondaryLinks.length > 0 && (
             <div className="mt-4 flex items-center gap-3 flex-wrap">
-              {data.secondaryLinks.slice(0, 3).map((link) => (
+              {(data.secondaryLinks || []).slice(0, 3).map((link) => (
                 <a
                   key={link.url}
                   href={link.url}

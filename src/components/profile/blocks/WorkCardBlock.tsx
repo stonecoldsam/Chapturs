@@ -82,7 +82,7 @@ export default function WorkCardBlock({
           
           {data.genres && data.genres.length > 0 && (
             <div className="flex gap-1 flex-wrap mt-auto">
-              {data.genres.slice(0, 2).map((genre) => (
+              {(data.genres || []).slice(0, 2).map((genre) => (
                 <span
                   key={genre}
                   className="px-1.5 py-0.5 text-xs bg-gray-700 text-gray-300 rounded"
