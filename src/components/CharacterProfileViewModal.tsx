@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { X, User, Image as ImageIcon, BookOpen, Users as UsersIcon, Upload } from 'lucide-react'
+import ImageUpload from '@/components/upload/ImageUpload'
 
 interface Character {
   id: string
@@ -306,16 +307,24 @@ export default function CharacterProfileViewModal({
                   <h4 className="font-medium text-gray-900 dark:text-white mb-3">Submit Your Fan Art</h4>
                   
                   <div className="space-y-3">
+                    {/* Image Upload */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Image URL *
+                        Fan Art Image *
                       </label>
-                      <input
-                        type="text"
-                        value={formData.imageUrl}
-                        onChange={(e) => setFormData(prev => ({ ...prev, imageUrl: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                        placeholder="https://example.com/your-artwork.jpg"
+                      <ImageUpload
+                        entityType="fanart"
+                        entityId={character.id}
+                        currentImage={formData.imageUrl}
+                        onUploadComplete={(image) => {
+                          setFormData(prev => ({ ...prev, imageUrl: image.urls.optimized }))
+                        }}
+                        onUploadError={(error) => {
+                          console.error('Fanart upload error:', error)
+                          alert(`Failed to upload fanart: ${error}`)
+                        }}
+                        label="Upload Your Artwork"
+                        hint="Any size, 1200px recommended. Max 8MB."
                       />
                     </div>
 
@@ -376,7 +385,7 @@ export default function CharacterProfileViewModal({
                     <div className="flex gap-2">
                       <button 
                         onClick={handleSubmitFanart}
-                        disabled={submitting}
+                        disabled={submitting || !formData.imageUrl}
                         className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {submitting ? 'Submitting...' : 'Submit'}

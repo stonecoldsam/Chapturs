@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import AppLayout from '@/components/AppLayout'
 import { useUser } from '@/hooks/useUser'
+import ImageUpload from '@/components/upload/ImageUpload'
 
 export default function EditWorkPage() {
   const params = useParams()
@@ -146,6 +147,27 @@ export default function EditWorkPage() {
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={6}
               className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
+          {/* Cover Image */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Cover Image
+            </label>
+            <ImageUpload
+              entityType="cover"
+              entityId={workId}
+              currentImage={formData.coverImage}
+              onUploadComplete={(image) => {
+                setFormData({ ...formData, coverImage: image.urls.optimized })
+              }}
+              onUploadError={(error) => {
+                console.error('Cover upload error:', error)
+                alert(`Failed to upload cover: ${error}`)
+              }}
+              label="Book Cover"
+              hint="Recommended: 640×1024px (portrait) or similar book cover ratio"
             />
           </div>
 

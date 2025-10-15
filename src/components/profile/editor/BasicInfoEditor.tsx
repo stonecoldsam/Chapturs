@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { PhotoIcon, PencilIcon } from '@heroicons/react/24/outline'
 import ReactMarkdown from 'react-markdown'
+import ImageUpload from '@/components/upload/ImageUpload'
 
 interface BasicInfoEditorProps {
   displayName: string
@@ -19,7 +20,7 @@ interface BasicInfoEditorProps {
 }
 
 /**
- * BasicInfoEditor - v0.2
+ * BasicInfoEditor - v0.3 with ImageUpload integration
  * Edit basic profile information: name, bio, images, and featured content
  */
 export default function BasicInfoEditor({
@@ -50,45 +51,19 @@ export default function BasicInfoEditor({
         <label className="block text-sm font-medium text-gray-300 mb-2">
           Cover Image
         </label>
-        <div className="relative w-full h-32 bg-gray-900 rounded-lg overflow-hidden group">
-          {coverImage ? (
-            <>
-              <img
-                src={coverImage}
-                alt="Cover"
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <label className="cursor-pointer px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-sm font-medium transition-colors">
-                  Change Cover
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) onImageUpload('cover', file)
-                    }}
-                  />
-                </label>
-              </div>
-            </>
-          ) : (
-            <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-gray-800 transition-colors">
-              <PhotoIcon className="w-8 h-8 text-gray-500 mb-2" />
-              <span className="text-sm text-gray-400">Upload Cover Image</span>
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (file) onImageUpload('cover', file)
-                }}
-              />
-            </label>
-          )}
-        </div>
+        <ImageUpload
+          entityType="cover"
+          currentImage={coverImage}
+          onUploadComplete={(image) => {
+            onUpdate('coverImage', image.urls.optimized)
+          }}
+          onUploadError={(error) => {
+            console.error('Cover upload error:', error)
+            alert(`Failed to upload cover image: ${error}`)
+          }}
+          label="Profile Cover"
+          hint="Recommended: 1200×300px or wider"
+        />
       </div>
 
       {/* Profile Image */}
@@ -96,51 +71,19 @@ export default function BasicInfoEditor({
         <label className="block text-sm font-medium text-gray-300 mb-2">
           Profile Image
         </label>
-        <div className="flex items-center gap-4">
-          <div className="relative w-20 h-20 bg-gray-900 rounded-full overflow-hidden group">
-            {profileImage ? (
-              <>
-                <img
-                  src={profileImage}
-                  alt="Profile"
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <label className="cursor-pointer">
-                    <PencilIcon className="w-5 h-5 text-white" />
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0]
-                        if (file) onImageUpload('profile', file)
-                      }}
-                    />
-                  </label>
-                </div>
-              </>
-            ) : (
-              <label className="w-full h-full flex items-center justify-center cursor-pointer hover:bg-gray-800 transition-colors">
-                <PhotoIcon className="w-8 h-8 text-gray-500" />
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0]
-                    if (file) onImageUpload('profile', file)
-                  }}
-                />
-              </label>
-            )}
-          </div>
-          <div className="flex-1">
-            <p className="text-sm text-gray-400">
-              Recommended: Square image, at least 200×200px
-            </p>
-          </div>
-        </div>
+        <ImageUpload
+          entityType="profile"
+          currentImage={profileImage}
+          onUploadComplete={(image) => {
+            onUpdate('profileImage', image.urls.optimized)
+          }}
+          onUploadError={(error) => {
+            console.error('Profile upload error:', error)
+            alert(`Failed to upload profile image: ${error}`)
+          }}
+          label="Profile Picture"
+          hint="Recommended: Square image, at least 200×200px"
+        />
       </div>
 
       {/* Display Name */}
