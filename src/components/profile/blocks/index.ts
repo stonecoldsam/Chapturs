@@ -13,6 +13,7 @@ import DiscordInviteBlock from './DiscordInviteBlock'
 import TwitchChannelBlock from './TwitchChannelBlock'
 import YouTubeChannelBlock from './YouTubeChannelBlock'
 import TwitterFeedBlock from './TwitterFeedBlock'
+import SupportBlock from './SupportBlock'
 
 export const BLOCK_TYPES = {
   'work-card': {
@@ -85,6 +86,15 @@ export const BLOCK_TYPES = {
     description: 'Display your Twitter profile and recent posts',
     defaultSize: { width: 1, height: 2 },
     icon: '🐦',
+    category: 'social'
+  }
+  ,
+  'support': {
+    component: SupportBlock,
+    name: 'Support (Chapturs First)',
+    description: 'Prominent support CTA with optional secondary links',
+    defaultSize: { width: 2, height: 1 },
+    icon: '❤️',
     category: 'social'
   }
 } as const

@@ -8,6 +8,7 @@ import ProfileLayout from '@/components/profile/ProfileLayout'
 import ProfileSidebar from '@/components/profile/ProfileSidebar'
 import FeaturedSpace from '@/components/profile/FeaturedSpace'
 import BlockGrid from '@/components/profile/BlockGrid'
+import { getBlockInfo } from '@/components/profile/blocks'
 import { 
   WorkCardConfig,
   TextBoxConfig,
@@ -17,7 +18,8 @@ import {
   TwitchChannelConfig,
   YouTubeChannelConfig,
   TwitterFeedConfig,
-  FavoriteAuthorConfig
+  FavoriteAuthorConfig,
+  SupportBlockConfig
 } from '@/components/profile/config'
 import { 
   EyeIcon, 
@@ -165,14 +167,23 @@ export default function ProfileEditor() {
         ? Math.max(...profileData.blocks.map((b: any) => b.gridY + b.height))
         : 0
 
+      // Use default size from registry when available
+      let defaultWidth = 1
+      let defaultHeight = 1
+      const info: any = getBlockInfo(blockType as any)
+      if (info?.defaultSize) {
+        defaultWidth = info.defaultSize.width ?? 1
+        defaultHeight = info.defaultSize.height ?? 1
+      }
+
       const newBlock = {
         id: `temp-${Date.now()}`,
         type: blockType,
         data: JSON.stringify(data),
         gridX: 0,
         gridY: nextY,
-        width: 1,
-        height: 1,
+        width: defaultWidth,
+        height: defaultHeight,
         isVisible: true,
         order: profileData.blocks.length
       }
@@ -593,6 +604,15 @@ export default function ProfileEditor() {
 
       {configModal.blockType === 'favorite-author' && (
         <FavoriteAuthorConfig
+          isOpen={configModal.isOpen}
+          onClose={() => setConfigModal({ isOpen: false, blockType: null })}
+          onSave={handleConfigSave}
+          initialData={configModal.initialData}
+        />
+      )}
+
+      {configModal.blockType === 'support' && (
+        <SupportBlockConfig
           isOpen={configModal.isOpen}
           onClose={() => setConfigModal({ isOpen: false, blockType: null })}
           onSave={handleConfigSave}

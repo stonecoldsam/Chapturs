@@ -12,6 +12,7 @@ export { default as TwitchChannelConfig } from './TwitchChannelConfig'
 export { default as YouTubeChannelConfig } from './YouTubeChannelConfig'
 export { default as TwitterFeedConfig } from './TwitterFeedConfig'
 export { default as FavoriteAuthorConfig } from './FavoriteAuthorConfig'
+export { default as SupportBlockConfig } from './SupportBlockConfig'
 
 // TODO: Add more config modals:
 // - DiscordInviteConfig
