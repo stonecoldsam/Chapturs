@@ -181,7 +181,7 @@ export default function CreatorDashboardNew() {
           icon={<Edit className="text-blue-500" />}
           title="Manage Stories"
           description="Edit chapters, glossary, characters"
-          href="/creator/dashboard?tab=stories"
+          href="/creator/works"
           badge={stats?.overview.totalWorks}
         />
         <QuickActionCard
@@ -203,7 +203,7 @@ export default function CreatorDashboardNew() {
           icon={<BarChart3 className="text-green-500" />}
           title="Analytics"
           description="Reader insights, drop-off rates"
-          href="/creator/dashboard?tab=analytics"
+          href="/creator/analytics"
         />
         <QuickActionCard
           icon={<Globe className="text-indigo-500" />}

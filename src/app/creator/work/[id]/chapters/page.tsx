@@ -94,7 +94,7 @@ export default function ManageChaptersPage() {
         <div className="max-w-6xl mx-auto p-6 text-center">
           <h1 className="text-2xl font-bold mb-4">Work Not Found</h1>
           <button
-            onClick={() => router.push('/creator/dashboard?tab=stories')}
+            onClick={() => router.push('/creator/works')}
             className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             Back to Manage Stories
@@ -133,7 +133,7 @@ export default function ManageChaptersPage() {
             Edit Work Details
           </button>
           <button
-            onClick={() => router.push('/creator/dashboard?tab=stories')}
+            onClick={() => router.push('/creator/works')}
             className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
           >
             Back to Stories

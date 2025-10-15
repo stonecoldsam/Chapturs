@@ -51,10 +51,10 @@ export default function Sidebar({ currentHub, onHubChange }: SidebarProps) {
   const creatorItems = [
     { icon: ChartBarIcon, label: 'Dashboard', href: '/creator/dashboard' },
     { icon: PencilIcon, label: 'Upload', href: '/creator/upload' },
-    { icon: DocumentTextIcon, label: 'Manage Stories', href: '/creator/dashboard?tab=stories' },
+    { icon: DocumentTextIcon, label: 'Manage Stories', href: '/creator/works' },
     { icon: PhotoIcon, label: 'Fanart', href: '/creator/fanart' },
     { icon: StarIcon, label: 'Quality', href: '/creator/quality' },
-    { icon: ChartBarIcon, label: 'Analytics', href: '/creator/dashboard?tab=analytics' },
+    { icon: ChartBarIcon, label: 'Analytics', href: '/creator/analytics' },
     { icon: DocumentDuplicateIcon, label: 'Glossary', href: '/creator/glossary' },
     { icon: UsersIcon, label: 'Characters', href: '/creator/characters' },
     { icon: LanguageIcon, label: 'Translations', href: '/creator/translations' },

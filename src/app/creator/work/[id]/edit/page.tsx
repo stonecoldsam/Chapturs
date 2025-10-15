@@ -65,7 +65,7 @@ export default function EditWorkPage() {
 
       if (response.ok) {
         alert('Work updated successfully!')
-        router.push('/creator/dashboard?tab=stories')
+        router.push('/creator/works')
       } else {
         const error = await response.json()
         alert(`Failed to update work: ${error.error}`)
@@ -100,7 +100,7 @@ export default function EditWorkPage() {
             The work you're looking for doesn't exist or has been removed.
           </p>
           <button
-            onClick={() => router.push('/creator/dashboard?tab=stories')}
+            onClick={() => router.push('/creator/works')}
             className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             Back to Manage Stories
@@ -245,7 +245,7 @@ export default function EditWorkPage() {
               Manage Chapters
             </button>
             <button
-              onClick={() => router.push('/creator/dashboard?tab=stories')}
+              onClick={() => router.push('/creator/works')}
               className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
             >
               Cancel
