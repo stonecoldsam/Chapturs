@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { UserGroupIcon } from '@heroicons/react/24/outline'
 import BaseBlock from './BaseBlock'
 
@@ -37,6 +38,41 @@ export default function DiscordInviteBlock({
   onExpand
 }: DiscordInviteBlockProps) {
   const inviteUrl = `https://discord.gg/${data.inviteCode}`
+  const [live, setLive] = useState<{ memberCount: number; presenceCount: number; name?: string; iconUrl?: string } | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let mounted = true
+    async function fetchStats() {
+      try {
+        const res = await fetch(`/api/social/discord/server/${data.serverId}`)
+        if (!res.ok) {
+          throw new Error(`Failed to load Discord stats (${res.status})`)
+        }
+        const json = await res.json()
+        if (mounted) {
+          setLive({
+            memberCount: json.memberCount ?? 0,
+            presenceCount: json.presenceCount ?? 0,
+            name: json.name,
+            iconUrl: json.iconUrl,
+          })
+          setError(null)
+        }
+      } catch (e) {
+        console.error('Discord widget fetch error', e)
+        if (mounted) setError('Unable to load server stats')
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    }
+
+    fetchStats()
+
+    const interval = setInterval(fetchStats, 5 * 60 * 1000) // refresh every 5 min
+    return () => { mounted = false; clearInterval(interval) }
+  }, [data.serverId])
 
   return (
     <BaseBlock
@@ -56,10 +92,10 @@ export default function DiscordInviteBlock({
         <div className="relative z-10 flex-1 p-4 flex flex-col">
           {/* Server Icon + Name */}
           <div className="flex items-center gap-3 mb-3">
-            {data.serverIcon ? (
+            {(live?.iconUrl || data.serverIcon) ? (
               <img
-                src={data.serverIcon}
-                alt={data.serverName}
+                src={(live?.iconUrl || data.serverIcon) as string}
+                alt={live?.name || data.serverName}
                 className="w-12 h-12 rounded-full bg-white/10"
               />
             ) : (
@@ -68,22 +104,28 @@ export default function DiscordInviteBlock({
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <h3 className="font-bold text-sm truncate">{data.serverName}</h3>
-              {(data.memberCount || data.onlineCount) && (
+              <h3 className="font-bold text-sm truncate">{live?.name || data.serverName}</h3>
+              {(live || data.memberCount || data.onlineCount) && (
                 <div className="flex items-center gap-2 text-xs text-white/70">
-                  {data.onlineCount && (
+                  {(live?.presenceCount ?? data.onlineCount) !== undefined && (
                     <span className="flex items-center gap-1">
                       <span className="w-2 h-2 rounded-full bg-green-400" />
-                      {data.onlineCount.toLocaleString()} online
+                      {(live?.presenceCount ?? data.onlineCount ?? 0).toLocaleString()} online
                     </span>
                   )}
-                  {data.memberCount && (
+                  {(live?.memberCount ?? data.memberCount) !== undefined && (
                     <span className="flex items-center gap-1">
                       <span className="w-2 h-2 rounded-full bg-gray-400" />
-                      {data.memberCount.toLocaleString()} members
+                      {(live?.memberCount ?? data.memberCount ?? 0).toLocaleString()} members
                     </span>
                   )}
                 </div>
+              )}
+              {loading && (
+                <div className="text-[10px] text-white/60 mt-1">Loading server stats…</div>
+              )}
+              {error && (
+                <div className="text-[10px] text-yellow-200/80 mt-1">{error}</div>
               )}
             </div>
           </div>
