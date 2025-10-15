@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Modal from '@/components/ui/Modal'
 
 interface SupportBlockConfigProps {
@@ -27,6 +27,16 @@ export default function SupportBlockConfig({
   initialData
 }: SupportBlockConfigProps) {
   const [chaptursUrl, setChaptursUrl] = useState<string>(initialData?.chaptursUrl || '')
+  // Autofill Chapturs support URL if user is the author
+  useEffect(() => {
+    if (!chaptursUrl && typeof window !== 'undefined') {
+      // Try to get username from global context or API
+  const username = (window as any).__chaptursUsername || null
+      if (username) {
+        setChaptursUrl(`https://chapturs.com/support/${username}`)
+      }
+    }
+  }, [chaptursUrl])
   const [title, setTitle] = useState<string>(initialData?.title || 'Support My Work')
   const [subtitle, setSubtitle] = useState<string>(initialData?.subtitle || 'Your support helps me create more chapters, faster.')
   const [buttonLabel, setButtonLabel] = useState<string>(initialData?.buttonLabel || 'Support on Chapturs')
@@ -81,7 +91,7 @@ export default function SupportBlockConfig({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Configure Support Block" size="md">
       <div className="space-y-4">
-        {/* Primary Chapturs URL */}
+        {/* Primary Chapturs URL (autofilled if possible) */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-2">
             Chapturs Support URL *
@@ -92,9 +102,10 @@ export default function SupportBlockConfig({
             onChange={(e) => setChaptursUrl(e.target.value)}
             className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 focus:border-blue-500 focus:outline-none"
             placeholder="https://chapturs.com/support/yourname"
+            disabled={!!chaptursUrl}
           />
           <p className="text-xs text-gray-500 mt-1">
-            This is the primary CTA. External links are optional and de-emphasized.
+            This is your Chapturs support link. External links (Patreon, Ko-fi, etc.) are optional and de-emphasized.
           </p>
         </div>
 
