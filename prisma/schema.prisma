@@ -6,8 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
@@ -24,12 +24,12 @@ model User {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  authorProfile Author?
-  subscriptions Subscription[]
-  bookmarks     Bookmark[]
-  likes         Like[]
+  authorProfile  Author?
+  subscriptions  Subscription[]
+  bookmarks      Bookmark[]
+  likes          Like[]
   readingHistory ReadingHistory[]
-  
+
   // Recommendation system relations
   userSignals            UserSignal[]
   userProfile            UserProfile?
@@ -38,7 +38,7 @@ model User {
   abTestGroup            ABTestGroup?
   searchAnalytics        SearchAnalytic[]
   recommendationFeedback RecommendationFeedback[]
-  
+
   // Monetization relations
   adPlacements           AdPlacement[]
   creatorRecommendations CreatorRecommendation[]
@@ -49,37 +49,114 @@ model User {
   isPremium      Boolean @default(false)
 
   // Moderation permissions
-  role           String  @default("user") // 'user', 'moderator', 'admin'
+  role String @default("user") // 'user', 'moderator', 'admin'
 
   // Image submissions
-  imageSubmissions       ImageSubmission[]
+  imageSubmissions ImageSubmission[]
 
   // Comment system relations
-  comments               Comment[]
-  commentLikes           CommentLike[]
-  commentReports         CommentReport[]
+  comments       Comment[]
+  commentLikes   CommentLike[]
+  commentReports CommentReport[]
 
   @@map("users")
 }
 
 // Author model (extends User for content creators)
 model Author {
-  id           String   @id @default(cuid())
-  userId       String   @unique
-  socialLinks  String?  // JSON string
-  verified     Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  socialLinks String? // JSON string
+  verified    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   works         Work[]
   subscriptions Subscription[]
-  
+
   // Recommendation system relations
-  userSignals   UserSignal[]
+  userSignals UserSignal[]
+
+  // Creator Profile (v0.1)
+  creatorProfile CreatorProfile?
 
   @@map("authors")
+}
+
+// Creator Profile model (v0.1) - Customizable public profile for creators
+model CreatorProfile {
+  id       String @id @default(cuid())
+  authorId String @unique
+
+  // Display Info
+  displayName  String?
+  bio          String? // Markdown-enabled bio text
+  profileImage String? // Custom profile image (overrides user avatar)
+  coverImage   String? // Optional banner/header image
+
+  // Featured Content
+  featuredType    String  @default("work") // "work" | "block" | "none"
+  featuredWorkId  String? // If using a work as featured content
+  featuredBlockId String? // If using a block as featured content (e.g., video)
+
+  // Customization (constrained to maintain platform elegance)
+  accentColor     String  @default("#3B82F6") // Blue - from curated palette
+  fontStyle       String  @default("default") // "default" | "serif" | "modern"
+  backgroundStyle String  @default("solid") // "solid" | "gradient" | "pattern"
+  customCSS       String? // Advanced: minimal custom styling (future v0.6+)
+
+  // Analytics
+  profileViews Int       @default(0)
+  lastViewedAt DateTime?
+
+  // Metadata
+  isPublished Boolean   @default(false) // Draft vs published state
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  publishedAt DateTime?
+
+  // Relations
+  author Author         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  blocks ProfileBlock[]
+
+  @@map("creator_profiles")
+}
+
+// Profile Block model (v0.1) - Individual content blocks on creator profiles
+model ProfileBlock {
+  id        String @id @default(cuid())
+  profileId String
+
+  // Block Type & Content
+  type String // "work-card" | "text-box" | "youtube-video" | "twitter-feed" | etc.
+  data String // JSON data specific to block type
+
+  // Grid Layout Position
+  gridX  Int // X position in grid (0-indexed)
+  gridY  Int // Y position in grid (0-indexed)
+  width  Int @default(1) // Grid units wide (book-sized units)
+  height Int @default(1) // Grid units tall
+
+  // Block Settings
+  title     String? // Optional block title
+  isVisible Boolean @default(true)
+  order     Int     @default(0) // For manual ordering
+
+  // Analytics
+  clickCount Int @default(0)
+  viewCount  Int @default(0)
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  profile CreatorProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId, order])
+  @@map("profile_blocks")
 }
 
 // Work model (main content - novels, articles, comics, etc.)
@@ -88,46 +165,46 @@ model Work {
   title          String
   description    String
   authorId       String
-  formatType     String   // 'novel', 'article', 'comic', 'hybrid'
+  formatType     String // 'novel', 'article', 'comic', 'hybrid'
   coverImage     String?
   status         String   @default("draft") // 'draft', 'ongoing', 'completed', 'hiatus'
-  maturityRating String   @default("PG")    // 'G', 'PG', 'PG-13', 'R', 'NC-17'
-  genres         String   // JSON array
-  tags           String   // JSON array
-  statistics     String   // JSON object
-  glossary       String?  // JSON array
+  maturityRating String   @default("PG") // 'G', 'PG', 'PG-13', 'R', 'NC-17'
+  genres         String // JSON array
+  tags           String // JSON array
+  statistics     String // JSON object
+  glossary       String? // JSON array
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   // Relations
-  author          Author           @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  sections        Section[]
-  bookmarks       Bookmark[]
-  likes           Like[]
-  readingHistory  ReadingHistory[]
-  glossaryEntries GlossaryEntry[]
+  author            Author             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  sections          Section[]
+  bookmarks         Bookmark[]
+  likes             Like[]
+  readingHistory    ReadingHistory[]
+  glossaryEntries   GlossaryEntry[]
   characterProfiles CharacterProfile[]
-  
+
   // Recommendation system relations
   userSignals            UserSignal[]
   readingSessions        ReadingSession[]
   recommendationCache    RecommendationCache[]
   trendingMetric         TrendingMetric?
   recommendationFeedback RecommendationFeedback[]
-  similarityWork1        ContentSimilarity[] @relation("SimilarityWork1")
-  similarityWork2        ContentSimilarity[] @relation("SimilarityWork2")
-  
+  similarityWork1        ContentSimilarity[]      @relation("SimilarityWork1")
+  similarityWork2        ContentSimilarity[]      @relation("SimilarityWork2")
+
   // Monetization relations
-  adPlacements           AdPlacement[]
-  recommendedByCreators  CreatorRecommendation[] @relation("RecommendedWork")
-  defaultAdConfig        DefaultAdConfig?
+  adPlacements          AdPlacement[]
+  recommendedByCreators CreatorRecommendation[] @relation("RecommendedWork")
+  defaultAdConfig       DefaultAdConfig?
 
   // Content moderation relations
-  contentValidations     ContentValidation[]
-  moderationQueue        ContentModerationQueue[]
+  contentValidations ContentValidation[]
+  moderationQueue    ContentModerationQueue[]
 
   // Comment system relations
-  comments               Comment[]
+  comments Comment[]
 
   @@map("works")
 }
@@ -137,7 +214,7 @@ model Section {
   id          String    @id @default(cuid())
   workId      String
   title       String
-  content     String    // JSON object for different content types
+  content     String // JSON object for different content types
   wordCount   Int?
   status      String    @default("draft") // 'draft', 'published', 'archived'
   publishedAt DateTime?
@@ -154,7 +231,7 @@ model Section {
   moderationQueue    ContentModerationQueue[]
 
   // Comment system relations
-  comments           Comment[]
+  comments Comment[]
 
   @@map("sections")
 }
@@ -230,15 +307,15 @@ model GlossaryEntry {
   term              String
   definition        String
   type              String   @default("term") // term, character, place, item, concept
-  category          String?  // Optional categorization
-  chapterIntroduced Int?     // Chapter where term first appears
-  aliases           String?  // JSON array of alternative names
-  metadata          String?  // JSON for additional data (appearance, role, etc.)
+  category          String? // Optional categorization
+  chapterIntroduced Int? // Chapter where term first appears
+  aliases           String? // JSON array of alternative names
+  metadata          String? // JSON for additional data (appearance, role, etc.)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
   // Relations
-  work        Work                     @relation(fields: [workId], references: [id], onDelete: Cascade)
+  work        Work                        @relation(fields: [workId], references: [id], onDelete: Cascade)
   definitions GlossaryDefinitionVersion[]
 
   @@index([workId])
@@ -252,9 +329,9 @@ model GlossaryDefinitionVersion {
   id              String   @id @default(cuid())
   glossaryEntryId String
   definition      String
-  fromChapter     Int      // Definition applies from this chapter onwards
-  toChapter       Int?     // Until this chapter (null = ongoing)
-  notes           String?  // Author notes about the change
+  fromChapter     Int // Definition applies from this chapter onwards
+  toChapter       Int? // Until this chapter (null = ongoing)
+  notes           String? // Author notes about the change
   createdAt       DateTime @default(now())
 
   // Relations
@@ -267,44 +344,44 @@ model GlossaryDefinitionVersion {
 
 // Character Profile System - Enhanced character tracking with metadata
 model CharacterProfile {
-  id                String   @id @default(cuid())
-  workId            String
-  name              String
-  aliases           String?  // JSON array of alternative names
-  role              String?  // protagonist, antagonist, supporting, etc.
-  firstAppearance   Int?     // Chapter number where character first appears
-  
+  id              String  @id @default(cuid())
+  workId          String
+  name            String
+  aliases         String? // JSON array of alternative names
+  role            String? // protagonist, antagonist, supporting, etc.
+  firstAppearance Int? // Chapter number where character first appears
+
   // Visual information
-  imageUrl          String?
-  quickGlance       String?  // Short description shown in tooltip on hover
+  imageUrl            String?
+  quickGlance         String? // Short description shown in tooltip on hover
   physicalDescription String?
-  age               String?
-  height            String?
-  appearanceNotes   String?
-  
+  age                 String?
+  height              String?
+  appearanceNotes     String?
+
   // Background
-  backstory         String?  // Rich text/markdown
-  personalityTraits String?  // JSON array
-  motivations       String?  // Character goals and motivations
-  
+  backstory         String? // Rich text/markdown
+  personalityTraits String? // JSON array
+  motivations       String? // Character goals and motivations
+
   // Metadata
-  characterArc      String?  // Notes about character development
+  characterArc        String? // Notes about character development
   developmentTimeline String? // JSON object tracking changes
-  authorNotes       String?  // Private notes for author only
-  metadata          String?  // Additional JSON metadata
-  
+  authorNotes         String? // Private notes for author only
+  metadata            String? // Additional JSON metadata
+
   // Customization features
-  categoryLabels    String?  // JSON object mapping default labels to custom labels
+  categoryLabels       String? // JSON object mapping default labels to custom labels
   allowUserSubmissions Boolean @default(false) // Allow readers to submit fanart
-  
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  work              Work                     @relation(fields: [workId], references: [id], onDelete: Cascade)
+  work              Work                    @relation(fields: [workId], references: [id], onDelete: Cascade)
   versions          CharacterVersion[]
-  relationshipsFrom CharacterRelationship[]  @relation("CharacterFrom")
-  relationshipsTo   CharacterRelationship[]  @relation("CharacterTo")
+  relationshipsFrom CharacterRelationship[] @relation("CharacterFrom")
+  relationshipsTo   CharacterRelationship[] @relation("CharacterTo")
   imageSubmissions  ImageSubmission[]
 
   @@index([workId])
@@ -314,18 +391,18 @@ model CharacterProfile {
 
 // Character Relationships - Track connections between characters
 model CharacterRelationship {
-  id                  String   @id @default(cuid())
-  characterId         String
-  relatedCharacterId  String
-  relationshipType    String   // family, friend, enemy, ally, mentor, rival, etc.
-  notes               String?  // Details about the relationship
-  fromChapter         Int?     // When this relationship started/was revealed
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  characterId        String
+  relatedCharacterId String
+  relationshipType   String // family, friend, enemy, ally, mentor, rival, etc.
+  notes              String? // Details about the relationship
+  fromChapter        Int? // When this relationship started/was revealed
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   // Relations
-  character         CharacterProfile @relation("CharacterFrom", fields: [characterId], references: [id], onDelete: Cascade)
-  relatedCharacter  CharacterProfile @relation("CharacterTo", fields: [relatedCharacterId], references: [id], onDelete: Cascade)
+  character        CharacterProfile @relation("CharacterFrom", fields: [characterId], references: [id], onDelete: Cascade)
+  relatedCharacter CharacterProfile @relation("CharacterTo", fields: [relatedCharacterId], references: [id], onDelete: Cascade)
 
   @@index([characterId])
   @@index([relatedCharacterId])
@@ -334,17 +411,17 @@ model CharacterRelationship {
 
 // Chapter-specific character development versions
 model CharacterVersion {
-  id              String   @id @default(cuid())
-  characterId     String
-  description     String?  // Updated description for this chapter range
+  id                  String   @id @default(cuid())
+  characterId         String
+  description         String? // Updated description for this chapter range
   physicalDescription String?
-  backstory       String?
-  personalityTraits String?
-  motivations     String?
-  developmentNotes String? // What changed about the character
-  fromChapter     Int      // Applies from this chapter onwards
-  toChapter       Int?     // Until this chapter (null = ongoing)
-  createdAt       DateTime @default(now())
+  backstory           String?
+  personalityTraits   String?
+  motivations         String?
+  developmentNotes    String? // What changed about the character
+  fromChapter         Int // Applies from this chapter onwards
+  toChapter           Int? // Until this chapter (null = ongoing)
+  createdAt           DateTime @default(now())
 
   // Relations
   character CharacterProfile @relation(fields: [characterId], references: [id], onDelete: Cascade)
@@ -356,19 +433,19 @@ model CharacterVersion {
 
 // User-submitted images (fanart) for character profiles
 model ImageSubmission {
-  id              String   @id @default(cuid())
-  characterId     String
-  userId          String
-  imageUrl        String
-  artistName      String   // Name to credit the artist with
-  artistLink      String?  // Optional social/website link
-  artistHandle    String?  // Optional @handle
-  notes           String?  // Optional note from submitter
-  status          String   @default("pending") // pending, approved, rejected
-  reviewedAt      DateTime?
-  reviewedBy      String?  // User ID of reviewer
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id           String    @id @default(cuid())
+  characterId  String
+  userId       String
+  imageUrl     String
+  artistName   String // Name to credit the artist with
+  artistLink   String? // Optional social/website link
+  artistHandle String? // Optional @handle
+  notes        String? // Optional note from submitter
+  status       String    @default("pending") // pending, approved, rejected
+  reviewedAt   DateTime?
+  reviewedBy   String? // User ID of reviewer
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   // Relations
   character CharacterProfile @relation(fields: [characterId], references: [id], onDelete: Cascade)
@@ -384,16 +461,16 @@ model ImageSubmission {
 
 // User Signals - Core tracking table for all user interactions
 model UserSignal {
-  id          String   @id @default(cuid())
-  userId      String
-  workId      String?
-  authorId    String?
-  signalType  String   // SignalType enum as string
-  value       Float    // Normalized value -1 to 1
-  metadata    String?  // JSON metadata
-  sessionId   String?
-  deviceType  String?
-  timestamp   DateTime @default(now())
+  id         String   @id @default(cuid())
+  userId     String
+  workId     String?
+  authorId   String?
+  signalType String // SignalType enum as string
+  value      Float // Normalized value -1 to 1
+  metadata   String? // JSON metadata
+  sessionId  String?
+  deviceType String?
+  timestamp  DateTime @default(now())
 
   // Relations
   user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -410,15 +487,15 @@ model UserSignal {
 
 // User Profiles - Aggregated user preferences and behavior patterns
 model UserProfile {
-  userId               String   @id
-  genreAffinities      String?  // JSON: Genre preferences with scores
-  formatPreferences    String?  // JSON: Format preferences (novel, comic, etc.)
-  readingPatterns      String?  // JSON: Session length, peak hours, completion rates
-  socialEngagement     String?  // JSON: Like/share/subscription patterns
-  qualityPreference    Float    @default(0.5) // 0-1 preference for high-quality content
-  freshnessPreference  Float    @default(0.5) // 0-1 preference for new content
-  diversityPreference  Float    @default(0.3) // 0-1 openness to diverse content
-  lastUpdated          DateTime @default(now())
+  userId              String   @id
+  genreAffinities     String? // JSON: Genre preferences with scores
+  formatPreferences   String? // JSON: Format preferences (novel, comic, etc.)
+  readingPatterns     String? // JSON: Session length, peak hours, completion rates
+  socialEngagement    String? // JSON: Like/share/subscription patterns
+  qualityPreference   Float    @default(0.5) // 0-1 preference for high-quality content
+  freshnessPreference Float    @default(0.5) // 0-1 preference for new content
+  diversityPreference Float    @default(0.3) // 0-1 openness to diverse content
+  lastUpdated         DateTime @default(now())
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -428,19 +505,19 @@ model UserProfile {
 
 // Reading Sessions - Comprehensive reading behavior tracking
 model ReadingSession {
-  id               String    @id @default(cuid())
-  userId           String
-  workId           String
-  sectionId        String?
-  sessionStart     DateTime
-  sessionEnd       DateTime?
-  durationSeconds  Int?
-  wordsRead        Int       @default(0)
-  scrollDepth      Float     @default(0) // 0.0 to 1.0
-  readingSpeed     Int?      // Words per minute
-  interactions     String?   // JSON: Array of interactions during session
-  deviceType       String?
-  referrer         String?   // How user arrived at content
+  id              String    @id @default(cuid())
+  userId          String
+  workId          String
+  sectionId       String?
+  sessionStart    DateTime
+  sessionEnd      DateTime?
+  durationSeconds Int?
+  wordsRead       Int       @default(0)
+  scrollDepth     Float     @default(0) // 0.0 to 1.0
+  readingSpeed    Int? // Words per minute
+  interactions    String? // JSON: Array of interactions during session
+  deviceType      String?
+  referrer        String? // How user arrived at content
 
   // Relations
   user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -455,14 +532,14 @@ model ReadingSession {
 
 // Recommendation Cache - Cache computed recommendations for performance
 model RecommendationCache {
-  id                String   @id @default(cuid())
-  userId            String
-  workId            String
-  score             Float
-  reasons           String?  // JSON: Array of recommendation reasons
-  algorithmVersion  String
-  expiresAt         DateTime
-  createdAt         DateTime @default(now())
+  id               String   @id @default(cuid())
+  userId           String
+  workId           String
+  score            Float
+  reasons          String? // JSON: Array of recommendation reasons
+  algorithmVersion String
+  expiresAt        DateTime
+  createdAt        DateTime @default(now())
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -478,7 +555,7 @@ model RecommendationCache {
 model ABTestGroup {
   userId         String   @id
   experimentName String
-  groupName      String   // 'control', 'treatment_a', etc.
+  groupName      String // 'control', 'treatment_a', etc.
   assignedAt     DateTime @default(now())
 
   // Relations
@@ -493,7 +570,7 @@ model ContentSimilarity {
   workId1         String
   workId2         String
   similarityScore Float
-  similarityType  String   // 'genre', 'content', 'collaborative'
+  similarityType  String // 'genre', 'content', 'collaborative'
   computedAt      DateTime @default(now())
 
   // Relations
@@ -507,13 +584,13 @@ model ContentSimilarity {
 
 // Trending Metrics - Track trending content for recommendations
 model TrendingMetric {
-  workId      String   @id
+  workId        String   @id
   trendingScore Float
-  velocity1h  Float    @default(0) // Engagement in last hour
-  velocity24h Float    @default(0) // Engagement in last 24h
-  velocity7d  Float    @default(0) // Engagement in last 7 days
-  peakTime    Int?     // Hour of day when most active (0-23)
-  lastUpdated DateTime @default(now())
+  velocity1h    Float    @default(0) // Engagement in last hour
+  velocity24h   Float    @default(0) // Engagement in last 24h
+  velocity7d    Float    @default(0) // Engagement in last 7 days
+  peakTime      Int? // Hour of day when most active (0-23)
+  lastUpdated   DateTime @default(now())
 
   // Relations
   work Work @relation(fields: [workId], references: [id], onDelete: Cascade)
@@ -528,9 +605,9 @@ model SearchAnalytic {
   id             String   @id @default(cuid())
   userId         String?
   query          String
-  filters        String?  // JSON
+  filters        String? // JSON
   resultCount    Int      @default(0)
-  clickedResults String?  // JSON: Array of clicked work IDs with positions
+  clickedResults String? // JSON: Array of clicked work IDs with positions
   sessionId      String?
   timestamp      DateTime @default(now())
 
@@ -548,9 +625,9 @@ model RecommendationFeedback {
   id                   String   @id @default(cuid())
   userId               String
   workId               String
-  recommendationSource String   // 'algorithmic', 'trending', etc.
-  action               String   // 'view', 'like', 'skip', 'block'
-  recommendationRank   Int?     // Position in recommendation list
+  recommendationSource String // 'algorithmic', 'trending', etc.
+  action               String // 'view', 'like', 'skip', 'block'
+  recommendationRank   Int? // Position in recommendation list
   sessionId            String?
   timestamp            DateTime @default(now())
 
@@ -567,29 +644,29 @@ model RecommendationFeedback {
 
 // Ad Placement model for creator monetization
 model AdPlacement {
-  id              String   @id @default(cuid())
-  workId          String
-  sectionId       String?  // Optional for section-specific ads
-  placementType   String   // AdPlacementType enum
-  format          String   // AdFormat enum
-  position        String   // JSON: AdPosition
-  revenueShare    Float    @default(0.7) // Creator's revenue share (0.0-1.0)
-  targeting       String   // JSON: AdTargetingConfig
-  displaySettings String   // JSON: AdDisplaySettings
-  creatorNotes    String?
-  isActive        Boolean  @default(true)
-  requiresApproval Boolean @default(false)
-  contentFilters  String   @default("[]") // JSON: AdContentFilter[]
-  approvedAt      DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  createdBy       String
+  id               String    @id @default(cuid())
+  workId           String
+  sectionId        String? // Optional for section-specific ads
+  placementType    String // AdPlacementType enum
+  format           String // AdFormat enum
+  position         String // JSON: AdPosition
+  revenueShare     Float     @default(0.7) // Creator's revenue share (0.0-1.0)
+  targeting        String // JSON: AdTargetingConfig
+  displaySettings  String // JSON: AdDisplaySettings
+  creatorNotes     String?
+  isActive         Boolean   @default(true)
+  requiresApproval Boolean   @default(false)
+  contentFilters   String    @default("[]") // JSON: AdContentFilter[]
+  approvedAt       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  createdBy        String
 
   // Relations
-  work             Work                @relation(fields: [workId], references: [id], onDelete: Cascade)
-  creator          User                @relation(fields: [createdBy], references: [id])
+  work               Work                @relation(fields: [workId], references: [id], onDelete: Cascade)
+  creator            User                @relation(fields: [createdBy], references: [id])
   performanceMetrics AdPlacementMetrics?
-  campaigns        AdCampaign[]
+  campaigns          AdCampaign[]
 
   @@index([workId])
   @@index([createdBy])
@@ -600,23 +677,23 @@ model AdPlacement {
 
 // Ad Performance Metrics
 model AdPlacementMetrics {
-  id               String   @id @default(cuid())
-  placementId      String   @unique
-  impressions      Int      @default(0)
-  clicks           Int      @default(0)
-  conversions      Int      @default(0)
-  revenue          Float    @default(0)
-  ctr              Float    @default(0)      // Click-through rate
-  cpm              Float    @default(0)      // Cost per mille
-  cpc              Float    @default(0)      // Cost per click
-  conversionRate   Float    @default(0)
-  viewabilityRate  Float    @default(0)
-  completionRate   Float    @default(0)
-  engagementTime   Int      @default(0)      // Seconds
-  dailyMetrics     String   @default("{}")   // JSON: daily performance data
-  weeklyMetrics    String   @default("{}")   // JSON: weekly performance data
-  monthlyMetrics   String   @default("{}")   // JSON: monthly performance data
-  lastUpdated      DateTime @default(now())
+  id              String   @id @default(cuid())
+  placementId     String   @unique
+  impressions     Int      @default(0)
+  clicks          Int      @default(0)
+  conversions     Int      @default(0)
+  revenue         Float    @default(0)
+  ctr             Float    @default(0) // Click-through rate
+  cpm             Float    @default(0) // Cost per mille
+  cpc             Float    @default(0) // Cost per click
+  conversionRate  Float    @default(0)
+  viewabilityRate Float    @default(0)
+  completionRate  Float    @default(0)
+  engagementTime  Int      @default(0) // Seconds
+  dailyMetrics    String   @default("{}") // JSON: daily performance data
+  weeklyMetrics   String   @default("{}") // JSON: weekly performance data
+  monthlyMetrics  String   @default("{}") // JSON: monthly performance data
+  lastUpdated     DateTime @default(now())
 
   // Relations
   placement AdPlacement @relation(fields: [placementId], references: [id], onDelete: Cascade)
@@ -628,19 +705,19 @@ model AdPlacementMetrics {
 
 // Ad Campaigns for targeted advertising
 model AdCampaign {
-  id             String   @id @default(cuid())
-  name           String
-  description    String?
-  advertiserId   String   // External advertiser ID
-  budget         Float
-  bidAmount      Float
-  targeting      String   // JSON: targeting criteria
-  creative       String   // JSON: ad creative data
-  startDate      DateTime
-  endDate        DateTime?
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id           String    @id @default(cuid())
+  name         String
+  description  String?
+  advertiserId String // External advertiser ID
+  budget       Float
+  bidAmount    Float
+  targeting    String // JSON: targeting criteria
+  creative     String // JSON: ad creative data
+  startDate    DateTime
+  endDate      DateTime?
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   // Relations
   placements AdPlacement[]
@@ -653,35 +730,35 @@ model AdCampaign {
 
 // Creator Recommendations for cross-promotion
 model CreatorRecommendation {
-  id                    String   @id @default(cuid())
-  creatorId             String
-  recommendedWorkId     String
-  recommendedAuthorId   String
-  template              String   // RecommendationTemplate enum
-  customMessage         String?
-  similarityReason      String?
-  personalRating        Int?     @default(5)
-  
+  id                  String  @id @default(cuid())
+  creatorId           String
+  recommendedWorkId   String
+  recommendedAuthorId String
+  template            String // RecommendationTemplate enum
+  customMessage       String?
+  similarityReason    String?
+  personalRating      Int?    @default(5)
+
   // Targeting & Settings
-  placementTargets      String   // JSON: CreatorAdTarget[]
-  displaySettings       String   // JSON: CreatorRecommendationSettings
-  
+  placementTargets String // JSON: CreatorAdTarget[]
+  displaySettings  String // JSON: CreatorRecommendationSettings
+
   // Performance Metrics
-  impressions           Int      @default(0)
-  clicks               Int      @default(0)
-  conversions          Int      @default(0)
-  revenue              Float    @default(0)
-  
+  impressions Int   @default(0)
+  clicks      Int   @default(0)
+  conversions Int   @default(0)
+  revenue     Float @default(0)
+
   // Status & Approval
-  isActive             Boolean  @default(true)
-  approvedByRecommendee Boolean @default(false)
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  isActive              Boolean  @default(true)
+  approvedByRecommendee Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
   // Relations
-  creator              User     @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  recommendedWork      Work     @relation("RecommendedWork", fields: [recommendedWorkId], references: [id], onDelete: Cascade)
-  recommendedAuthor    User     @relation("RecommendedAuthor", fields: [recommendedAuthorId], references: [id], onDelete: Cascade)
+  creator           User @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  recommendedWork   Work @relation("RecommendedWork", fields: [recommendedWorkId], references: [id], onDelete: Cascade)
+  recommendedAuthor User @relation("RecommendedAuthor", fields: [recommendedAuthorId], references: [id], onDelete: Cascade)
 
   @@index([creatorId])
   @@index([recommendedWorkId])
@@ -692,34 +769,34 @@ model CreatorRecommendation {
 
 // Default Ad Configuration for all works
 model DefaultAdConfig {
-  id                      String   @id @default(cuid())
-  workId                  String   @unique
-  hasCustomPlacements     Boolean  @default(false)
-  
+  id                  String  @id @default(cuid())
+  workId              String  @unique
+  hasCustomPlacements Boolean @default(false)
+
   // Default placement settings
-  defaultSidebarRight    Boolean  @default(true)
-  defaultSidebarLeft     Boolean  @default(false)
-  defaultChapterEnd      Boolean  @default(true)
-  defaultBetweenChapters Boolean  @default(false)
-  
+  defaultSidebarRight    Boolean @default(true)
+  defaultSidebarLeft     Boolean @default(false)
+  defaultChapterEnd      Boolean @default(true)
+  defaultBetweenChapters Boolean @default(false)
+
   // Revenue configuration
-  platformRevenueShare   Float    @default(0.3)  // 30% platform
-  creatorRevenueShare    Float    @default(0.7)  // 70% creator
-  
+  platformRevenueShare Float @default(0.3) // 30% platform
+  creatorRevenueShare  Float @default(0.7) // 70% creator
+
   // Content preferences
-  allowExternalAds       Boolean  @default(true)
-  allowCreatorRecs       Boolean  @default(true)
-  allowPlatformAds       Boolean  @default(true)
-  
+  allowExternalAds Boolean @default(true)
+  allowCreatorRecs Boolean @default(true)
+  allowPlatformAds Boolean @default(true)
+
   // Frequency limits
-  maxAdsPerSession       Int      @default(5)
-  minTimeBetweenAds      Int      @default(30)   // Seconds
-  
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  maxAdsPerSession  Int @default(5)
+  minTimeBetweenAds Int @default(30) // Seconds
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  work                   Work     @relation(fields: [workId], references: [id], onDelete: Cascade)
+  work Work @relation(fields: [workId], references: [id], onDelete: Cascade)
 
   @@index([workId])
   @@index([hasCustomPlacements])
@@ -728,21 +805,21 @@ model DefaultAdConfig {
 
 // Content Moderation Models
 model ContentValidation {
-  id                String   @id @default(cuid())
-  workId            String?
-  sectionId         String?
-  validationType    String   // 'plagiarism', 'duplicate', 'safety', 'content_quality'
-  status            String   @default("pending") // 'pending', 'passed', 'failed', 'flagged'
-  score             Float?   // Confidence score (0-1)
-  details           String?  // JSON string with validation details
-  reviewedBy        String?  // User ID of moderator who reviewed
-  reviewedAt        DateTime?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id             String    @id @default(cuid())
+  workId         String?
+  sectionId      String?
+  validationType String // 'plagiarism', 'duplicate', 'safety', 'content_quality'
+  status         String    @default("pending") // 'pending', 'passed', 'failed', 'flagged'
+  score          Float? // Confidence score (0-1)
+  details        String? // JSON string with validation details
+  reviewedBy     String? // User ID of moderator who reviewed
+  reviewedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   // Relations
-  work              Work?     @relation(fields: [workId], references: [id], onDelete: Cascade)
-  section           Section?  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  work    Work?    @relation(fields: [workId], references: [id], onDelete: Cascade)
+  section Section? @relation(fields: [sectionId], references: [id], onDelete: Cascade)
 
   @@index([workId])
   @@index([sectionId])
@@ -752,22 +829,22 @@ model ContentValidation {
 }
 
 model ContentModerationQueue {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   workId      String?
   sectionId   String?
-  priority    String   @default("normal") // 'low', 'normal', 'high', 'urgent'
-  reason      String   // Why it needs moderation
-  status      String   @default("queued") // 'queued', 'in_review', 'approved', 'rejected'
-  assignedTo  String?  // Moderator user ID
+  priority    String    @default("normal") // 'low', 'normal', 'high', 'urgent'
+  reason      String // Why it needs moderation
+  status      String    @default("queued") // 'queued', 'in_review', 'approved', 'rejected'
+  assignedTo  String? // Moderator user ID
   assignedAt  DateTime?
   completedAt DateTime?
-  notes       String?  // Moderator notes
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  notes       String? // Moderator notes
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   // Relations
-  work        Work?     @relation(fields: [workId], references: [id], onDelete: Cascade)
-  section     Section?  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  work    Work?    @relation(fields: [workId], references: [id], onDelete: Cascade)
+  section Section? @relation(fields: [sectionId], references: [id], onDelete: Cascade)
 
   @@index([workId])
   @@index([sectionId])
@@ -777,14 +854,14 @@ model ContentModerationQueue {
 }
 
 model ValidationRule {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  type        String   // 'plagiarism', 'duplicate', 'safety', 'quality'
-  isActive    Boolean  @default(true)
-  config      String   // JSON configuration for the rule
-  severity    String   @default("medium") // 'low', 'medium', 'high', 'critical'
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  name      String   @unique
+  type      String // 'plagiarism', 'duplicate', 'safety', 'quality'
+  isActive  Boolean  @default(true)
+  config    String // JSON configuration for the rule
+  severity  String   @default("medium") // 'low', 'medium', 'high', 'critical'
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([type])
   @@index([isActive])
@@ -797,17 +874,17 @@ model ValidationRule {
 
 // Quality Assessment Queue - Stories waiting to be graded
 model QualityAssessmentQueue {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   workId      String
-  sectionId   String   // First chapter
-  priority    String   @default("normal") // 'low', 'normal', 'high'
-  status      String   @default("queued") // 'queued', 'processing', 'completed', 'failed'
-  attempts    Int      @default(0)
+  sectionId   String // First chapter
+  priority    String    @default("normal") // 'low', 'normal', 'high'
+  status      String    @default("queued") // 'queued', 'processing', 'completed', 'failed'
+  attempts    Int       @default(0)
   lastAttempt DateTime?
   completedAt DateTime?
-  error       String?  // Error message if failed
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  error       String? // Error message if failed
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([workId])
   @@index([status])
@@ -818,44 +895,44 @@ model QualityAssessmentQueue {
 
 // Quality Assessment Results - LLM evaluation results
 model QualityAssessment {
-  id                String   @id @default(cuid())
-  workId            String
-  sectionId         String
-  
+  id        String @id @default(cuid())
+  workId    String
+  sectionId String
+
   // Overall Quality Scores (0-100)
-  overallScore      Float    // Weighted composite score
-  writingQuality    Float    // Technical writing quality
-  storytelling      Float    // Narrative structure & pacing
-  characterization  Float    // Character development
-  worldBuilding     Float    // Setting & atmosphere
-  engagement        Float    // Reader engagement potential
-  originality       Float    // Uniqueness & creativity
-  
+  overallScore     Float // Weighted composite score
+  writingQuality   Float // Technical writing quality
+  storytelling     Float // Narrative structure & pacing
+  characterization Float // Character development
+  worldBuilding    Float // Setting & atmosphere
+  engagement       Float // Reader engagement potential
+  originality      Float // Uniqueness & creativity
+
   // Classification
-  qualityTier       String   // 'exceptional', 'strong', 'developing', 'needs_work'
-  
+  qualityTier String // 'exceptional', 'strong', 'developing', 'needs_work'
+
   // Discovery & Tagging
-  discoveryTags     String   // JSON array of AI-suggested tags for discoverability
-  feedbackMessage   String   // Brief constructive feedback for author
-  
+  discoveryTags   String // JSON array of AI-suggested tags for discoverability
+  feedbackMessage String // Brief constructive feedback for author
+
   // Algorithm Boost Configuration
-  boostMultiplier   Float    @default(1.0) // 1.0 = no boost, >1.0 = boost, <1.0 = suppress
-  boostExpiry       DateTime? // When the boost expires
-  boostReason       String?  // Why this boost level was assigned
-  
+  boostMultiplier Float     @default(1.0) // 1.0 = no boost, >1.0 = boost, <1.0 = suppress
+  boostExpiry     DateTime? // When the boost expires
+  boostReason     String? // Why this boost level was assigned
+
   // LLM Metadata
-  model             String   // LLM model used (e.g., 'gpt-4', 'claude-3')
-  version           String   // Assessment algorithm version
-  processingTime    Int?     // Milliseconds
-  tokenCount        Int?     // Tokens used
-  
+  model          String // LLM model used (e.g., 'gpt-4', 'claude-3')
+  version        String // Assessment algorithm version
+  processingTime Int? // Milliseconds
+  tokenCount     Int? // Tokens used
+
   // Validation & Review
-  status            String   @default("active") // 'active', 'under_review', 'overridden'
-  reviewedBy        String?  // Admin who reviewed/overrode
-  reviewNotes       String?  // Admin notes
-  
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  status      String  @default("active") // 'active', 'under_review', 'overridden'
+  reviewedBy  String? // Admin who reviewed/overrode
+  reviewNotes String? // Admin notes
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([workId, sectionId])
   @@index([workId])
@@ -868,20 +945,20 @@ model QualityAssessment {
 
 // Assessment History - Track changes over time
 model QualityAssessmentHistory {
-  id              String   @id @default(cuid())
-  workId          String
-  sectionId       String
-  assessmentId    String   // Reference to QualityAssessment
-  
-  previousScore   Float
-  newScore        Float
-  previousTier    String
-  newTier         String
-  
-  changeReason    String   // 'rewrite', 'periodic_review', 'manual_override'
-  changedBy       String?  // User ID if manual
-  
-  createdAt       DateTime @default(now())
+  id           String @id @default(cuid())
+  workId       String
+  sectionId    String
+  assessmentId String // Reference to QualityAssessment
+
+  previousScore Float
+  newScore      Float
+  previousTier  String
+  newTier       String
+
+  changeReason String // 'rewrite', 'periodic_review', 'manual_override'
+  changedBy    String? // User ID if manual
+
+  createdAt DateTime @default(now())
 
   @@index([workId])
   @@index([assessmentId])
@@ -891,24 +968,24 @@ model QualityAssessmentHistory {
 
 // Prompt Templates for different assessment aspects
 model AssessmentPromptTemplate {
-  id              String   @id @default(cuid())
-  name            String   @unique
-  type            String   // 'overall', 'genre_specific', 'aspect_focused'
-  genre           String?  // Specific genre if genre_specific
-  aspect          String?  // Specific aspect if aspect_focused
-  
-  prompt          String   // The actual prompt template
-  systemMessage   String?  // System message for LLM
-  
-  isActive        Boolean  @default(true)
-  version         String   @default("1.0")
-  
+  id     String  @id @default(cuid())
+  name   String  @unique
+  type   String // 'overall', 'genre_specific', 'aspect_focused'
+  genre  String? // Specific genre if genre_specific
+  aspect String? // Specific aspect if aspect_focused
+
+  prompt        String // The actual prompt template
+  systemMessage String? // System message for LLM
+
+  isActive Boolean @default(true)
+  version  String  @default("1.0")
+
   // Performance metrics
-  avgProcessingTime Int?   // Average processing time in ms
-  successRate     Float?   // Success rate (0-1)
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  avgProcessingTime Int? // Average processing time in ms
+  successRate       Float? // Success rate (0-1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([type])
   @@index([isActive])
@@ -917,16 +994,16 @@ model AssessmentPromptTemplate {
 
 // Assessment Feedback - Track human validation of LLM assessments
 model AssessmentFeedback {
-  id              String   @id @default(cuid())
-  assessmentId    String
-  workId          String
-  
-  feedbackType    String   // 'too_harsh', 'too_lenient', 'accurate', 'missed_issues'
-  details         String?  // Specific feedback
-  
-  submittedBy     String   // User ID (admin/moderator)
-  
-  createdAt       DateTime @default(now())
+  id           String @id @default(cuid())
+  assessmentId String
+  workId       String
+
+  feedbackType String // 'too_harsh', 'too_lenient', 'accurate', 'missed_issues'
+  details      String? // Specific feedback
+
+  submittedBy String // User ID (admin/moderator)
+
+  createdAt DateTime @default(now())
 
   @@index([assessmentId])
   @@index([feedbackType])
@@ -936,23 +1013,23 @@ model AssessmentFeedback {
 
 // LLM Usage Tracking - Monitor costs and usage
 model LLMUsageLog {
-  id              String   @id @default(cuid())
-  service         String   // 'quality_assessment', 'content_moderation', etc.
-  model           String   // 'gpt-4', 'claude-3-opus', etc.
-  
-  promptTokens    Int
+  id      String @id @default(cuid())
+  service String // 'quality_assessment', 'content_moderation', etc.
+  model   String // 'gpt-4', 'claude-3-opus', etc.
+
+  promptTokens     Int
   completionTokens Int
-  totalTokens     Int
-  
-  estimatedCost   Float?   // USD
-  
-  duration        Int?     // Milliseconds
-  success         Boolean
-  errorMessage    String?
-  
-  metadata        String?  // JSON with additional context
-  
-  createdAt       DateTime @default(now())
+  totalTokens      Int
+
+  estimatedCost Float? // USD
+
+  duration     Int? // Milliseconds
+  success      Boolean
+  errorMessage String?
+
+  metadata String? // JSON with additional context
+
+  createdAt DateTime @default(now())
 
   @@index([service])
   @@index([model])
@@ -966,26 +1043,26 @@ model LLMUsageLog {
 
 // Stores sentence-level translations for content blocks
 model Translation {
-  id          String   @id @default(cuid())
-  workId      String
-  sectionId   String
-  blockId     String   // Block ID from .chapt document
-  sentenceId  String   // Sentence ID within the block
-  language    String   // ISO 639-1 code (e.g., 'ko', 'ja', 'es')
-  text        String   // Translated text
-  
+  id         String @id @default(cuid())
+  workId     String
+  sectionId  String
+  blockId    String // Block ID from .chapt document
+  sentenceId String // Sentence ID within the block
+  language   String // ISO 639-1 code (e.g., 'ko', 'ja', 'es')
+  text       String // Translated text
+
   // Translation metadata
-  translatorId String?  // User who submitted translation
-  version      Int      @default(1)
-  upvotes      Int      @default(0)
-  downvotes    Int      @default(0)
-  status       String   @default("pending") // 'pending', 'approved', 'rejected', 'canonical'
-  
+  translatorId String? // User who submitted translation
+  version      Int     @default(1)
+  upvotes      Int     @default(0)
+  downvotes    Int     @default(0)
+  status       String  @default("pending") // 'pending', 'approved', 'rejected', 'canonical'
+
   // Trusted translator info
-  rank         Int?     // Translation quality rank (1-5)
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  rank Int? // Translation quality rank (1-5)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([blockId, sentenceId, language, version])
   @@index([workId])
@@ -998,27 +1075,27 @@ model Translation {
 
 // Community suggestions for improving existing translations
 model TranslationSuggestion {
-  id              String   @id @default(cuid())
-  translationId   String?  // If suggesting improvement to existing translation
-  workId          String
-  sectionId       String
-  blockId         String
-  sentenceId      String
-  language        String
-  
-  originalText    String   // Original text being translated
-  suggestedText   String   // Suggested translation
-  reason          String?  // Why this translation is better
-  
-  userId          String
-  votes           Int      @default(0)
-  status          String   @default("pending") // 'pending', 'approved', 'rejected'
-  
-  reviewedBy      String?  // User ID of reviewer
-  reviewedAt      DateTime?
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id            String  @id @default(cuid())
+  translationId String? // If suggesting improvement to existing translation
+  workId        String
+  sectionId     String
+  blockId       String
+  sentenceId    String
+  language      String
+
+  originalText  String // Original text being translated
+  suggestedText String // Suggested translation
+  reason        String? // Why this translation is better
+
+  userId String
+  votes  Int    @default(0)
+  status String @default("pending") // 'pending', 'approved', 'rejected'
+
+  reviewedBy String? // User ID of reviewer
+  reviewedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([workId])
   @@index([sectionId])
@@ -1030,23 +1107,23 @@ model TranslationSuggestion {
 
 // Tracks user permissions and quality for translation system
 model TranslatorProfile {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-  
+  id     String @id @default(cuid())
+  userId String @unique
+
   // Languages the translator is proficient in
-  languages       String   // JSON array of language codes
-  
+  languages String // JSON array of language codes
+
   // Trust level and statistics
-  trustLevel      String   @default("community") // 'community', 'trusted', 'expert', 'official'
-  translationCount Int     @default(0)
-  approvalRate    Float    @default(0.0) // 0.0 to 1.0
-  averageVotes    Float    @default(0.0)
-  
+  trustLevel       String @default("community") // 'community', 'trusted', 'expert', 'official'
+  translationCount Int    @default(0)
+  approvalRate     Float  @default(0.0) // 0.0 to 1.0
+  averageVotes     Float  @default(0.0)
+
   // Badges and achievements
-  badges          String?  // JSON array
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  badges String? // JSON array
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([trustLevel])
@@ -1059,25 +1136,25 @@ model TranslatorProfile {
 
 // Reader-submitted edit suggestions (typos, grammar, style)
 model EditSuggestion {
-  id            String   @id @default(cuid())
-  workId        String
-  sectionId     String
-  blockId       String
-  
-  type          String   // 'typo', 'grammar', 'style', 'factual'
+  id        String @id @default(cuid())
+  workId    String
+  sectionId String
+  blockId   String
+
+  type          String // 'typo', 'grammar', 'style', 'factual'
   originalText  String
   suggestedText String
-  
-  userId        String
-  username      String   // Denormalized for performance
-  reason        String?
-  
-  status        String   @default("pending") // 'pending', 'approved', 'rejected'
-  reviewedBy    String?  // Author or moderator user ID
-  reviewedAt    DateTime?
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+
+  userId   String
+  username String // Denormalized for performance
+  reason   String?
+
+  status     String    @default("pending") // 'pending', 'approved', 'rejected'
+  reviewedBy String? // Author or moderator user ID
+  reviewedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([workId])
   @@index([sectionId])
@@ -1088,23 +1165,23 @@ model EditSuggestion {
 
 // Inline comments on blocks (similar to Google Docs commenting)
 model BlockComment {
-  id         String   @id @default(cuid())
-  workId     String
-  sectionId  String
-  blockId    String
-  
-  userId     String
-  username   String   // Denormalized
-  text       String
-  
+  id        String @id @default(cuid())
+  workId    String
+  sectionId String
+  blockId   String
+
+  userId   String
+  username String // Denormalized
+  text     String
+
   // Threading support
-  parentId   String?  // For replies
-  
-  likes      Int      @default(0)
-  isResolved Boolean  @default(false)
-  
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  parentId String? // For replies
+
+  likes      Int     @default(0)
+  isResolved Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([workId])
   @@index([sectionId])
@@ -1120,36 +1197,36 @@ model BlockComment {
 
 // Work and chapter-level comments with moderation
 model Comment {
-  id            String   @id @default(cuid())
-  workId        String
-  sectionId     String?  // null = work-level comment
-  userId        String
-  content       String   @db.Text
-  parentId      String?  // For reply threads
-  
+  id        String  @id @default(cuid())
+  workId    String
+  sectionId String? // null = work-level comment
+  userId    String
+  content   String  @db.Text
+  parentId  String? // For reply threads
+
   // Inline comment positioning (optional feature)
-  paragraphIndex Int?
-  textStart     Int?
-  textEnd       Int?
+  paragraphIndex  Int?
+  textStart       Int?
+  textEnd         Int?
   highlightedText String? @db.Text
-  
-  isEdited      Boolean  @default(false)
-  isPinned      Boolean  @default(false)
-  isHidden      Boolean  @default(false)
-  editedAt      DateTime?
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
+
+  isEdited Boolean   @default(false)
+  isPinned Boolean   @default(false)
+  isHidden Boolean   @default(false)
+  editedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  work          Work     @relation(fields: [workId], references: [id], onDelete: Cascade)
-  section       Section? @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parent        Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies       Comment[] @relation("CommentReplies")
-  likes         CommentLike[]
-  reports       CommentReport[]
-  
+  work    Work            @relation(fields: [workId], references: [id], onDelete: Cascade)
+  section Section?        @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent  Comment?        @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies Comment[]       @relation("CommentReplies")
+  likes   CommentLike[]
+  reports CommentReport[]
+
   @@index([workId])
   @@index([sectionId])
   @@index([userId])
@@ -1163,10 +1240,10 @@ model CommentLike {
   commentId String
   userId    String
   createdAt DateTime @default(now())
-  
-  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([commentId, userId])
   @@map("comment_likes")
 }
@@ -1175,14 +1252,14 @@ model CommentReport {
   id        String   @id @default(cuid())
   commentId String
   userId    String
-  reason    String   // 'spam', 'harassment', 'spoiler', 'other'
+  reason    String // 'spam', 'harassment', 'spoiler', 'other'
   details   String?  @db.Text
   status    String   @default("pending") // 'pending', 'reviewed', 'actioned'
   createdAt DateTime @default(now())
-  
-  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("comment_reports")
 }
 
@@ -1191,7 +1268,7 @@ model TranslationVote {
   id                      String   @id @default(cuid())
   translationSuggestionId String
   userId                  String
-  vote                    Int      // 1 for upvote, -1 for downvote
+  vote                    Int // 1 for upvote, -1 for downvote
   createdAt               DateTime @default(now())
 
   @@unique([translationSuggestionId, userId])
