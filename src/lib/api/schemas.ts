@@ -17,7 +17,7 @@ export const createWorkSchema = z.object({
   formatType: z.enum(['novel', 'article', 'comic', 'hybrid'], {
     message: 'Format type must be one of: novel, article, comic, hybrid'
   }),
-  coverImage: z.string().url('Invalid cover image URL').optional(),
+  coverImage: z.string().optional(),
   genres: z.array(z.string()).max(10, 'Maximum 10 genres allowed').default([]),
   tags: z.array(z.string()).max(20, 'Maximum 20 tags allowed').default([]),
   maturityRating: z.enum(['G', 'PG', 'PG-13', 'R', 'NC-17']).default('PG'),
