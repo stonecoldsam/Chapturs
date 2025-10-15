@@ -4,6 +4,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AppLayout from '@/components/AppLayout'
+import CoverUploadField from '@/components/CoverUploadField'
 import { ContentFormat } from '@/types'
 import { 
   XMarkIcon,
@@ -181,6 +182,15 @@ export default function UploadPage() {
                 {errors.title && (
                   <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.title}</p>
                 )}
+              </div>
+
+              <div>
+                <CoverUploadField
+                  onUpload={(url) => setNewWork(prev => ({ ...prev, coverImage: url }))}
+                  initialImage={newWork.coverImage}
+                  aspectRatio="2:3"
+                  maxSizeMB={5}
+                />
               </div>
 
               <div>
