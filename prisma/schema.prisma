@@ -457,6 +457,45 @@ model ImageSubmission {
   @@map("image_submissions")
 }
 
+// Image Upload System - Universal image storage for profiles, covers, fan art, etc.
+model Image {
+  id       String @id @default(cuid())
+  filename String // Original filename
+
+  // File metadata
+  filesize Int // In bytes
+  mimeType String
+  width    Int?
+  height   Int?
+
+  // Storage (Cloudflare R2)
+  storageKey String  @unique // R2 object key
+  publicUrl  String // CDN URL for access
+  variants   String? // JSON: { thumbnail: url, optimized: url }
+
+  // Ownership and association
+  uploadedBy  String // User ID
+  uploadedFor String? // Entity ID (work, profile, character, etc.)
+  entityType  String? // 'profile', 'cover', 'fanart', 'chapter', etc.
+
+  // Moderation
+  status       String    @default("pending") // 'pending', 'approved', 'rejected'
+  altText      String? // Accessibility description
+  moderatedBy  String? // User ID of moderator
+  moderatedAt  DateTime?
+  moderationNotes String? // Reason for rejection, etc.
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([uploadedBy])
+  @@index([uploadedFor])
+  @@index([entityType])
+  @@index([status])
+  @@index([createdAt])
+  @@map("images")
+}
+
 // === RECOMMENDATION SYSTEM TABLES === //
 
 // User Signals - Core tracking table for all user interactions
