@@ -1,5 +1,10 @@
+import AppLayout from '@/components/AppLayout'
 import CommentModerationPanel from '@/components/CommentModerationPanel'
 
 export default function ModerationPage() {
-  return <CommentModerationPanel />
+  return (
+    <AppLayout>
+      <CommentModerationPanel />
+    </AppLayout>
+  )
 }
