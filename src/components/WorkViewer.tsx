@@ -6,6 +6,8 @@ import { Work, ContentFormat } from '@/types'
 import { getFormatIcon, mockChapters } from '@/lib/mockData'
 import { BookmarkIcon, HeartIcon, EyeIcon, StarIcon, ShareIcon, PlayIcon } from '@heroicons/react/24/outline'
 import { BookmarkIcon as BookmarkSolidIcon, HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid'
+import CommentSection from './CommentSection'
+import { useUser } from '@/hooks/useUser'
 
 interface WorkViewerProps {
   work: Work
@@ -34,8 +36,9 @@ export default function WorkViewer({
       // ignore
     }
   }
-  const [activeTab, setActiveTab] = useState<'overview' | 'sections' | 'glossary'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'sections' | 'glossary' | 'comments'>('overview')
   const router = useRouter()
+  const { userId, isAuthenticated } = useUser()
 
   const formatNumber = (num: number): string => {
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'
@@ -152,7 +155,7 @@ export default function WorkViewer({
 
         {/* Navigation Tabs */}
         <div className="flex border-b border-gray-200 dark:border-gray-700">
-          {['overview', 'sections', 'glossary'].map((tab) => (
+          {['overview', 'sections', 'glossary', 'comments'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab as typeof activeTab)}
@@ -282,6 +285,16 @@ export default function WorkViewer({
                 No glossary entries available for this work.
               </p>
             )}
+          </div>
+        )}
+
+        {activeTab === 'comments' && (
+          <div>
+            <CommentSection
+              workId={work.id}
+              canComment={isAuthenticated}
+              currentUserId={userId || undefined}
+            />
           </div>
         )}
       </div>
