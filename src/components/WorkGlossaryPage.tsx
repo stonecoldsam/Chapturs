@@ -61,7 +61,7 @@ export default function WorkGlossaryPage() {
       const termsRes = await fetch(`/api/works/${workId}/glossary`)
       if (!termsRes.ok) throw new Error('Failed to fetch terms')
       const termsData = await termsRes.json()
-      setTerms(termsData.terms || [])
+      setTerms(termsData.entries || termsData.terms || [])
     } catch (error) {
       console.error('Failed to fetch:', error)
     } finally {
