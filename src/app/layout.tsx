@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { auth } from '../../auth'
 import { AuthProvider } from '@/components/AuthProvider'
+import UsernameGuard from '@/components/auth/UsernameGuard'
 import { validateEnvironment } from '@/lib/config'
 import { SpeedInsights } from "@vercel/speed-insights/next"
 
@@ -27,7 +28,9 @@ export default async function RootLayout({
     <html lang="en" className="h-full">
       <body className={`${inter.className} h-full`}>
         <AuthProvider session={session}>
-          {children}
+          <UsernameGuard>
+            {children}
+          </UsernameGuard>
         </AuthProvider>
         <SpeedInsights />
       </body>

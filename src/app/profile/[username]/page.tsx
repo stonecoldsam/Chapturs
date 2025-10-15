@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import AppLayout from '@/components/AppLayout'
 import ProfileLayout from '@/components/profile/ProfileLayout'
 import ProfileSidebar from '@/components/profile/ProfileSidebar'
 import FeaturedSpace from '@/components/profile/FeaturedSpace'
@@ -11,7 +12,7 @@ interface ProfilePageProps {
   }>
 }
 
-export default async function ProfilePage({ params }: ProfilePageProps) {
+async function ProfilePageContent({ params }: ProfilePageProps) {
   const { username } = await params
 
   // Fetch user and profile data
@@ -43,7 +44,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   // If profile exists but not published, show unpublished state
   if (profile && !isPublished) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-100 mb-2">
             Profile Not Published
@@ -117,5 +118,13 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         />
       }
     />
+  )
+}
+
+export default function ProfilePage(props: ProfilePageProps) {
+  return (
+    <AppLayout>
+      <ProfilePageContent {...props} />
+    </AppLayout>
   )
 }
