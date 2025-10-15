@@ -1,8 +1,10 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { PlayIcon } from '@heroicons/react/24/solid'
 import { UserIcon } from '@heroicons/react/24/outline'
 import BaseBlock from './BaseBlock'
+import { formatCount } from '@/lib/api/youtube'
 
 interface YouTubeChannelBlockData {
   channelId: string
@@ -37,6 +39,45 @@ export default function YouTubeChannelBlock({
   onExpand
 }: YouTubeChannelBlockProps) {
   const channelUrl = `https://youtube.com/@${data.channelHandle || data.channelId}`
+  const [subs, setSubs] = useState<string | undefined>(data.subscriberCount)
+  const [banner, setBanner] = useState<string | undefined>(data.bannerImage)
+  const [avatar, setAvatar] = useState<string | undefined>(data.channelImage)
+  const [desc, setDesc] = useState<string | undefined>(data.description)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let mounted = true
+    async function fetchStats() {
+      if (!data.channelId) {
+        setLoading(false)
+        return
+      }
+      try {
+        const res = await fetch(`/api/social/youtube/channel/${data.channelId}`)
+        if (!res.ok) {
+          throw new Error(`Failed to fetch YouTube data (${res.status})`)
+        }
+        const json = await res.json()
+        if (mounted) {
+          setSubs(formatCount(json.subscriberCount))
+          setBanner(json.bannerImage || data.bannerImage)
+          setAvatar(json.thumbnails?.high || json.thumbnails?.medium || data.channelImage)
+          setDesc(json.description || data.description)
+          setError(null)
+        }
+      } catch (e) {
+        console.error('YouTube fetch error', e)
+        if (mounted) setError('Unable to load channel stats')
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    }
+
+    fetchStats()
+    const interval = setInterval(fetchStats, 60 * 60 * 1000) // refresh hourly
+    return () => { mounted = false; clearInterval(interval) }
+  }, [data.channelId])
   
   // Can expand height only (already 2 wide)
   const canExpandHeight = height < 2
@@ -59,9 +100,9 @@ export default function YouTubeChannelBlock({
       >
         {/* Channel Banner */}
         <div className="relative w-full h-20 bg-gradient-to-r from-red-600 to-red-500 overflow-hidden">
-          {data.bannerImage ? (
+          {(banner || data.bannerImage) ? (
             <img
-              src={data.bannerImage}
+              src={(banner || data.bannerImage) as string}
               alt={`${data.channelName} banner`}
               className="w-full h-full object-cover group-hover/youtube:scale-105 transition-transform duration-300"
             />
@@ -80,9 +121,9 @@ export default function YouTubeChannelBlock({
           <div className="flex items-start gap-3">
             {/* Channel Avatar */}
             <div className="relative flex-shrink-0">
-              {data.channelImage ? (
+              {(avatar || data.channelImage) ? (
                 <img
-                  src={data.channelImage}
+                  src={(avatar || data.channelImage) as string}
                   alt={data.channelName}
                   className="w-16 h-16 rounded-full border-4 border-gray-900 bg-gray-800"
                 />
@@ -102,17 +143,23 @@ export default function YouTubeChannelBlock({
                 {data.channelHandle && (
                   <span>@{data.channelHandle}</span>
                 )}
-                {data.subscriberCount && (
+                {(subs || data.subscriberCount) && (
                   <>
                     <span>•</span>
-                    <span>{data.subscriberCount} subscribers</span>
+                    <span>{(subs || data.subscriberCount)} subscribers</span>
                   </>
                 )}
               </div>
-              {data.description && height >= 2 && (
+              {(desc || data.description) && height >= 2 && (
                 <p className="text-xs text-gray-400 line-clamp-2">
-                  {data.description}
+                  {desc || data.description}
                 </p>
+              )}
+              {loading && (
+                <div className="text-[10px] text-gray-500">Loading channel stats…</div>
+              )}
+              {error && (
+                <div className="text-[10px] text-yellow-200/80">{error}</div>
               )}
             </div>
           </div>
