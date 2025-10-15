@@ -43,7 +43,7 @@ export default function BlockPicker({ onAddBlock, availableWorks = [], onQuickAd
             <span>Your Works</span>
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {availableWorks.slice(0, 9).map(work => (
+            {(availableWorks || []).slice(0, 9).map(work => (
               <button
                 key={work.id}
                 onClick={() => onQuickAddWork && onQuickAddWork(work.id)}
