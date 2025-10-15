@@ -345,10 +345,19 @@ export default function CreatorEditorPage() {
         return
       } else if (workId) {
         // Save chapter to existing work
-        console.log('Saving chapter to work:', workId)
+        console.log('Saving chapter to work:', workId, 'chapterId:', chapterId)
         
-        const response = await fetch(`/api/works/${workId}/sections`, {
-          method: 'POST',
+        // Determine if this is an update or new chapter
+        const isUpdate = !!chapterId
+        const endpoint = isUpdate 
+          ? `/api/works/${workId}/sections/${chapterId}`
+          : `/api/works/${workId}/sections`
+        const method = isUpdate ? 'PATCH' : 'POST'
+        
+        console.log(`${method} to ${endpoint}`)
+        
+        const response = await fetch(endpoint, {
+          method,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             title: data.title || 'Untitled Chapter',
@@ -361,7 +370,18 @@ export default function CreatorEditorPage() {
         if (response.ok) {
           const result = await response.json()
           console.log('Chapter saved:', result)
-          // Subtle autosave indicator - no alert that steals focus
+          
+          // If this was a new chapter, update the URL with the chapterId
+          if (!isUpdate && result.section?.id) {
+            const newChapterId = result.section.id
+            console.log('New chapter created with ID:', newChapterId)
+            // Update URL without reload to track chapterId for future saves
+            window.history.replaceState(
+              {},
+              '',
+              `/creator/editor?workId=${workId}&chapterId=${newChapterId}`
+            )
+          }
         } else {
           const error = await response.json()
           console.error('Failed to save chapter:', error)
@@ -751,15 +771,22 @@ export default function CreatorEditorPage() {
                   console.log('Publishing draft via handlePublish...')
                   await handlePublish(publishData)
                 } else if (workId) {
-                  console.log('Publishing chapter to existing work:', workId)
+                  console.log('Publishing chapter to existing work:', workId, 'chapterId:', chapterId)
                   // Publishing a chapter on an existing work
                   try {
+                    // Determine if this is an update or new chapter
+                    const isUpdate = !!chapterId
+                    const endpoint = isUpdate 
+                      ? `/api/works/${workId}/sections/${chapterId}`
+                      : `/api/works/${workId}/sections`
+                    const method = isUpdate ? 'PATCH' : 'POST'
+                    
                     console.log('=== CALLING SECTIONS API ===')
-                    console.log('Endpoint:', `/api/works/${workId}/sections`)
+                    console.log(`Endpoint: ${method} ${endpoint}`)
                     console.log('Data being sent:', publishData)
                     
-                    const response = await fetch(`/api/works/${workId}/sections`, {
-                      method: 'POST',
+                    const response = await fetch(endpoint, {
+                      method,
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify(publishData)
                     })
@@ -773,6 +800,18 @@ export default function CreatorEditorPage() {
                       console.log('=== PUBLISH SUCCESS ===')
                       console.log('Full result:', JSON.stringify(result, null, 2))
                       console.log('Chapter published successfully:', result)
+
+                      // If this was a new chapter, update the URL with the chapterId
+                      if (!isUpdate && result.section?.id) {
+                        const newChapterId = result.section.id
+                        console.log('New chapter created with ID:', newChapterId)
+                        // Update URL without reload to track chapterId for future saves
+                        window.history.replaceState(
+                          {},
+                          '',
+                          `/creator/editor?workId=${workId}&chapterId=${newChapterId}`
+                        )
+                      }
 
                       // Queue quality assessment for the published chapter
                       if (result.section?.id) {
