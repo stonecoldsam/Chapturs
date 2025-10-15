@@ -15,11 +15,7 @@ import {
   BookmarkIcon,
   DocumentTextIcon,
   PhotoIcon,
-  StarIcon,
-  LanguageIcon,
-  CurrencyDollarIcon,
-  UsersIcon,
-  DocumentDuplicateIcon
+  CurrencyDollarIcon
 } from '@heroicons/react/24/outline'
 
 interface SidebarProps {
@@ -53,11 +49,7 @@ export default function Sidebar({ currentHub, onHubChange }: SidebarProps) {
     { icon: PencilIcon, label: 'Upload', href: '/creator/upload' },
     { icon: DocumentTextIcon, label: 'Manage Stories', href: '/creator/works' },
     { icon: PhotoIcon, label: 'Fanart', href: '/creator/fanart' },
-    { icon: StarIcon, label: 'Quality', href: '/creator/quality' },
     { icon: ChartBarIcon, label: 'Analytics', href: '/creator/analytics' },
-    { icon: DocumentDuplicateIcon, label: 'Glossary', href: '/creator/glossary' },
-    { icon: UsersIcon, label: 'Characters', href: '/creator/characters' },
-    { icon: LanguageIcon, label: 'Translations', href: '/creator/translations' },
     { icon: CurrencyDollarIcon, label: 'Monetization', href: '/creator/monetization' },
     { icon: CogIcon, label: 'Settings', href: '/creator/settings' },
   ]
