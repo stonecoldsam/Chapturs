@@ -9,19 +9,29 @@ interface BasicInfoEditorProps {
   bio: string
   profileImage?: string
   coverImage?: string
+  featuredType: 'work' | 'block' | 'none'
+  featuredWorkId?: string
+  featuredBlockId?: string
+  availableWorks: any[]
+  availableBlocks: any[]
   onUpdate: (field: string, value: string) => void
   onImageUpload: (type: 'profile' | 'cover', file: File) => void
 }
 
 /**
- * BasicInfoEditor - v0.1
- * Edit basic profile information: name, bio, images
+ * BasicInfoEditor - v0.2
+ * Edit basic profile information: name, bio, images, and featured content
  */
 export default function BasicInfoEditor({
   displayName,
   bio,
   profileImage,
   coverImage,
+  featuredType,
+  featuredWorkId,
+  featuredBlockId,
+  availableWorks,
+  availableBlocks,
   onUpdate,
   onImageUpload
 }: BasicInfoEditorProps) {
@@ -202,6 +212,115 @@ export default function BasicInfoEditor({
             )}
           </div>
         )}
+      </div>
+
+      {/* Featured Content */}
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-2">
+          Featured Content
+          <span className="text-xs text-gray-500 ml-2">
+            (appears prominently on your profile)
+          </span>
+        </label>
+        
+        {/* Featured Type Selector */}
+        <div className="space-y-3">
+          {/* Option 1: Featured Work */}
+          <label className="flex items-start gap-3 p-3 bg-gray-900 border border-gray-700 rounded-lg cursor-pointer hover:border-gray-600 transition-colors">
+            <input
+              type="radio"
+              name="featuredType"
+              value="work"
+              checked={featuredType === 'work'}
+              onChange={(e) => onUpdate('featuredType', e.target.value)}
+              className="mt-1"
+            />
+            <div className="flex-1">
+              <div className="font-medium text-gray-100">Featured Work</div>
+              <p className="text-xs text-gray-400 mt-1">
+                Showcase one of your published works
+              </p>
+              
+              {featuredType === 'work' && (
+                <select
+                  value={featuredWorkId || ''}
+                  onChange={(e) => onUpdate('featuredWorkId', e.target.value)}
+                  className="w-full mt-2 px-3 py-2 bg-gray-800 border border-gray-600 rounded text-sm text-gray-100 focus:border-blue-500 focus:outline-none"
+                >
+                  <option value="">Select a work...</option>
+                  {availableWorks.map((work) => (
+                    <option key={work.id} value={work.id}>
+                      {work.title}
+                    </option>
+                  ))}
+                </select>
+              )}
+              
+              {featuredType === 'work' && availableWorks.length === 0 && (
+                <p className="text-xs text-yellow-500 mt-2">
+                  You don't have any published works yet.
+                </p>
+              )}
+            </div>
+          </label>
+
+          {/* Option 2: Featured Block */}
+          <label className="flex items-start gap-3 p-3 bg-gray-900 border border-gray-700 rounded-lg cursor-pointer hover:border-gray-600 transition-colors">
+            <input
+              type="radio"
+              name="featuredType"
+              value="block"
+              checked={featuredType === 'block'}
+              onChange={(e) => onUpdate('featuredType', e.target.value)}
+              className="mt-1"
+            />
+            <div className="flex-1">
+              <div className="font-medium text-gray-100">Featured Block</div>
+              <p className="text-xs text-gray-400 mt-1">
+                Feature a YouTube video, text, or other block instead
+              </p>
+              
+              {featuredType === 'block' && (
+                <select
+                  value={featuredBlockId || ''}
+                  onChange={(e) => onUpdate('featuredBlockId', e.target.value)}
+                  className="w-full mt-2 px-3 py-2 bg-gray-800 border border-gray-600 rounded text-sm text-gray-100 focus:border-blue-500 focus:outline-none"
+                >
+                  <option value="">Select a block...</option>
+                  {availableBlocks.map((block) => (
+                    <option key={block.id} value={block.id}>
+                      {block.type.replace('-', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())} - {block.id.slice(0, 8)}
+                    </option>
+                  ))}
+                </select>
+              )}
+              
+              {featuredType === 'block' && availableBlocks.length === 0 && (
+                <p className="text-xs text-yellow-500 mt-2">
+                  Add some blocks first, then you can feature one.
+                </p>
+              )}
+            </div>
+          </label>
+
+          {/* Option 3: None */}
+          <label className="flex items-start gap-3 p-3 bg-gray-900 border border-gray-700 rounded-lg cursor-pointer hover:border-gray-600 transition-colors">
+            <input
+              type="radio"
+              name="featuredType"
+              value="none"
+              checked={featuredType === 'none'}
+              onChange={(e) => onUpdate('featuredType', e.target.value)}
+              className="mt-1"
+            />
+            <div className="flex-1">
+              <div className="font-medium text-gray-100">No Featured Content</div>
+              <p className="text-xs text-gray-400 mt-1">
+                Leave the featured space empty
+              </p>
+            </div>
+          </label>
+        </div>
       </div>
     </div>
   )

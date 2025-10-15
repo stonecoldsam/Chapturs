@@ -5,11 +5,19 @@ import { useRouter } from 'next/navigation'
 import BlockPicker from '@/components/profile/editor/BlockPicker'
 import BasicInfoEditor from '@/components/profile/editor/BasicInfoEditor'
 import ProfileLayout from '@/components/profile/ProfileLayout'
+import ProfileSidebar from '@/components/profile/ProfileSidebar'
+import FeaturedSpace from '@/components/profile/FeaturedSpace'
+import BlockGrid from '@/components/profile/BlockGrid'
 import { 
   WorkCardConfig,
   TextBoxConfig,
   YouTubeVideoConfig,
-  ExternalLinkConfig
+  ExternalLinkConfig,
+  DiscordInviteConfig,
+  TwitchChannelConfig,
+  YouTubeChannelConfig,
+  TwitterFeedConfig,
+  FavoriteAuthorConfig
 } from '@/components/profile/config'
 import { 
   EyeIcon, 
@@ -26,6 +34,7 @@ interface ProfileData {
   coverImage?: string
   featuredType: 'work' | 'block' | 'none'
   featuredWorkId?: string
+  featuredBlockId?: string
   accentColor: string
   fontStyle: string
   backgroundStyle: string
@@ -41,8 +50,11 @@ interface ConfigModalState {
 }
 
 /**
- * ProfileEditor - v0.1.5
- * Full profile editing interface with block configuration modals
+ * ProfileEditor - v0.3
+ * Full profile editing interface with:
+ * - All 9 block configuration modals
+ * - Featured work/block selection
+ * - Real profile preview with actual components
  */
 export default function ProfileEditor() {
   const router = useRouter()
@@ -51,6 +63,7 @@ export default function ProfileEditor() {
   const [isSaving, setIsSaving] = useState(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [availableWorks, setAvailableWorks] = useState<any[]>([])
+  const [username, setUsername] = useState<string>('')
 
   // Configuration modal state
   const [configModal, setConfigModal] = useState<ConfigModalState>({
@@ -70,10 +83,11 @@ export default function ProfileEditor() {
     blocks: []
   })
 
-  // Load profile data and works on mount
+  // Load profile data, works, and username on mount
   useEffect(() => {
     loadProfile()
     loadWorks()
+    loadUsername()
   }, [])
 
   const loadProfile = async () => {
@@ -97,6 +111,18 @@ export default function ProfileEditor() {
       }
     } catch (error) {
       console.error('Failed to load works:', error)
+    }
+  }
+
+  const loadUsername = async () => {
+    try {
+      const response = await fetch('/api/user/profile')
+      if (response.ok) {
+        const data = await response.json()
+        setUsername(data.username || data.id)
+      }
+    } catch (error) {
+      console.error('Failed to load username:', error)
     }
   }
 
@@ -201,6 +227,35 @@ export default function ProfileEditor() {
     setHasUnsavedChanges(true)
   }
 
+  // Helper function to get featured work data
+  const getFeaturedWorkData = () => {
+    if (profileData.featuredType !== 'work' || !profileData.featuredWorkId) {
+      return undefined
+    }
+    const work = availableWorks.find(w => w.id === profileData.featuredWorkId)
+    return work ? {
+      id: work.id,
+      title: work.title,
+      coverImage: work.coverImage,
+      description: work.description || '',
+      genres: work.genres || [],
+      status: work.status || 'Ongoing'
+    } : undefined
+  }
+
+  // Helper function to get featured block data
+  const getFeaturedBlockData = () => {
+    if (profileData.featuredType !== 'block' || !profileData.featuredBlockId) {
+      return undefined
+    }
+    const block = profileData.blocks.find(b => b.id === profileData.featuredBlockId)
+    return block ? {
+      id: block.id,
+      type: block.type,
+      data: typeof block.data === 'string' ? block.data : JSON.stringify(block.data)
+    } : undefined
+  }
+
   const handleSave = async (publish = false) => {
     setIsSaving(true)
     try {
@@ -231,10 +286,10 @@ export default function ProfileEditor() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 flex">
+    <div className="flex min-h-screen bg-gray-900">
       {/* Left Sidebar - Block Picker or Settings */}
       {!previewMode && (
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 border-r border-gray-700">
           {activeTab === 'blocks' ? (
             <BlockPicker onAddBlock={handleAddBlock} />
           ) : activeTab === 'style' ? (
@@ -245,12 +300,17 @@ export default function ProfileEditor() {
               onUpdate={handleUpdate}
             />
           ) : (
-            <div className="w-80 bg-gray-800 border-r border-gray-700 p-4 overflow-y-auto">
+            <div className="w-80 bg-gray-800 p-4 overflow-y-auto max-h-screen">
               <BasicInfoEditor
                 displayName={profileData.displayName}
                 bio={profileData.bio}
                 profileImage={profileData.profileImage}
                 coverImage={profileData.coverImage}
+                featuredType={profileData.featuredType}
+                featuredWorkId={profileData.featuredWorkId}
+                featuredBlockId={profileData.featuredBlockId}
+                availableWorks={availableWorks}
+                availableBlocks={profileData.blocks}
                 onUpdate={handleUpdate}
                 onImageUpload={handleImageUpload}
               />
@@ -260,16 +320,10 @@ export default function ProfileEditor() {
       )}
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-h-screen">
         {/* Top Bar */}
-        <div className="h-16 bg-gray-800 border-b border-gray-700 flex items-center justify-between px-6">
+        <div className="sticky top-0 z-10 h-16 bg-gray-800 border-b border-gray-700 flex items-center justify-between px-6">
           <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.back()}
-              className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
-            >
-              <ArrowLeftIcon className="w-5 h-5 text-gray-400" />
-            </button>
             <h1 className="text-lg font-bold text-gray-100">
               Edit Profile
             </h1>
@@ -346,20 +400,56 @@ export default function ProfileEditor() {
         {/* Preview/Edit Area */}
         <div className="flex-1 overflow-y-auto bg-gray-900">
           {previewMode ? (
-            <div className="max-w-7xl mx-auto px-6 py-8">
-              <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-4 mb-6">
-                <p className="text-sm text-blue-300">
-                  <EyeIcon className="w-4 h-4 inline mr-1" />
-                  Preview Mode - This is how your profile will appear to visitors
-                </p>
+            <div>
+              {/* Preview Mode Banner */}
+              <div className="sticky top-0 z-20 bg-gray-900 border-b border-gray-700">
+                <div className="max-w-7xl mx-auto px-6 py-4">
+                  <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <EyeIcon className="w-5 h-5 text-blue-400" />
+                      <p className="text-sm text-blue-300 font-medium">
+                        Preview Mode - This is how your profile appears to visitors
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setPreviewMode(false)}
+                      className="text-sm text-blue-400 hover:text-blue-300 font-medium"
+                    >
+                      Exit Preview
+                    </button>
+                  </div>
+                </div>
               </div>
-              {/* TODO: Render actual profile preview with ProfileSidebar, FeaturedSpace, BlockGrid */}
-              <div className="bg-gray-800 border border-gray-700 rounded-lg p-8 text-center">
-                <p className="text-gray-400">Profile preview coming soon</p>
-                <pre className="text-xs text-left mt-4 bg-gray-900 p-4 rounded">
-                  {JSON.stringify(profileData, null, 2)}
-                </pre>
-              </div>
+
+              {/* Actual Profile Preview */}
+              <ProfileLayout
+                sidebar={
+                  <ProfileSidebar
+                    profileImage={profileData.profileImage}
+                    displayName={profileData.displayName || 'Your Name'}
+                    username={username || 'username'}
+                    bio={profileData.bio}
+                    isOwner={false} // Show visitor view
+                  />
+                }
+                featured={
+                  <FeaturedSpace
+                    type={profileData.featuredType}
+                    workData={getFeaturedWorkData()}
+                    blockData={getFeaturedBlockData()}
+                    isOwner={false} // Show visitor view
+                  />
+                }
+                blocks={
+                  <BlockGrid
+                    blocks={profileData.blocks.map(block => ({
+                      ...block,
+                      data: typeof block.data === 'string' ? JSON.parse(block.data) : block.data
+                    }))}
+                    isOwner={false} // Show visitor view
+                  />
+                }
+              />
             </div>
           ) : (
             <div className="p-8">
@@ -458,6 +548,51 @@ export default function ProfileEditor() {
 
       {configModal.blockType === 'external-link' && (
         <ExternalLinkConfig
+          isOpen={configModal.isOpen}
+          onClose={() => setConfigModal({ isOpen: false, blockType: null })}
+          onSave={handleConfigSave}
+          initialData={configModal.initialData}
+        />
+      )}
+
+      {configModal.blockType === 'discord-invite' && (
+        <DiscordInviteConfig
+          isOpen={configModal.isOpen}
+          onClose={() => setConfigModal({ isOpen: false, blockType: null })}
+          onSave={handleConfigSave}
+          initialData={configModal.initialData}
+        />
+      )}
+
+      {configModal.blockType === 'twitch-channel' && (
+        <TwitchChannelConfig
+          isOpen={configModal.isOpen}
+          onClose={() => setConfigModal({ isOpen: false, blockType: null })}
+          onSave={handleConfigSave}
+          initialData={configModal.initialData}
+        />
+      )}
+
+      {configModal.blockType === 'youtube-channel' && (
+        <YouTubeChannelConfig
+          isOpen={configModal.isOpen}
+          onClose={() => setConfigModal({ isOpen: false, blockType: null })}
+          onSave={handleConfigSave}
+          initialData={configModal.initialData}
+        />
+      )}
+
+      {configModal.blockType === 'twitter-feed' && (
+        <TwitterFeedConfig
+          isOpen={configModal.isOpen}
+          onClose={() => setConfigModal({ isOpen: false, blockType: null })}
+          onSave={handleConfigSave}
+          initialData={configModal.initialData}
+        />
+      )}
+
+      {configModal.blockType === 'favorite-author' && (
+        <FavoriteAuthorConfig
           isOpen={configModal.isOpen}
           onClose={() => setConfigModal({ isOpen: false, blockType: null })}
           onSave={handleConfigSave}

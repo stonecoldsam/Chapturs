@@ -10,11 +10,25 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
 // R2 configuration from environment
-const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID!
-const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID!
-const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY!
-const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME!
-const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || `https://pub-${R2_ACCOUNT_ID}.r2.dev`
+const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID
+const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID
+const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY
+const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME
+const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL
+
+// Validate required environment variables
+if (!R2_ACCOUNT_ID) {
+  throw new Error('Missing R2_ACCOUNT_ID environment variable')
+}
+if (!R2_ACCESS_KEY_ID) {
+  throw new Error('Missing R2_ACCESS_KEY_ID environment variable')
+}
+if (!R2_SECRET_ACCESS_KEY) {
+  throw new Error('Missing R2_SECRET_ACCESS_KEY environment variable')
+}
+if (!R2_BUCKET_NAME) {
+  throw new Error('Missing R2_BUCKET_NAME environment variable')
+}
 
 // Initialize S3 client for R2
 export const r2Client = new S3Client({
@@ -25,6 +39,8 @@ export const r2Client = new S3Client({
     secretAccessKey: R2_SECRET_ACCESS_KEY,
   },
 })
+
+export const getR2PublicUrl = () => R2_PUBLIC_URL || `https://pub-${R2_ACCOUNT_ID}.r2.dev`
 
 /**
  * Generate presigned URL for direct upload to R2
@@ -66,7 +82,7 @@ export async function uploadToR2(
   })
 
   await r2Client.send(command)
-  return `${R2_PUBLIC_URL}/${key}`
+  return getPublicUrl(key)
 }
 
 /**
@@ -123,5 +139,5 @@ export function generateStorageKey(
  * Get public URL for R2 object
  */
 export function getPublicUrl(key: string): string {
-  return `${R2_PUBLIC_URL}/${key}`
+  return `${getR2PublicUrl()}/${key}`
 }

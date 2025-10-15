@@ -1,6 +1,7 @@
 'use client'
 
 import { BookOpenIcon, PencilIcon } from '@heroicons/react/24/outline'
+import { getBlockComponent } from '@/components/profile/blocks'
 
 interface FeaturedSpaceProps {
   type: 'work' | 'block' | 'none'
@@ -12,14 +13,18 @@ interface FeaturedSpaceProps {
     genres: string[]
     status: string
   }
-  blockData?: any // For future video/custom block support
+  blockData?: {
+    id: string
+    type: string
+    data: string // JSON string
+  }
   isOwner?: boolean
   onEdit?: () => void
   onSelect?: () => void
 }
 
 /**
- * FeaturedSpace - v0.1
+ * FeaturedSpace - v0.2
  * Center prominent area for showcasing a featured work or custom block
  * This is the most visually prominent element on the profile
  */
@@ -136,11 +141,47 @@ export default function FeaturedSpace({
     )
   }
 
-  // Future: Custom block display (video, etc.)
+  // Featured Block Display
   if (type === 'block' && blockData) {
+    const BlockComponent = getBlockComponent(blockData.type as any)
+    
+    if (!BlockComponent) {
+      return (
+        <div className="h-full min-h-[500px] flex items-center justify-center">
+          <p className="text-gray-500">Unknown block type: {blockData.type}</p>
+        </div>
+      )
+    }
+
+    let parsedData
+    try {
+      parsedData = JSON.parse(blockData.data)
+    } catch {
+      parsedData = {}
+    }
+
     return (
-      <div className="h-full min-h-[500px] flex items-center justify-center">
-        <p className="text-gray-500">Custom blocks coming in v0.2+</p>
+      <div className="relative group">
+        {/* Render the block component */}
+        <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+          <BlockComponent
+            data={parsedData}
+            width={2}
+            height={2}
+            isOwner={isOwner}
+          />
+        </div>
+
+        {/* Edit Button for Owners */}
+        {isOwner && onEdit && (
+          <button
+            onClick={onEdit}
+            className="absolute top-2 right-2 p-2 bg-gray-900/80 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity z-10"
+            title="Change featured content"
+          >
+            <PencilIcon className="w-4 h-4 text-gray-300" />
+          </button>
+        )}
       </div>
     )
   }
