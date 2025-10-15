@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Bold, Italic, Underline, Strikethrough, Superscript, Subscript, Link, Image, Smile } from 'lucide-react'
+import EmojiPicker from './EmojiPicker'
 
 interface RichTextEditorProps {
   value: string
@@ -20,6 +21,7 @@ export default function RichTextEditor({
 }: RichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null)
   const [isFocused, setIsFocused] = useState(false)
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
 
   // Initialize editor with value
   useEffect(() => {
@@ -48,13 +50,6 @@ export default function RichTextEditor({
   const execCommand = (command: string, value?: string) => {
     document.execCommand(command, false, value)
     editorRef.current?.focus()
-  }
-
-  const insertEmoji = () => {
-    const emoji = prompt('Enter emoji (or paste):')
-    if (emoji) {
-      document.execCommand('insertText', false, emoji)
-    }
   }
 
   const insertImage = () => {
@@ -142,14 +137,27 @@ export default function RichTextEditor({
         >
           <Image size={16} />
         </button>
-        <button
-          type="button"
-          onClick={insertEmoji}
-          className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-700 dark:text-gray-300"
-          title="Insert Emoji"
-        >
-          <Smile size={16} />
-        </button>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            className={`p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-700 dark:text-gray-300 ${showEmojiPicker ? 'bg-gray-300 dark:bg-gray-600' : ''}`}
+            title="Insert Emoji"
+          >
+            <Smile size={16} />
+          </button>
+          {showEmojiPicker && (
+            <EmojiPicker
+              onSelect={(emoji) => {
+                document.execCommand('insertText', false, emoji)
+                editorRef.current?.focus()
+                setShowEmojiPicker(false)
+              }}
+              onClose={() => setShowEmojiPicker(false)}
+              position="bottom-left"
+            />
+          )}
+        </div>
       </div>
 
       {/* Editor */}

@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { Send } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { Send, Smile } from 'lucide-react'
+import EmojiPicker from './EmojiPicker'
 
 interface CommentFormProps {
   workId: string
@@ -25,6 +26,8 @@ export default function CommentForm({
   const [content, setContent] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -74,18 +77,52 @@ export default function CommentForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <div>
+      <div className="relative">
         <textarea
+          ref={textareaRef}
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder={placeholder}
           autoFocus={autoFocus}
           rows={3}
           maxLength={5000}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          className="w-full px-4 py-3 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
         />
+        <div className="absolute bottom-2 right-2">
+          <button
+            type="button"
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            className={`p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${showEmojiPicker ? 'bg-gray-200 dark:bg-gray-600' : ''}`}
+            title="Add emoji"
+          >
+            <Smile className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+          </button>
+          {showEmojiPicker && (
+            <EmojiPicker
+              onSelect={(emoji) => {
+                const textarea = textareaRef.current
+                if (textarea) {
+                  const start = textarea.selectionStart
+                  const end = textarea.selectionEnd
+                  const newContent = content.substring(0, start) + emoji + content.substring(end)
+                  setContent(newContent)
+                  
+                  // Set cursor position after emoji
+                  setTimeout(() => {
+                    textarea.focus()
+                    const newPos = start + emoji.length
+                    textarea.setSelectionRange(newPos, newPos)
+                  }, 0)
+                }
+                setShowEmojiPicker(false)
+              }}
+              onClose={() => setShowEmojiPicker(false)}
+              position="top-right"
+            />
+          )}
+        </div>
         <div className="flex items-center justify-between mt-1">
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-gray-500 dark:text-gray-400">
             {content.length}/5000 characters
           </span>
           {error && (
@@ -99,7 +136,7 @@ export default function CommentForm({
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
           >
             Cancel
           </button>

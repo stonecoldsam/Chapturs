@@ -27,13 +27,15 @@ import {
   Bars4Icon,
   ListBulletIcon,
   LinkIcon,
-  SparklesIcon
+  SparklesIcon,
+  FaceSmileIcon
 } from '@heroicons/react/24/outline'
 
 // Import mode components
 import VisualNovelMode from './experimental/VisualNovelMode'
 import WorldbuildingMode from './experimental/WorldbuildingMode'
 import BranchingStoryModeSimple from './experimental/BranchingStoryModeSimple'
+import EmojiPicker from './EmojiPicker'
 
 export type ExperimentalMode = 'normal' | 'visual-novel' | 'worldbuilding' | 'branching-story' | 'placeholder'
 
@@ -152,6 +154,7 @@ export default function ExperimentalEditor({
   // UI state
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [activeTab, setActiveTab] = useState<'chapters' | 'glossary' | 'settings'>('chapters')
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
 
   // Curated font families for readability
   const fontFamilies = [
@@ -544,6 +547,25 @@ export default function ExperimentalEditor({
               >
                 <LinkIcon className="w-4 h-4" />
               </button>
+              <div className="relative">
+                <button
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  className={`p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 ${showEmojiPicker ? 'bg-blue-100 dark:bg-blue-900' : ''}`}
+                  title="Insert Emoji"
+                >
+                  <FaceSmileIcon className="w-4 h-4" />
+                </button>
+                {showEmojiPicker && (
+                  <EmojiPicker
+                    onSelect={(emoji) => {
+                      editor?.chain().focus().insertContent(emoji).run()
+                      setShowEmojiPicker(false)
+                    }}
+                    onClose={() => setShowEmojiPicker(false)}
+                    position="bottom-left"
+                  />
+                )}
+              </div>
             </div>
 
             {/* Font controls */}
