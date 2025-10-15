@@ -7,6 +7,12 @@
 import WorkCardBlock from './WorkCardBlock'
 import TextBoxBlock from './TextBoxBlock'
 import YouTubeVideoBlock from './YouTubeVideoBlock'
+import FavoriteAuthorBlock from './FavoriteAuthorBlock'
+import ExternalLinkBlock from './ExternalLinkBlock'
+import DiscordInviteBlock from './DiscordInviteBlock'
+import TwitchChannelBlock from './TwitchChannelBlock'
+import YouTubeChannelBlock from './YouTubeChannelBlock'
+import TwitterFeedBlock from './TwitterFeedBlock'
 
 export const BLOCK_TYPES = {
   'work-card': {
@@ -32,14 +38,55 @@ export const BLOCK_TYPES = {
     defaultSize: { width: 2, height: 1 },
     icon: '▶️',
     category: 'social'
+  },
+  'favorite-author': {
+    component: FavoriteAuthorBlock,
+    name: 'Favorite Author',
+    description: 'Showcase and promote another creator',
+    defaultSize: { width: 1, height: 1 },
+    icon: '⭐',
+    category: 'community'
+  },
+  'external-link': {
+    component: ExternalLinkBlock,
+    name: 'External Link',
+    description: 'Link to external sites (Patreon, Ko-fi, etc.)',
+    defaultSize: { width: 1, height: 1 },
+    icon: '🔗',
+    category: 'social'
+  },
+  'discord-invite': {
+    component: DiscordInviteBlock,
+    name: 'Discord Server',
+    description: 'Invite visitors to your Discord community',
+    defaultSize: { width: 1, height: 1 },
+    icon: '💬',
+    category: 'community'
+  },
+  'twitch-channel': {
+    component: TwitchChannelBlock,
+    name: 'Twitch Channel',
+    description: 'Show your Twitch stream and live status',
+    defaultSize: { width: 2, height: 1 },
+    icon: '🎮',
+    category: 'social'
+  },
+  'youtube-channel': {
+    component: YouTubeChannelBlock,
+    name: 'YouTube Channel',
+    description: 'Link to your YouTube channel',
+    defaultSize: { width: 2, height: 1 },
+    icon: '📺',
+    category: 'social'
+  },
+  'twitter-feed': {
+    component: TwitterFeedBlock,
+    name: 'Twitter/X Feed',
+    description: 'Display your Twitter profile and recent posts',
+    defaultSize: { width: 1, height: 2 },
+    icon: '🐦',
+    category: 'social'
   }
-  // More blocks will be added in subsequent commits:
-  // - twitter-feed
-  // - discord-invite
-  // - twitch-channel
-  // - youtube-channel
-  // - favorite-author
-  // - external-link
 } as const
 
 export type BlockType = keyof typeof BLOCK_TYPES
