@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/database/PrismaService'
 import { auth } from '@/auth'
 
-// GET /api/works/[workId]/comments - List comments
+// GET /api/works/[id]/comments - List comments
 export async function GET(
   request: NextRequest,
-  { params }: { params: { workId: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     const { searchParams } = new URL(request.url)
@@ -15,7 +15,7 @@ export async function GET(
     const cursor = searchParams.get('cursor')
 
     const where: any = {
-      workId: params.workId,
+      workId: params.id,
       parentId: null, // Only top-level comments
       isHidden: false
     }
@@ -112,10 +112,10 @@ export async function GET(
   }
 }
 
-// POST /api/works/[workId]/comments - Create new comment
+// POST /api/works/[id]/comments - Create new comment
 export async function POST(
   request: NextRequest,
-  { params }: { params: { workId: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await auth()
@@ -147,7 +147,7 @@ export async function POST(
 
     // Verify work exists
     const work = await prisma.work.findUnique({
-      where: { id: params.workId }
+      where: { id: params.id }
     })
 
     if (!work) {
@@ -162,7 +162,7 @@ export async function POST(
       const section = await prisma.section.findFirst({
         where: {
           id: sectionId,
-          workId: params.workId
+          workId: params.id
         }
       })
 
@@ -231,7 +231,7 @@ export async function POST(
     // Create comment
     const comment = await prisma.comment.create({
       data: {
-        workId: params.workId,
+        workId: params.id,
         sectionId: sectionId || null,
         userId: session.user.id,
         content: content.trim(),
