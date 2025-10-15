@@ -54,16 +54,13 @@ export async function generatePresignedUploadUrl(
   const command = new PutObjectCommand({
     Bucket: R2_BUCKET_NAME,
     Key: key,
-    ContentType: contentType,
-    // Don't set ContentLength in presigned URL - causes CORS preflight issues
-    // Size validation happens server-side after upload
+    // Don't set ContentType in presigned URL - it triggers CORS preflight
+    // R2 will auto-detect content type from file extension
   })
 
   // 10 minute expiry (security best practice)
-  // Disable checksum verification for CORS compatibility
   return await getSignedUrl(r2Client, command, { 
     expiresIn: 600,
-    unhoistableHeaders: new Set(['x-amz-checksum-crc32'])
   })
 }
 

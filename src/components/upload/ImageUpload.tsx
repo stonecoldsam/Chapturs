@@ -135,12 +135,10 @@ export default function ImageUpload({
 
       // 2. Upload directly to R2
       setProgress(30)
+      // Don't set Content-Type - let the browser handle it to avoid CORS preflight issues
       const uploadRes = await fetch(uploadUrl, {
         method: 'PUT',
         body: file,
-        headers: {
-          'Content-Type': file.type,
-        },
       })
 
       if (!uploadRes.ok) {
