@@ -490,7 +490,19 @@ export default function ProfileEditorWYSIWYG() {
           title="Choose Block Type"
           size="lg"
         >
-          <BlockPicker onAddBlock={handleBlockTypeSelected} />
+          <BlockPicker
+            onAddBlock={handleBlockTypeSelected}
+            availableWorks={availableWorks}
+            onQuickAddWork={(workId: string) => {
+              // Close picker and open WorkCardConfig with pre-selected work
+              setShowBlockPicker(false)
+              setConfigModal({
+                isOpen: true,
+                blockType: 'work-card',
+                initialData: { workId }
+              })
+            }}
+          />
         </Modal>
       )}
 
