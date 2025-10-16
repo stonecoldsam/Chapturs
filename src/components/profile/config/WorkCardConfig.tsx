@@ -63,7 +63,7 @@ export default function WorkCardConfig({
             <option value="">Choose a work...</option>
             {availableWorks.map(work => (
               <option key={work.id} value={work.id}>
-                {work.title} ({work.status})
+                {work.title}{work.status ? ` (${work.status})` : ''}
               </option>
             ))}
           </select>

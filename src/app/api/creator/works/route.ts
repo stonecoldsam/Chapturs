@@ -60,6 +60,8 @@ export async function GET(request: Request) {
         id: true, 
         title: true, 
         coverImage: true,
+        status: true,
+        genres: true,
         _count: {
           select: {
             sections: true,
@@ -90,6 +92,8 @@ export async function GET(request: Request) {
         id: work.id,
         title: work.title,
         coverImage: work.coverImage,
+        status: work.status || 'Ongoing',
+        genres: work.genres || [],
         _count: {
           chapters: work._count.sections,
           glossaryTerms: work._count.glossaryEntries,
