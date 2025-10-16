@@ -38,6 +38,7 @@ export const r2Client = new S3Client({
     accessKeyId: R2_ACCESS_KEY_ID,
     secretAccessKey: R2_SECRET_ACCESS_KEY,
   },
+  forcePathStyle: true, // Force path-style URLs for R2 compatibility
 })
 
 export const getR2PublicUrl = () => R2_PUBLIC_URL || `https://pub-${R2_ACCOUNT_ID}.r2.dev`
