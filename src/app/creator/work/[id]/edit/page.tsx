@@ -164,7 +164,10 @@ export default function EditWorkPage() {
               entityId={workId}
               currentImage={formData.coverImage}
               onUploadComplete={(image) => {
+                 console.log('[Edit Page] Image upload complete:', image)
+                 console.log('[Edit Page] Setting coverImage to:', image.urls.optimized)
                 setFormData({ ...formData, coverImage: image.urls.optimized })
+                 console.log('[Edit Page] Updated formData:', { ...formData, coverImage: image.urls.optimized })
               }}
               onUploadError={(error) => {
                 console.error('Cover upload error:', error)

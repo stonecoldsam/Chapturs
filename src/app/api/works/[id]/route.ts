@@ -93,7 +93,7 @@ export async function PUT(request: NextRequest, props: { params: Promise<{ id: s
       coverImage
     } = body
 
-    console.log(`Works API: Updating work with data:`, { title, status, genres, tags })
+    console.log(`Works API: Updating work with data:`, { title, description, status, genres, tags, maturityRating, coverImage })
 
     // Prepare update data
     const updateData: any = {
