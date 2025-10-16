@@ -401,7 +401,12 @@ export default function CreatorEditorPage() {
   }
 
   const handlePublish = async (data: any) => {
-    console.log('Publishing:', data)
+    console.log('[EDITOR] Publishing clicked with data:', data)
+    console.log('[EDITOR] Current work state:', { 
+      hasContent: currentWork.hasContent, 
+      isDraft: currentWork.isDraft,
+      draftId 
+    })
     
     // Check if work has content before publishing
     if (!currentWork.hasContent) {
@@ -412,6 +417,7 @@ export default function CreatorEditorPage() {
     // If this is a draft, we need to convert it to a published work
     if (currentWork.isDraft && draftId) {
       try {
+        console.log('[EDITOR] Sending publish request to API...')
         const response = await fetch(`/api/works/publish`, {
           method: 'POST',
           headers: {
@@ -423,10 +429,15 @@ export default function CreatorEditorPage() {
           })
         })
 
+        console.log('[EDITOR] Publish response status:', response.status)
+
         if (response.ok) {
           const result = await response.json()
+          console.log('[EDITOR] Publish success result:', result)
+          
           // If the server says confirmation is required for mature content, prompt the author
             if (result.confirmationRequired) {
+              console.log('[EDITOR] Confirmation required for mature content')
               // Open modal with details and wait for user action
               setModalState({
                 open: true,
@@ -439,6 +450,7 @@ export default function CreatorEditorPage() {
           // Queue quality assessment for first chapter (non-blocking)
           if (result.workId && result.firstSectionId) {
             try {
+              console.log('[EDITOR] Queueing quality assessment...')
               await fetch('/api/quality-assessment/queue', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -448,23 +460,25 @@ export default function CreatorEditorPage() {
                   priority: 'normal'
                 })
               })
-              console.log('Quality assessment queued for:', result.workId)
+              console.log('[EDITOR] Quality assessment queued successfully')
             } catch (error) {
-              console.error('Failed to queue quality assessment:', error)
+              console.error('[EDITOR] Failed to queue quality assessment:', error)
               // Non-critical, don't block publish flow
             }
           }
 
           // Normal success path
+          console.log('[EDITOR] Redirecting to story page:', result.workId)
           alert('Work submitted for review! It will appear in the library once approved.')
           // Redirect to the published work story page (has proper navigation)
           window.location.href = `/story/${result.workId}`
         } else {
           const error = await response.json()
+          console.error('[EDITOR] Publish failed with error:', error)
           alert(`Failed to publish: ${error.error}`)
         }
       } catch (error) {
-        console.error('Error publishing work:', error)
+        console.error('[EDITOR] Error publishing work:', error)
         alert('Failed to publish work. Please try again.')
       }
     } else {
