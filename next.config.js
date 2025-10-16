@@ -38,7 +38,7 @@ const nextConfig = {
   },
   images: {
     domains: [
-      'pub-*.r2.dev', // Cloudflare R2 public image URLs; replace * with your account ID for production
+      'pub-bcdec06776b58a6802e2c3face0f004c.r2.dev', // Cloudflare R2 public image URLs
     ],
   },
 };
