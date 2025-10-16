@@ -55,7 +55,10 @@ export async function GET(request: Request) {
     console.log('[GET /api/creator/works] Querying works for authorId:', author.id)
     
     const works = await prisma.work.findMany({
-      where: { authorId: author.id },
+      where: { 
+        authorId: author.id,
+        status: { not: 'unpublished' } // Exclude drafts/unpublished works from profile blocks
+      },
       select: { 
         id: true, 
         title: true, 
