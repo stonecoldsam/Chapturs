@@ -56,7 +56,25 @@ export async function PUT(request: NextRequest, props: { params: Promise<{ id: s
       )
     }
 
-    if (existingWork.authorId !== session.user.id) {
+    console.log(`Works API: Ownership check - Work authorId: ${existingWork.authorId}, Session userId: ${session.user.id}`)
+    
+    // Get the author ID associated with this user
+    const author = await prisma.author.findUnique({
+      where: { userId: session.user.id }
+    })
+
+    if (!author) {
+      console.error(`Works API: No author profile found for user ${session.user.id}`)
+      return NextResponse.json(
+        { error: 'Author profile not found. Please create an author profile first.' },
+        { status: 403 }
+      )
+    }
+
+    console.log(`Works API: Found author ${author.id} for user ${session.user.id}`)
+
+    if (existingWork.authorId !== author.id) {
+      console.error(`Works API: Ownership mismatch - Work authorId: ${existingWork.authorId}, User authorId: ${author.id}`)
       return NextResponse.json(
         { error: 'Forbidden: You do not own this work' },
         { status: 403 }
