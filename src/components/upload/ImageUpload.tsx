@@ -12,6 +12,7 @@ interface ImageUploadProps {
   currentImage?: string
   onUploadComplete: (image: UploadedImage) => void
   onUploadError?: (error: string) => void
+  onUploadingChange?: (uploading: boolean) => void
   className?: string
   label?: string
   hint?: string
@@ -45,6 +46,7 @@ export default function ImageUpload({
   currentImage,
   onUploadComplete,
   onUploadError,
+  onUploadingChange,
   className = '',
   label,
   hint,
@@ -110,6 +112,7 @@ export default function ImageUpload({
 
     // Start upload
     setUploading(true)
+    if (onUploadingChange) onUploadingChange(true)
 
     try {
       // 1. Request upload URL
@@ -168,6 +171,7 @@ export default function ImageUpload({
 
       setProgress(100)
       setUploading(false)
+      if (onUploadingChange) onUploadingChange(false)
 
       // Callback with result
       onUploadComplete(image)
@@ -178,6 +182,7 @@ export default function ImageUpload({
       }
     } catch (err) {
       setUploading(false)
+      if (onUploadingChange) onUploadingChange(false)
       const errorMessage = err instanceof Error ? err.message : 'Upload failed'
       setError(errorMessage)
       if (onUploadError) {

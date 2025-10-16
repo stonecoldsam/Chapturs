@@ -36,6 +36,11 @@ const nextConfig = {
   async rewrites() {
     return [];
   },
+  images: {
+    domains: [
+      'pub-*.r2.dev', // Cloudflare R2 public image URLs; replace * with your account ID for production
+    ],
+  },
 };
 
 module.exports = nextConfig;
