@@ -115,6 +115,48 @@ export default function ImageUpload({
     if (onUploadingChange) onUploadingChange(true)
 
     try {
+      // Use direct server-side upload for cover images
+      if (entityType === 'cover') {
+        setProgress(20)
+        const formData = new FormData()
+        formData.append('file', file)
+        
+        const uploadRes = await fetch('/api/upload/cover', {
+          method: 'POST',
+          body: formData,
+        })
+
+        if (!uploadRes.ok) {
+          const errorData = await uploadRes.json()
+          throw new Error(errorData.error || 'Failed to upload cover')
+        }
+
+        const result = await uploadRes.json()
+        setProgress(100)
+        setUploading(false)
+        if (onUploadingChange) onUploadingChange(false)
+
+        // Call with the optimized URL as the primary image
+        onUploadComplete({
+          id: 'temp-' + Date.now(),
+          urls: {
+            original: result.data.original,
+            thumbnail: result.data.thumbnail,
+            optimized: result.data.optimized,
+          },
+          metadata: {
+            width: 0,
+            height: 0,
+            size: file.size,
+            savedBytes: 0,
+          },
+          status: 'uploaded',
+          needsReview: false,
+        })
+        return
+      }
+
+      // Original presigned URL flow for other entity types
       // 1. Request upload URL
       setProgress(10)
       const requestRes = await fetch('/api/upload/request', {
