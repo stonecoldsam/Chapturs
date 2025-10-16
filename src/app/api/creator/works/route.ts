@@ -93,7 +93,7 @@ export async function GET(request: Request) {
         title: work.title,
         coverImage: work.coverImage,
         status: work.status || 'Ongoing',
-        genres: work.genres || [],
+        genres: typeof work.genres === 'string' ? JSON.parse(work.genres || '[]') : (work.genres || []),
         _count: {
           chapters: work._count.sections,
           glossaryTerms: work._count.glossaryEntries,
