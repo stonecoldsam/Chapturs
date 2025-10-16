@@ -110,49 +110,21 @@ export async function PUT(request: NextRequest, props: { params: Promise<{ id: s
 
     console.log(`Works API: Prepared update data:`, JSON.stringify(updateData, null, 2))
 
-    // Update work
+    // Update work - keep it simple, just update the fields
     const updatedWork = await prisma.work.update({
       where: { id },
-      data: updateData,
-      include: {
-        author: {
-          select: {
-            id: true,
-            userId: true,
-            verified: true,
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                image: true
-              }
-            }
-          }
-        },
-        sections: {
-          select: {
-            id: true,
-            title: true,
-            createdAt: true
-          },
-          orderBy: {
-            createdAt: 'asc'
-          }
-        },
-        _count: {
-          select: {
-            sections: true,
-            likes: true
-          }
-        }
-      }
+      data: updateData
     })
 
     console.log(`Works API: Successfully updated work: ${updatedWork.title}`)
     return NextResponse.json({
       success: true,
-      work: updatedWork,
+      work: {
+        id: updatedWork.id,
+        title: updatedWork.title,
+        status: updatedWork.status,
+        coverImage: updatedWork.coverImage
+      },
       message: 'Work updated successfully'
     })
 
