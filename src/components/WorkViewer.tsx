@@ -6,6 +6,7 @@ import { Work, ContentFormat } from '@/types'
 import { getFormatIcon, mockChapters } from '@/lib/mockData'
 import { BookmarkIcon, HeartIcon, EyeIcon, StarIcon, ShareIcon, PlayIcon } from '@heroicons/react/24/outline'
 import { BookmarkIcon as BookmarkSolidIcon, HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid'
+import { resolveCoverSrc } from '@/lib/images'
 import CommentSection from './CommentSection'
 import { useUser } from '@/hooks/useUser'
 
@@ -77,8 +78,17 @@ export default function WorkViewer({
     <div className="max-w-6xl mx-auto bg-white dark:bg-gray-900">
       {/* Header */}
       <div className="relative">
-        {/* Cover Image */}
-        <div className="h-64 bg-gradient-to-br from-blue-500 via-purple-600 to-pink-500 relative">
+        {/* Cover Image / Header Background */}
+        <div className="h-64 relative">
+          {work.coverImage ? (
+            <img
+              src={resolveCoverSrc(work.id, work.coverImage)}
+              alt={work.title}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-purple-600 to-pink-500" />
+          )}
           <div className="absolute inset-0 bg-black/30" />
           <div className="absolute bottom-4 left-4 text-white">
             <div className="flex items-center gap-2 mb-2">

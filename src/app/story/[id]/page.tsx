@@ -18,6 +18,7 @@ import {
   HeartIcon as HeartSolid
 } from '@heroicons/react/24/solid'
 import Image from 'next/image'
+import { resolveCoverSrc } from '@/lib/images'
 
 export default function StoryPage() {
   const params = useParams()
@@ -216,12 +217,20 @@ export default function StoryPage() {
             <div className="flex flex-col lg:flex-row gap-6">
               {/* Story Cover */}
               <div className="flex-shrink-0">
-                <div className="w-48 h-64 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                  <div className="text-white text-center">
-                    <div className="text-4xl mb-2">📚</div>
-                    <div className="text-sm font-medium">Cover Image</div>
+                {story.coverImage ? (
+                  <img
+                    src={resolveCoverSrc(story.id, story.coverImage)}
+                    alt={story.title}
+                    className="w-48 h-64 rounded-lg object-cover shadow-md"
+                  />
+                ) : (
+                  <div className="w-48 h-64 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                    <div className="text-white text-center">
+                      <div className="text-4xl mb-2">📚</div>
+                      <div className="text-sm font-medium">Cover Image</div>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Story Info */}
