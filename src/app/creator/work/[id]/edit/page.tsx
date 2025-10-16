@@ -58,6 +58,7 @@ export default function EditWorkPage() {
   const handleSave = async () => {
     try {
       setSaving(true)
+      console.log('Saving work with formData:', formData)
       const response = await fetch(`/api/works/${workId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -65,10 +66,13 @@ export default function EditWorkPage() {
       })
 
       if (response.ok) {
+        const result = await response.json()
+        console.log('Save successful:', result)
         alert('Work updated successfully!')
         router.push('/creator/works')
       } else {
         const error = await response.json()
+        console.error('Save failed:', error)
         alert(`Failed to update work: ${error.error}`)
       }
     } catch (error) {
