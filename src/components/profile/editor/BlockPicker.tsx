@@ -2,6 +2,7 @@
 
 import { getAllBlockTypes } from '../blocks'
 import { PlusIcon } from '@heroicons/react/24/outline'
+import { resolveCoverSrc } from '@/lib/images'
 
 interface BlockPickerProps {
   onAddBlock: (blockType: string) => void
@@ -52,7 +53,7 @@ export default function BlockPicker({ onAddBlock, availableWorks = [], onQuickAd
               >
                 <div className="aspect-[3/4] w-full bg-gray-800 flex items-center justify-center overflow-hidden">
                   {work.coverImage ? (
-                    <img src={work.coverImage} alt={work.title} className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform" />
+                    <img src={resolveCoverSrc(work.id, work.coverImage)} alt={work.title} className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform" />
                   ) : (
                     <div className="text-gray-600 text-sm">No Cover</div>
                   )}

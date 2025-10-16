@@ -6,7 +6,8 @@
 
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
+import { resolveCoverSrc } from '@/lib/images'
 import { 
   Heart, 
   Search, 
@@ -298,7 +299,7 @@ export default function CreatorRecommendationSetup({
                 <div className="flex items-center space-x-4">
                   {work.coverImage ? (
                     <img 
-                      src={work.coverImage} 
+                      src={resolveCoverSrc(work.id, work.coverImage)} 
                       alt={work.title}
                       className="w-12 h-16 object-cover rounded"
                     />

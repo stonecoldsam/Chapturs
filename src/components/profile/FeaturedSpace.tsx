@@ -2,6 +2,7 @@
 
 import { BookOpenIcon, PencilIcon } from '@heroicons/react/24/outline'
 import { getBlockComponent } from '@/components/profile/blocks'
+import { resolveCoverSrc } from '@/lib/images'
 
 interface FeaturedSpaceProps {
   type: 'work' | 'block' | 'none'
@@ -78,7 +79,7 @@ export default function FeaturedSpace({
         <div className="aspect-[3/4] rounded-lg overflow-hidden bg-gray-800 border border-gray-700 mb-4">
           {workData.coverImage ? (
             <img
-              src={workData.coverImage}
+              src={resolveCoverSrc(workData.id, workData.coverImage)}
               alt={workData.title}
               className="w-full h-full object-cover"
             />

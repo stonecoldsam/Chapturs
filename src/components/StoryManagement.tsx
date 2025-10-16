@@ -18,6 +18,7 @@ import {
   Plus
 } from 'lucide-react'
 import Link from 'next/link'
+import { resolveCoverSrc } from '@/lib/images'
 import QualityCelebration from './QualityCelebration'
 
 interface Work {
@@ -328,7 +329,7 @@ export default function StoryManagement() {
                 <div className="relative h-48 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800">
                   {work.coverImage ? (
                     <img 
-                      src={work.coverImage} 
+                      src={resolveCoverSrc(work.id, work.coverImage)} 
                       alt={work.title}
                       className="w-full h-full object-cover"
                     />

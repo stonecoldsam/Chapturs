@@ -1,3 +1,4 @@
+import { resolveCoverSrc } from '@/lib/images'
 'use client'
 
 import { useUser } from '@/hooks/useUser'
@@ -141,7 +142,7 @@ export default function CreatorGlossaryPage() {
                 {work.coverImage ? (
                   <div className="aspect-[3/4] bg-gray-100 dark:bg-gray-900 overflow-hidden">
                     <img
-                      src={work.coverImage}
+                      src={resolveCoverSrc(work.id, work.coverImage)}
                       alt={work.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                     />

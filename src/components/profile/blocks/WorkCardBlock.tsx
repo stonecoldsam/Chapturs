@@ -2,6 +2,7 @@
 
 import { BookOpenIcon } from '@heroicons/react/24/outline'
 import BaseBlock from './BaseBlock'
+import { resolveCoverSrc } from '@/lib/images'
 
 interface WorkCardBlockData {
   workId: string
@@ -54,7 +55,7 @@ export default function WorkCardBlock({
         <div className="aspect-[3/4] relative overflow-hidden bg-gray-900">
           {data.coverImage ? (
             <img
-              src={data.coverImage}
+              src={resolveCoverSrc(data.workId, data.coverImage)}
               alt={data.title}
               className="w-full h-full object-cover group-hover/card:scale-105 transition-transform duration-300"
             />

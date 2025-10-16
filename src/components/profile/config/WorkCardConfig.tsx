@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { resolveCoverSrc } from '@/lib/images'
 import Modal from '@/components/ui/Modal'
 
 interface WorkCardConfigProps {
@@ -76,7 +77,7 @@ export default function WorkCardConfig({
             <div className="flex items-start gap-3">
               {selectedWork.coverImage && (
                 <img
-                  src={selectedWork.coverImage}
+                  src={resolveCoverSrc(selectedWork.id, selectedWork.coverImage)}
                   alt={selectedWork.title}
                   className="w-16 h-20 object-cover rounded"
                 />
