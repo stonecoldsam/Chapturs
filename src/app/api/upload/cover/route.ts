@@ -7,11 +7,13 @@ import {
   requireAuth,
   addCorsHeaders
 } from '@/lib/api/errorHandling'
-import { r2Client, generateStorageKey, getR2PublicUrl } from '@/lib/r2'
-import { PutObjectCommand } from '@aws-sdk/client-s3'
+import { generateStorageKey, getR2PublicUrl } from '@/lib/r2'
 import { v4 as uuidv4 } from 'uuid'
 import sharp from 'sharp'
 
+const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID
+const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID
+const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME
 
 // POST /api/upload/cover - Upload cover image server-side
@@ -55,53 +57,30 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
     
-    // Generate unique ID and storage key
-    const imageId = uuidv4()
-    const storageKey = generateStorageKey('cover', file.name, imageId)
+      // For now, return base64 data URLs since R2 upload has SSL/TLS compatibility issues with Node.js
+      // TODO: Fix R2 configuration or implement proper AWS Signature V4 signing
     
-    // Upload original to R2
-    await r2Client.send(new PutObjectCommand({
-      Bucket: R2_BUCKET_NAME,
-      Key: storageKey,
-      Body: buffer,
-      ContentType: file.type,
-    }))
-    
-    // Generate optimized version
+      // Generate optimized version  
     const optimized = await sharp(buffer)
       .webp({ quality: 85 })
       .resize(800, 1200, { fit: 'inside', withoutEnlargement: true })
       .toBuffer()
     
-    const optimizedKey = storageKey.replace(/\.[^.]+$/, '-optimized.webp')
-    await r2Client.send(new PutObjectCommand({
-      Bucket: R2_BUCKET_NAME,
-      Key: optimizedKey,
-      Body: optimized,
-      ContentType: 'image/webp',
-    }))
-    
-    // Generate thumbnail
+      // Generate thumbnail
     const thumbnail = await sharp(buffer)
       .webp({ quality: 70 })
       .resize(200, 300, { fit: 'cover' })
       .toBuffer()
     
-    const thumbnailKey = storageKey.replace(/\.[^.]+$/, '-thumbnail.webp')
-    await r2Client.send(new PutObjectCommand({
-      Bucket: R2_BUCKET_NAME,
-      Key: thumbnailKey,
-      Body: thumbnail,
-      ContentType: 'image/webp',
-    }))
-    
-    // Get public URL
-    const publicUrl = getR2PublicUrl()
+      // Return data URLs for now (works without R2)
+      const optimizedBase64 = optimized.toString('base64')
+      const thumbnailBase64 = thumbnail.toString('base64')
+      const originalBase64 = buffer.toString('base64')
     
     const response = createSuccessResponse({
-      original: `${publicUrl}/${storageKey}`,
-      optimized: `${publicUrl}/${optimizedKey}`,
-      thumbnail: `${publicUrl}/${thumbnailKey}`,
+        original: `data:image/webp;base64,${originalBase64}`,
+        optimized: `data:image/webp;base64,${optimizedBase64}`,
+        thumbnail: `data:image/webp;base64,${thumbnailBase64}`,
       filename: file.name,
       size: file.size,
       type: file.type
