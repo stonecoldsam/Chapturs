@@ -95,19 +95,25 @@ export async function PUT(request: NextRequest, props: { params: Promise<{ id: s
 
     console.log(`Works API: Updating work with data:`, { title, status, genres, tags })
 
+    // Prepare update data
+    const updateData: any = {
+      updatedAt: new Date()
+    }
+    
+    if (title) updateData.title = title
+    if (description !== undefined) updateData.description = description
+    if (genres) updateData.genres = JSON.stringify(genres)
+    if (tags) updateData.tags = JSON.stringify(tags)
+    if (maturityRating) updateData.maturityRating = maturityRating
+    if (status) updateData.status = status
+    if (coverImage !== undefined) updateData.coverImage = coverImage
+
+    console.log(`Works API: Prepared update data:`, JSON.stringify(updateData, null, 2))
+
     // Update work
     const updatedWork = await prisma.work.update({
       where: { id },
-      data: {
-        ...(title && { title }),
-        ...(description !== undefined && { description }),
-        ...(genres && { genres: JSON.stringify(genres) }),
-        ...(tags && { tags: JSON.stringify(tags) }),
-        ...(maturityRating && { maturityRating }),
-        ...(status && { status }),
-        ...(coverImage !== undefined && { coverImage }),
-        updatedAt: new Date()
-      },
+      data: updateData,
       include: {
         author: {
           select: {
@@ -152,8 +158,13 @@ export async function PUT(request: NextRequest, props: { params: Promise<{ id: s
 
   } catch (error) {
     console.error('Works API PUT Error:', error)
+    console.error('Works API PUT Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+    console.error('Works API PUT Error message:', error instanceof Error ? error.message : String(error))
     return NextResponse.json(
-      { error: 'Failed to update work' },
+      { 
+        error: 'Failed to update work',
+        details: error instanceof Error ? error.message : String(error)
+      },
       { status: 500 }
     )
   }
