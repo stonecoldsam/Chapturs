@@ -37,8 +37,19 @@ const nextConfig = {
     return [];
   },
   images: {
-    domains: [
-      'pub-bcdec06776b58a6802e2c3face0f004c.r2.dev', // Cloudflare R2 public image URLs
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'source.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'pub-505fbfcdba444803a75ae90dd308aa04.r2.dev', // Cloudflare R2 public image URLs
+      },
     ],
   },
 };
