@@ -112,9 +112,16 @@ export async function PUT(request: NextRequest, props: { params: Promise<{ id: s
         author: {
           select: {
             id: true,
-            name: true,
-            email: true,
-            image: true
+            userId: true,
+            verified: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                image: true
+              }
+            }
           }
         },
         sections: {
