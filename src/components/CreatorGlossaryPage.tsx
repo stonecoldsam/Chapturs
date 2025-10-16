@@ -1,5 +1,6 @@
-import { resolveCoverSrc } from '@/lib/images'
 'use client'
+
+import { resolveCoverSrc } from '@/lib/images'
 
 import { useUser } from '@/hooks/useUser'
 import { useState, useEffect } from 'react'
