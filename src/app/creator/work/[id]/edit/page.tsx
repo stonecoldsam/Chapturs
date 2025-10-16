@@ -166,8 +166,11 @@ export default function EditWorkPage() {
               onUploadComplete={(image) => {
                  console.log('[Edit Page] Image upload complete:', image)
                  console.log('[Edit Page] Setting coverImage to:', image.urls.optimized)
-                setFormData({ ...formData, coverImage: image.urls.optimized })
-                 console.log('[Edit Page] Updated formData:', { ...formData, coverImage: image.urls.optimized })
+                 setFormData((prev) => {
+                   const updated = { ...prev, coverImage: image.urls.optimized }
+                   console.log('[Edit Page] Updated formData:', updated)
+                   return updated
+                 })
               }}
               onUploadError={(error) => {
                 console.error('Cover upload error:', error)
