@@ -6,6 +6,7 @@ import { AuthProvider } from '@/components/AuthProvider'
 import UsernameGuard from '@/components/auth/UsernameGuard'
 import { validateEnvironment } from '@/lib/config'
 import { SpeedInsights } from "@vercel/speed-insights/next"
+import { Analytics } from '@vercel/analytics/react'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -33,6 +34,7 @@ export default async function RootLayout({
           </UsernameGuard>
         </AuthProvider>
         <SpeedInsights />
+        <Analytics />
       </body>
     </html>
   )
