@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '../../../../../../../auth'
 import DatabaseService, { prisma } from '../../../../../../lib/database/PrismaService'
+import { assessWorkSynchronously } from '@/lib/quality-assessment/assessment-sync'
 
 interface RouteParams {
   params: Promise<{
@@ -57,9 +58,26 @@ export async function PATCH(request: NextRequest, props: RouteParams) {
       }
     })
 
+    // If section is being published, run quality assessment
+    let assessment = null
+    let rateLimited = false
+    if (status === 'published') {
+      console.log('[SECTIONS] Section being published, running assessment for:', { workId, sectionId })
+      try {
+        assessment = await assessWorkSynchronously(workId, sectionId)
+        console.log('[SECTIONS] Assessment result:', assessment)
+        rateLimited = assessment.rateLimited || false
+      } catch (assessmentError) {
+        console.error('[SECTIONS] Assessment error:', assessmentError)
+        // Don't fail the publish if assessment fails - log it and continue
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      section: updatedSection
+      section: updatedSection,
+      ...(assessment && { assessment }),
+      ...(rateLimited && { rateLimited: true })
     })
 
   } catch (error) {

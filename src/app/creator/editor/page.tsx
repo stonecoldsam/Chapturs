@@ -816,26 +816,19 @@ export default function CreatorEditorPage() {
                         )
                       }
 
-                      // Queue quality assessment for the published chapter
-                      if (result.section?.id) {
-                        try {
-                          await fetch('/api/quality-assessment/queue', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              workId: workId,
-                              sectionId: result.section.id,
-                              priority: 'normal'
-                            })
-                          })
-                          console.log('Quality assessment queued for chapter:', result.section.id)
-                        } catch (error) {
-                          console.error('Failed to queue quality assessment:', error)
-                          // Non-critical, don't block publish flow
+                      // Build success message with assessment info if available
+                      let successMessage = 'Chapter published successfully!'
+                      if (result.assessment?.success) {
+                        const { tier, score, feedback } = result.assessment
+                        successMessage += `\n\n✨ Quality Assessment Complete\nTier: ${tier}\nScore: ${score}/100`
+                        if (feedback) {
+                          successMessage += `\nFeedback: ${feedback}`
                         }
+                      } else if (result.rateLimited) {
+                        successMessage += '\n\n⏱️ Quality assessment queued for later (rate limited)'
                       }
 
-                      alert('Chapter published successfully!')
+                      alert(successMessage)
                       // Redirect to the published work story page (has proper navigation)
                       window.location.href = `/story/${workId}`
                     } else {
