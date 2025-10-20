@@ -110,9 +110,6 @@ export async function processNextInQueue(): Promise<QualityAssessmentResult | nu
   })
 
   try {
-    // ... existing code ...
-
-    try {
     // Fetch work and section content
     const section = await prisma.section.findUnique({
       where: { id: queueItem.sectionId },
