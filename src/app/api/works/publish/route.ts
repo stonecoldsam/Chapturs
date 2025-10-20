@@ -14,6 +14,7 @@ import {
 } from '@/lib/api/errorHandling'
 import { z } from 'zod'
 import { ContentValidationService } from '@/lib/ContentValidationService'
+import { assessWorkSynchronously } from '@/lib/quality-assessment/assessment-sync'
 
 // use shared prisma instance from PrismaService
 
@@ -234,18 +235,40 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    // Run quality assessment synchronously (after publish is confirmed)
+    console.log('[PUBLISH] Running quality assessment...')
+    const assessmentResult = await assessWorkSynchronously(draftId, publishedWork.sections[0]?.id)
+    
+    if (assessmentResult.success && assessmentResult.assessment) {
+      console.log('[PUBLISH] Assessment completed:', {
+        tier: assessmentResult.assessment.qualityTier,
+        score: assessmentResult.assessment.overallScore,
+      })
+    } else if (assessmentResult.rateLimited) {
+      console.warn('[PUBLISH] Assessment rate-limited, will retry later:', assessmentResult.message)
+    } else {
+      console.error('[PUBLISH] Assessment failed:', assessmentResult.message)
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Work published successfully!',
       workId: publishedWork.id,
       firstSectionId: publishedWork.sections[0]?.id,
-      status: 'published' // In production: 'pending_review'
+      status: 'published', // In production: 'pending_review'
+      assessment: {
+        completed: assessmentResult.success,
+        rateLimited: assessmentResult.rateLimited,
+        tier: assessmentResult.assessment?.qualityTier,
+        score: assessmentResult.assessment?.overallScore,
+        message: assessmentResult.message,
+      }
     })
 
   } catch (error) {
-    console.error('Work publish error:', error)
+    console.error('[PUBLISH] Work publish error:', error)
     return NextResponse.json(
-      { error: 'Failed to publish work' },
+      { error: 'Failed to publish work', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }

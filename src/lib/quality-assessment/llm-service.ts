@@ -16,12 +16,60 @@ let groq: OpenAI | null = null
 
 function getGroqClient(): OpenAI {
   if (!groq) {
+    const apiKey = process.env.GROQ_API_KEY
+    if (!apiKey) {
+      console.error('[LLM] GROQ_API_KEY is not set in environment variables')
+      throw new Error('GROQ_API_KEY not configured. Quality assessment cannot proceed.')
+    }
     groq = new OpenAI({
-      apiKey: process.env.GROQ_API_KEY || '',
+      apiKey,
       baseURL: 'https://api.groq.com/openai/v1',
     })
   }
   return groq
+}
+
+// Rate-limit detection and error classification
+export class RateLimitError extends Error {
+  constructor(
+    message: string,
+    public retryAfter: number = 60 * 60 * 24, // Default to 24 hours
+    public isTemporary: boolean = true
+  ) {
+    super(message)
+    this.name = 'RateLimitError'
+  }
+}
+
+function handleGroqError(error: any): never {
+  const status = error?.status || error?.response?.status
+  
+  console.error('[LLM] Groq API error:', {
+    status,
+    message: error?.message,
+    code: error?.code,
+  })
+
+  // Handle rate limit errors (429)
+  if (status === 429) {
+    const retryAfter = error?.response?.headers?.['retry-after']
+    const retrySeconds = retryAfter ? parseInt(retryAfter, 10) : 60 * 60 // 1 hour default
+    console.warn('[LLM] Rate limited by Groq. Retry after:', retrySeconds, 'seconds')
+    throw new RateLimitError(
+      'Groq API rate limit exceeded. Assessment will be retried later.',
+      retrySeconds,
+      true
+    )
+  }
+
+  // Handle authentication errors (401, 403)
+  if (status === 401 || status === 403) {
+    console.error('[LLM] Authentication failed. Check GROQ_API_KEY.')
+    throw new Error('Authentication failed. Invalid GROQ_API_KEY.')
+  }
+
+  // Handle other errors
+  throw new Error(`Groq API error (${status || 'unknown'}): ${error?.message || 'Unknown error'}`)
 }
 
 // Default configuration
@@ -133,6 +181,8 @@ Respond ONLY with valid JSON:
 
 /**
  * Call LLM to assess content quality
+ * Throws RateLimitError if rate-limited (should be queued for retry)
+ * Throws Error for other failures
  */
 export async function assessContentQuality(
   context: AssessmentPromptContext,
@@ -141,6 +191,8 @@ export async function assessContentQuality(
   const startTime = Date.now()
 
   try {
+    console.log('[LLM] Starting assessment for:', context.title)
+    
     // Truncate content if too long
     const truncatedContent = context.content.length > config.maxContentLength
       ? context.content.substring(0, config.maxContentLength) + '\n\n[Content truncated...]'
@@ -150,6 +202,8 @@ export async function assessContentQuality(
 
     // Get Groq client (lazy initialization)
     const groqClient = getGroqClient()
+
+    console.log('[LLM] Calling Groq API with model:', config.model)
 
     // Call Groq API (OpenAI-compatible)
     const response = await groqClient.chat.completions.create({
@@ -167,6 +221,8 @@ export async function assessContentQuality(
         },
       ],
       response_format: { type: 'json_object' },
+    }).catch((error) => {
+      handleGroqError(error) // This throws
     })
 
     const processingTime = Date.now() - startTime
@@ -176,6 +232,8 @@ export async function assessContentQuality(
       throw new Error('No usage data returned from Groq')
     }
 
+    console.log('[LLM] Assessment complete in', processingTime, 'ms. Tokens:', usage.total_tokens)
+
     // Parse response
     const content = response.choices[0]?.message?.content
     if (!content) {
@@ -184,10 +242,17 @@ export async function assessContentQuality(
 
     const parsed = JSON.parse(content)
 
+    // Validate parsed structure
+    if (!parsed.scores || typeof parsed.scores !== 'object') {
+      throw new Error('Invalid scores structure in Groq response')
+    }
+
     // Calculate overall score
     const scores: QualityScores = parsed.scores
     const overallScore = calculateOverallScore(scores, config.weights)
     scores.overallScore = overallScore
+
+    console.log('[LLM] Assessment result - Overall score:', overallScore, 'Tier:', parsed.qualityTier)
 
     // Return structured response
     return {
@@ -200,7 +265,11 @@ export async function assessContentQuality(
       tokenCount: usage.total_tokens,
     }
   } catch (error) {
-    console.error('LLM assessment error:', error)
+    if (error instanceof RateLimitError) {
+      console.warn('[LLM] Rate limit error - will retry later')
+      throw error
+    }
+    console.error('[LLM] Assessment failed:', error)
     throw new Error(`Failed to assess content quality: ${error instanceof Error ? error.message : 'Unknown error'}`)
   }
 }

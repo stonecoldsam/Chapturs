@@ -921,6 +921,7 @@ model QualityAssessmentQueue {
   attempts    Int       @default(0)
   lastAttempt DateTime?
   completedAt DateTime?
+  retryAfter  DateTime? // When to retry if rate-limited
   error       String? // Error message if failed
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -929,6 +930,7 @@ model QualityAssessmentQueue {
   @@index([status])
   @@index([priority])
   @@index([createdAt])
+  @@index([retryAfter])
   @@map("quality_assessment_queue")
 }
 

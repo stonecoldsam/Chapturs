@@ -75,14 +75,19 @@ export async function queueForAssessment(
 }
 
 /**
- * Process next item in queue
+ * Process next item in queue (respects rate-limit retry times)
  */
 export async function processNextInQueue(): Promise<QualityAssessmentResult | null> {
-  // Get next queued item (prioritize by: high > normal > low, then oldest first)
+  // Get next queued item (prioritize by: high > normal > low, then oldest first, but skip if retryAfter is in future)
+  const now = new Date()
   const queueItem = await prisma.qualityAssessmentQueue.findFirst({
     where: {
       status: 'queued',
       attempts: { lt: 3 }, // Max 3 attempts
+      OR: [
+        { retryAfter: null },
+        { retryAfter: { lte: now } }, // Only items that are ready for retry
+      ],
     },
     orderBy: [
       { priority: 'desc' },
@@ -105,13 +110,21 @@ export async function processNextInQueue(): Promise<QualityAssessmentResult | nu
   })
 
   try {
+    // ... existing code ...
+
+    try {
     // Fetch work and section content
     const section = await prisma.section.findUnique({
       where: { id: queueItem.sectionId },
       include: {
         work: {
-          include: {
-            author: true,
+          select: {
+            id: true,
+            title: true,
+            genres: true,
+            tags: true,
+            formatType: true,
+            maturityRating: true,
           },
         },
       },
@@ -121,15 +134,14 @@ export async function processNextInQueue(): Promise<QualityAssessmentResult | nu
       throw new Error('Section not found')
     }
 
-    // Parse content from .chapt format
-    const chaptDoc = JSON.parse(section.content)
-    const textContent = extractTextFromChaptDoc(chaptDoc)
+    // Extract text from Chapt format
+    const textContent = extractTextFromChaptDoc(section.content)
 
     // Build context for LLM
     const context: AssessmentPromptContext = {
       title: section.work.title,
-      genres: JSON.parse(section.work.genres || '[]'),
-      tags: JSON.parse(section.work.tags || '[]'),
+      genres: section.work.genres ? JSON.parse(section.work.genres) : [],
+      tags: section.work.tags ? JSON.parse(section.work.tags) : [],
       formatType: section.work.formatType,
       maturityRating: section.work.maturityRating,
       wordCount: section.wordCount || 0,
@@ -143,7 +155,7 @@ export async function processNextInQueue(): Promise<QualityAssessmentResult | nu
     const tier = determineQualityTier(llmResponse.scores.overallScore, DEFAULT_ASSESSMENT_CONFIG.boostThresholds)
     const boostMultiplier = getBoostMultiplier(tier, DEFAULT_ASSESSMENT_CONFIG.boostMultipliers)
     const boostExpiry = calculateBoostExpiry(DEFAULT_ASSESSMENT_CONFIG.boostDurationDays)
-    const boostReason = generateBoostReason(tier, llmResponse.scores.overallScore, llmResponse.analysis.strengths)
+    const boostReason = generateBoostReason(tier, llmResponse.scores.overallScore)
 
     // Save assessment
     const assessment = await prisma.qualityAssessment.upsert({
@@ -164,13 +176,8 @@ export async function processNextInQueue(): Promise<QualityAssessmentResult | nu
         engagement: llmResponse.scores.engagement,
         originality: llmResponse.scores.originality,
         qualityTier: tier,
-        genreFit: llmResponse.classification.genreFit,
-        targetAudience: llmResponse.classification.targetAudience,
-        strengths: JSON.stringify(llmResponse.analysis.strengths),
-        weaknesses: JSON.stringify(llmResponse.analysis.weaknesses),
-        recommendations: JSON.stringify(llmResponse.analysis.recommendations),
-        summary: llmResponse.analysis.summary,
-        keyInsights: JSON.stringify(llmResponse.analysis.keyInsights || []),
+        discoveryTags: JSON.stringify(llmResponse.discoveryTags),
+        feedbackMessage: llmResponse.feedbackMessage,
         boostMultiplier,
         boostExpiry,
         boostReason,
@@ -189,13 +196,8 @@ export async function processNextInQueue(): Promise<QualityAssessmentResult | nu
         engagement: llmResponse.scores.engagement,
         originality: llmResponse.scores.originality,
         qualityTier: tier,
-        genreFit: llmResponse.classification.genreFit,
-        targetAudience: llmResponse.classification.targetAudience,
-        strengths: JSON.stringify(llmResponse.analysis.strengths),
-        weaknesses: JSON.stringify(llmResponse.analysis.weaknesses),
-        recommendations: JSON.stringify(llmResponse.analysis.recommendations),
-        summary: llmResponse.analysis.summary,
-        keyInsights: JSON.stringify(llmResponse.analysis.keyInsights || []),
+        discoveryTags: JSON.stringify(llmResponse.discoveryTags),
+        feedbackMessage: llmResponse.feedbackMessage,
         boostMultiplier,
         boostExpiry,
         boostReason,

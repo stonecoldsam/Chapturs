@@ -447,29 +447,18 @@ export default function CreatorEditorPage() {
               return
             }
 
-          // Queue quality assessment for first chapter (non-blocking)
-          if (result.workId && result.firstSectionId) {
-            try {
-              console.log('[EDITOR] Queueing quality assessment...')
-              await fetch('/api/quality-assessment/queue', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  workId: result.workId,
-                  sectionId: result.firstSectionId,
-                  priority: 'normal'
-                })
-              })
-              console.log('[EDITOR] Quality assessment queued successfully')
-            } catch (error) {
-              console.error('[EDITOR] Failed to queue quality assessment:', error)
-              // Non-critical, don't block publish flow
-            }
+          // Build success message with assessment info if available
+          let successMessage = 'Work published successfully!'
+          if (result.assessment?.completed) {
+            successMessage += ` Quality assessment complete: ${result.assessment.tier} (${result.assessment.score}/100)`
+          } else if (result.assessment?.rateLimited) {
+            successMessage += ` ${result.assessment.message}`
           }
 
-          // Normal success path
+          alert(successMessage)
+          
+          // No need to manually queue - assessment already ran synchronously during publish
           console.log('[EDITOR] Redirecting to story page:', result.workId)
-          alert('Work submitted for review! It will appear in the library once approved.')
           // Redirect to the published work story page (has proper navigation)
           window.location.href = `/story/${result.workId}`
         } else {
