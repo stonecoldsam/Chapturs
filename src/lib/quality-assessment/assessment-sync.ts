@@ -9,6 +9,7 @@ import { DEFAULT_ASSESSMENT_CONFIG } from './llm-service'
 
 /**
  * Extract text content from Chapt document format
+ * Handles all block types: prose, dialogue, chat, phone, narration, heading
  */
 function extractTextFromChaptDoc(chaptDoc: any): string {
   if (typeof chaptDoc === 'string') {
@@ -19,19 +20,74 @@ function extractTextFromChaptDoc(chaptDoc: any): string {
     }
   }
 
-  if (!chaptDoc || !chaptDoc.blocks) {
+  // Handle both "blocks" and "content" array formats
+  const blocks = chaptDoc?.blocks || chaptDoc?.content || []
+  
+  if (!Array.isArray(blocks)) {
+    console.log('[EXTRACT] Blocks is not an array:', typeof blocks)
     return ''
   }
 
-  return chaptDoc.blocks
-    .map((block: any) => {
-      if (block.type === 'prose' && block.content?.text) {
-        return block.content.text
+  console.log('[EXTRACT] Processing', blocks.length, 'blocks')
+
+  return blocks
+    .map((block: any, idx: number) => {
+      if (!block) return ''
+
+      let text = ''
+
+      switch (block.type) {
+        // Direct text fields
+        case 'prose':
+        case 'narration':
+        case 'heading':
+          text = block.text || ''
+          break
+
+        // Dialogue: extract speaker + text
+        case 'dialogue':
+          if (Array.isArray(block.lines)) {
+            text = block.lines
+              .map((line: any) => {
+                const speaker = line.speaker ? `${line.speaker}: ` : ''
+                return speaker + (line.text || '')
+              })
+              .join('\n')
+          }
+          break
+
+        // Chat messages
+        case 'chat':
+          if (Array.isArray(block.messages)) {
+            text = block.messages
+              .map((msg: any) => `${msg.user}: ${msg.text}`)
+              .join('\n')
+          }
+          break
+
+        // Phone messages (same structure as chat)
+        case 'phone':
+          if (Array.isArray(block.content)) {
+            text = block.content
+              .map((msg: any) => `${msg.user}: ${msg.text}`)
+              .join('\n')
+          }
+          break
+
+        // Image and divider don't have text content
+        case 'image':
+        case 'divider':
+          text = ''
+          break
+
+        default:
+          text = ''
       }
-      if (block.content?.text) {
-        return block.content.text
+
+      if (text) {
+        console.log(`[EXTRACT] Block ${idx} (${block.type}): ${text.length} chars`)
       }
-      return ''
+      return text
     })
     .filter((text: string) => text)
     .join('\n\n')
@@ -74,10 +130,19 @@ export async function assessWorkSynchronously(
       throw new Error('Section not found')
     }
 
+    console.log('[ASSESS_SYNC] Section content type:', typeof section.content)
+    console.log('[ASSESS_SYNC] Section content sample:', section.content ? JSON.stringify(section.content).substring(0, 500) : 'null')
+
     // Extract text from Chapt format
     const textContent = extractTextFromChaptDoc(section.content)
 
+    console.log('[ASSESS_SYNC] Extracted text length:', textContent.length, 'chars')
+    if (textContent.length > 0) {
+      console.log('[ASSESS_SYNC] Extracted text sample:', textContent.substring(0, 200))
+    }
+
     if (!textContent || textContent.trim().length < 100) {
+      console.log('[ASSESS_SYNC] Content too short! Length:', textContent.trim().length, '(minimum 100)')
       throw new Error('Content too short to assess')
     }
 
