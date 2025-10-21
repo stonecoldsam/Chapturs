@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/database/PrismaService'
 
 export async function GET(
   request: NextRequest,
@@ -58,7 +58,7 @@ export async function GET(
     }
 
     // Format response
-    const formattedTranslations = translations.map((t) => ({
+    const formattedTranslations = translations.map((t: any) => ({
       id: t.id,
       tier: t.tier,
       title: t.translatedTitle,

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { getServerSession } from 'next-auth'
+import { prisma } from '@/lib/database/PrismaService'
+import { auth } from '@/auth'
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession()
+    const session = await auth()
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -89,11 +89,11 @@ export async function POST(request: NextRequest) {
 
     const totalVotes = votes.length
     const readabilityAvg =
-      votes.reduce((sum, v) => sum + v.readabilityRating, 0) / totalVotes
+      votes.reduce((sum: number, v: any) => sum + v.readabilityRating, 0) / totalVotes
     const comprehensionAvg =
-      votes.reduce((sum, v) => sum + v.comprehensionRating, 0) / totalVotes
+      votes.reduce((sum: number, v: any) => sum + v.comprehensionRating, 0) / totalVotes
     const polishAvg =
-      votes.reduce((sum, v) => sum + v.polishRating, 0) / totalVotes
+      votes.reduce((sum: number, v: any) => sum + v.polishRating, 0) / totalVotes
     const qualityOverall = (readabilityAvg + comprehensionAvg + polishAvg) / 3
 
     // Update content with new averages

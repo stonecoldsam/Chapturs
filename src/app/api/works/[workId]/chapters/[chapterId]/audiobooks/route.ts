@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/database/PrismaService'
 
 export async function GET(
   request: NextRequest,
@@ -45,7 +45,7 @@ export async function GET(
     const currentDefault = section?.defaultAudiobookId || audiobooks[0]?.id || null
 
     // Format response
-    const formattedAudiobooks = audiobooks.map((a) => ({
+    const formattedAudiobooks = audiobooks.map((a: any) => ({
       id: a.id,
       tier: a.tier,
       narratorName:

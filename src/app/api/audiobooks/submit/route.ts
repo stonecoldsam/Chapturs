@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { getServerSession } from 'next-auth'
+import { prisma } from '@/lib/database/PrismaService'
+import { auth } from '@/auth'
 import { uploadToR2, generateStorageKey } from '@/lib/r2'
 import { v4 as uuidv4 } from 'uuid'
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession()
+    const session = await auth()
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

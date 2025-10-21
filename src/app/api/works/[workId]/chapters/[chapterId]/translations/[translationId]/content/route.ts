@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { getServerSession } from 'next-auth'
+import { prisma } from '@/lib/database/PrismaService'
+import { auth } from '@/auth'
 
 export async function GET(
   request: NextRequest,
@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     const { translationId } = await params
-    const session = await getServerSession()
+    const session = await auth()
 
     // Fetch translation with content
     const translation = await prisma.fanTranslation.findUnique({
