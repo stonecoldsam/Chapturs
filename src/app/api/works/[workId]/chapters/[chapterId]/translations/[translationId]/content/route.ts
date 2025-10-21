@@ -4,10 +4,10 @@ import { getServerSession } from 'next-auth'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { workId: string; chapterId: string; translationId: string } }
+  { params }: { params: Promise<{ workId: string; chapterId: string; translationId: string }> }
 ) {
   try {
-    const { translationId } = params
+    const { translationId } = await params
     const session = await getServerSession()
 
     // Fetch translation with content

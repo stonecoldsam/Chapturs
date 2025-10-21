@@ -4,7 +4,7 @@ import { getServerSession } from 'next-auth'
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { dealId: string } }
+  { params }: { params: Promise<{ dealId: string }> }
 ) {
   try {
     const session = await getServerSession()
@@ -12,7 +12,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { dealId } = params
+    const { dealId } = await params
     const body = await request.json()
     const { action, rejectionReason } = body
 

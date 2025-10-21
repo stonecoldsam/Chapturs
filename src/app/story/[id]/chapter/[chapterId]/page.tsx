@@ -4,20 +4,15 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import AppLayout from '@/components/AppLayout'
 import ChapterBlockRenderer from '@/components/ChapterBlockRenderer'
+import ChapterTopBar from '@/components/ChapterTopBar'
+import StickyAudioScrubber from '@/components/StickyAudioScrubber'
 import { Work, Section } from '@/types'
 import DataService from '@/lib/api/DataService'
 import { 
   ChevronLeftIcon,
   ChevronRightIcon,
   ListBulletIcon,
-  Cog6ToothIcon,
-  BookmarkIcon as BookmarkOutline,
-  HeartIcon as HeartOutline
 } from '@heroicons/react/24/outline'
-import { 
-  BookmarkIcon as BookmarkSolid,
-  HeartIcon as HeartSolid
-} from '@heroicons/react/24/solid'
 
 export default function ChapterPage() {
   const params = useParams()
@@ -31,6 +26,10 @@ export default function ChapterPage() {
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0)
   const [isBookmarked, setIsBookmarked] = useState(false)
   const [isLiked, setIsLiked] = useState(false)
+  const [isSubscribed, setIsSubscribed] = useState(false)
+  const [audioEnabled, setAudioEnabled] = useState(false)
+  const [currentAudiobookId, setCurrentAudiobookId] = useState<string | null>(null)
+  const [currentNarratorName, setCurrentNarratorName] = useState('Official AI Voice')
   const [showChapterList, setShowChapterList] = useState(false)
   const [readingSettings, setReadingSettings] = useState({
     fontSize: 'medium',
@@ -159,9 +158,38 @@ export default function ChapterPage() {
 
   return (
     <AppLayout>
+      {/* Fan Content Top Bar */}
+      <ChapterTopBar
+        workId={storyId}
+        chapterId={chapterId}
+        isBookmarked={isBookmarked}
+        isLiked={isLiked}
+        isSubscribed={isSubscribed}
+        onBookmark={() => setIsBookmarked(!isBookmarked)}
+        onLike={() => setIsLiked(!isLiked)}
+        onSubscribe={() => setIsSubscribed(!isSubscribed)}
+        audioEnabled={audioEnabled}
+        onAudioToggle={() => setAudioEnabled(!audioEnabled)}
+      />
+
+      {/* Sticky Audio Scrubber (shown when audio is enabled) */}
+      {audioEnabled && currentAudiobookId && (
+        <StickyAudioScrubber
+          audiobookId={currentAudiobookId}
+          workId={storyId}
+          chapterId={chapterId}
+          narratorName={currentNarratorName}
+          onMinimize={() => setAudioEnabled(false)}
+          onNarratorChange={() => {
+            // This would open the audiobook selector menu
+            // For now, just a placeholder
+          }}
+        />
+      )}
+
       <div className="max-w-4xl mx-auto">
         {/* Chapter Header */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 mb-6 mt-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-4">
               <button
@@ -177,32 +205,6 @@ export default function ChapterPage() {
               >
                 <ListBulletIcon className="w-5 h-5" />
                 <span className="text-sm">Chapters</span>
-              </button>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setIsBookmarked(!isBookmarked)}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              >
-                {isBookmarked ? (
-                  <BookmarkSolid className="w-5 h-5 text-blue-500" />
-                ) : (
-                  <BookmarkOutline className="w-5 h-5 text-gray-400" />
-                )}
-              </button>
-              <button
-                onClick={() => setIsLiked(!isLiked)}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              >
-                {isLiked ? (
-                  <HeartSolid className="w-5 h-5 text-red-500" />
-                ) : (
-                  <HeartOutline className="w-5 h-5 text-gray-400" />
-                )}
-              </button>
-              <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                <Cog6ToothIcon className="w-5 h-5 text-gray-400" />
               </button>
             </div>
           </div>

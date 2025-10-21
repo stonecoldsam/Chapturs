@@ -3,10 +3,10 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { workId: string; chapterId: string } }
+  { params }: { params: Promise<{ workId: string; chapterId: string }> }
 ) {
   try {
-    const { workId, chapterId } = params
+    const { workId, chapterId } = await params
 
     // Fetch all audiobooks for this chapter
     const audiobooks = await prisma.fanAudiobook.findMany({
