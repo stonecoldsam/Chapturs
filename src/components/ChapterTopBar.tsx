@@ -14,6 +14,8 @@ import {
 } from '@heroicons/react/24/solid'
 import LanguageSelectorMenu from './LanguageSelectorMenu'
 import AudiobookSelectorMenu from './AudiobookSelectorMenu'
+import TranslationSubmissionForm from './TranslationSubmissionForm'
+import AudiobookSubmissionForm from './AudiobookSubmissionForm'
 
 interface ChapterTopBarProps {
   workId: string
@@ -43,6 +45,8 @@ export default function ChapterTopBar({
   const [showLanguageMenu, setShowLanguageMenu] = useState(false)
   const [showAudiobookMenu, setShowAudiobookMenu] = useState(false)
   const [showMoreMenu, setShowMoreMenu] = useState(false)
+  const [showTranslationForm, setShowTranslationForm] = useState(false)
+  const [showAudiobookForm, setShowAudiobookForm] = useState(false)
   const [selectedLanguage, setSelectedLanguage] = useState('English')
 
   return (
@@ -190,11 +194,23 @@ export default function ChapterTopBar({
               </button>
 
               {showMoreMenu && (
-                <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2">
-                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50">
+                  <button
+                    onClick={() => {
+                      setShowTranslationForm(true)
+                      setShowMoreMenu(false)
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
                     📝 Submit Translation
                   </button>
-                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                  <button
+                    onClick={() => {
+                      setShowAudiobookForm(true)
+                      setShowMoreMenu(false)
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
                     🎙️ Submit Audiobook
                   </button>
                   <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div>
@@ -210,6 +226,29 @@ export default function ChapterTopBar({
           </div>
         </div>
       </div>
+
+      {/* Submission Forms */}
+      {showTranslationForm && (
+        <TranslationSubmissionForm
+          workId={workId}
+          chapterId={chapterId}
+          onClose={() => setShowTranslationForm(false)}
+          onSuccess={() => {
+            // Refresh translations
+          }}
+        />
+      )}
+
+      {showAudiobookForm && (
+        <AudiobookSubmissionForm
+          workId={workId}
+          chapterId={chapterId}
+          onClose={() => setShowAudiobookForm(false)}
+          onSuccess={() => {
+            // Refresh audiobooks
+          }}
+        />
+      )}
     </div>
   )
 }
