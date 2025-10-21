@@ -72,9 +72,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
       
       try {
-        console.log('📝 Attempting to upsert user in database...')
+        console.log('📝 Attempting to create/update user in database...')
         
-        // Create or find user in our database
+        // SIMPLIFIED: Only upsert user, defer author creation to session callback
+        // This reduces cold start timeout issues on Vercel
         const dbUser = await prisma.user.upsert({
           where: { email },
           update: {
@@ -96,24 +97,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           id: dbUser.id,
           username: dbUser.username
         })
-
-        // Create or ensure author profile exists for this user
-        console.log('📝 Attempting to upsert author profile for userId:', dbUser.id)
         
-        await prisma.author.upsert({
-          where: { userId: dbUser.id },
-          update: {}, // No updates needed for existing authors
-          create: {
-            userId: dbUser.id,
-            verified: false, // New authors start unverified
-            socialLinks: '[]', // Empty social links array
-          },
-        })
-        
-        console.log('✅ Author profile ready:', {
-          authorId: (await prisma.author.findUnique({ where: { userId: dbUser.id } }))?.id,
-          userId: dbUser.id
-        })
         console.log(`✅ User authenticated via ${account?.provider}:`, dbUser.email)
         return true
       } catch (error) {
@@ -145,6 +129,25 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             session.user.role = dbUser.role
           }
           console.log('[Session Callback] User found in DB:', dbUser ? `email=${dbUser.email}` : 'NOT FOUND')
+          
+          // Ensure author profile exists (non-blocking, fire and forget)
+          if (dbUser) {
+            try {
+              await prisma.author.upsert({
+                where: { userId: token.sub },
+                update: {}, // No updates needed for existing authors
+                create: {
+                  userId: token.sub,
+                  verified: false, // New authors start unverified
+                  socialLinks: '[]', // Empty social links array
+                },
+              })
+              console.log('[Session Callback] Author profile ensured for userId:', token.sub)
+            } catch (authorError) {
+              console.error('[Session Callback] Warning: Could not ensure author profile:', authorError)
+              // Don't fail the session if author profile creation fails - it's optional
+            }
+          }
         } catch (error) {
           console.error('Error fetching user role:', error)
         }

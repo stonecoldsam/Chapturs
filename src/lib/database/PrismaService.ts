@@ -7,11 +7,20 @@ const PrismaClient: any = (PrismaPkg as any).PrismaClient || (PrismaPkg as any).
 // Global Prisma instance with connection pooling for Supabase
 const globalForPrisma = global as unknown as { prisma: any }
 
+// Add connection timeout parameters to DATABASE_URL if not already present
+const databaseUrl = process.env.DATABASE_URL || ''
+const urlHasTimeout = databaseUrl.includes('connection_timeout') || databaseUrl.includes('statement_timeout')
+const finalDatabaseUrl = !urlHasTimeout && databaseUrl.includes('?')
+  ? `${databaseUrl}&connection_timeout=5&statement_timeout=10000`
+  : !urlHasTimeout
+  ? `${databaseUrl}${databaseUrl.includes('?') ? '&' : '?'}connection_timeout=5&statement_timeout=10000`
+  : databaseUrl
+
 export const prisma = globalForPrisma.prisma || new PrismaClient({
   log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   datasources: {
     db: {
-      url: process.env.DATABASE_URL,
+      url: finalDatabaseUrl,
     },
   },
 })
