@@ -59,6 +59,12 @@ model User {
   commentLikes   CommentLike[]
   commentReports CommentReport[]
 
+  // Fan content contributions
+  translationsSubmitted FanTranslation[]  @relation("FanTranslationTranslators")
+  audiobooksSubmitted   FanAudiobook[]    @relation("FanAudiobookNarrators")
+  fanContentVotes       FanContentVote[]  @relation("FanContentVotes")
+  tier3DealProposals    Tier3Deal[]       @relation("ContributorTier3Deals")
+
   @@map("users")
 }
 
@@ -81,6 +87,10 @@ model Author {
 
   // Creator Profile (v0.1)
   creatorProfile CreatorProfile?
+
+  // Fan content settings
+  fanContentSettings CreatorFanContentSettings?
+  tier3Deals         Tier3Deal[]                 @relation("CreatorTier3Deals")
 
   @@map("authors")
 }
@@ -176,6 +186,10 @@ model Work {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  // Fan content tracking
+  defaultTranslationByLanguage String @default("{}") // JSON: {"es": "tier1-id", "ja": "tier2-id"}
+  officialAudiobookId          String?
+
   // Relations
   author            Author             @relation(fields: [authorId], references: [id], onDelete: Cascade)
   sections          Section[]
@@ -206,6 +220,11 @@ model Work {
   // Comment system relations
   comments Comment[]
 
+  // Fan content relations
+  fanTranslations FanTranslation[] @relation("FanTranslations")
+  fanAudiobooks   FanAudiobook[]   @relation("FanAudiobooks")
+  tier3Deals      Tier3Deal[]      @relation("Tier3Deals")
+
   @@map("works")
 }
 
@@ -221,6 +240,13 @@ model Section {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
+  // Chapter number for ordering
+  chapterNumber Int?
+
+  // Fan content default selections (for fast lookup)
+  defaultTranslationIdByLanguage String @default("{}") // JSON: {"es": "tier2-id", "ja": "tier1-id"}
+  defaultAudiobookId             String?
+
   // Relations
   work            Work             @relation(fields: [workId], references: [id], onDelete: Cascade)
   readingHistory  ReadingHistory[]
@@ -232,6 +258,10 @@ model Section {
 
   // Comment system relations
   comments Comment[]
+
+  // Fan content relations
+  fanTranslations FanTranslation[] @relation("FanTranslations")
+  fanAudiobooks   FanAudiobook[]   @relation("FanAudiobooks")
 
   @@map("sections")
 }
@@ -1316,4 +1346,179 @@ model TranslationVote {
   @@index([translationSuggestionId])
   @@index([userId])
   @@map("translation_votes")
+}
+
+// ============================================================================
+// FAN CONTENT ECOSYSTEM: Audiobooks & Translations
+// ============================================================================
+
+// FanTranslation (Tier 2 & 3)
+model FanTranslation {
+  id String @id @default(cuid())
+
+  workId String
+  work   Work   @relation("FanTranslations", fields: [workId], references: [id], onDelete: Cascade)
+
+  chapterId String
+  chapter   Section @relation("FanTranslations", fields: [chapterId], references: [id], onDelete: Cascade)
+
+  languageCode String // "es", "ja", "fr", "zh-CN", etc.
+  tier         String // "TIER_2_COMMUNITY" | "TIER_3_PROFESSIONAL"
+
+  // Tier 2 specific (community edits)
+  isDefaultForLanguage Boolean @default(false)
+  editCount            Int     @default(0) // Number of crowdsourced edits applied
+
+  // Tier 3 specific
+  translatorId String?
+  translator   User?   @relation("FanTranslationTranslators", fields: [translatorId], references: [id], onDelete: SetNull)
+
+  translatedTitle   String
+  translatedContent String // JSON: Chapt format in target language
+  translationNotes  String? // Translator's notes on style/challenges
+
+  // Quality rating
+  readabilityAvg    Float @default(0)
+  comprehensionAvg  Float @default(0)
+  polishAvg         Float @default(0)
+  qualityOverall    Float @default(0) // Computed: average of above three
+  ratingCount       Int   @default(0)
+
+  status    String   @default("active") // "active" | "flagged" | "removed"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  votes FanContentVote[] @relation("FanTranslationVotes")
+
+  @@unique([chapterId, languageCode, tier, translatorId])
+  @@index([workId, languageCode, tier])
+  @@index([qualityOverall, status])
+  @@map("fan_translations")
+}
+
+// FanAudiobook (Tier 1 & 3 Only)
+model FanAudiobook {
+  id String @id @default(cuid())
+
+  workId String
+  work   Work   @relation("FanAudiobooks", fields: [workId], references: [id], onDelete: Cascade)
+
+  chapterId String
+  chapter   Section @relation("FanAudiobooks", fields: [chapterId], references: [id], onDelete: Cascade)
+
+  tier String // "TIER_1_OFFICIAL" | "TIER_3_PROFESSIONAL"
+
+  // Tier 1 official house version
+  isOfficialHouseVersion Boolean @default(false)
+
+  // Tier 3 specific
+  narratorId String?
+  narrator   User?   @relation("FanAudiobookNarrators", fields: [narratorId], references: [id], onDelete: SetNull)
+
+  audioUrl        String // R2/S3 URL to MP3/WAV
+  durationSeconds Int
+  narratorNotes   String? // Notes on accent, recording environment, character interpretations
+
+  // Quality rating
+  readabilityAvg   Float @default(0)
+  comprehensionAvg Float @default(0)
+  polishAvg        Float @default(0)
+  qualityOverall   Float @default(0)
+  ratingCount      Int   @default(0)
+
+  status    String   @default("active") // "active" | "flagged" | "removed"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  votes FanContentVote[] @relation("FanAudiobookVotes")
+
+  @@unique([chapterId, tier, narratorId])
+  @@index([workId, tier])
+  @@index([qualityOverall, status])
+  @@map("fan_audiobooks")
+}
+
+// FanContentVote (Unified Rating)
+model FanContentVote {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation("FanContentVotes", fields: [userId], references: [id], onDelete: Cascade)
+
+  fanTranslationId String?
+  fanTranslation   FanTranslation? @relation("FanTranslationVotes", fields: [fanTranslationId], references: [id], onDelete: Cascade)
+
+  fanAudiobookId String?
+  fanAudiobook   FanAudiobook? @relation("FanAudiobookVotes", fields: [fanAudiobookId], references: [id], onDelete: Cascade)
+
+  // 1-5 star ratings
+  readabilityRating    Int // 1-5
+  comprehensionRating  Int // 1-5
+  polishRating         Int // 1-5
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, fanTranslationId])
+  @@unique([userId, fanAudiobookId])
+  @@index([fanTranslationId, createdAt])
+  @@index([fanAudiobookId, createdAt])
+  @@map("fan_content_votes")
+}
+
+// CreatorFanContentSettings
+model CreatorFanContentSettings {
+  id String @id @default(cuid())
+
+  creatorId String @unique
+  creator   Author @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  // Tier 3 toggles
+  allowTier3Translations Boolean @default(true)
+  allowTier3Audiobooks   Boolean @default(true)
+
+  // Default revenue share percentages
+  defaultTranslationRevenueShare Float @default(0.30) // 30% to translator
+  defaultAudiobookRevenueShare   Float @default(0.40) // 40% to narrator
+
+  // If true, contributors must negotiate custom deals; if false, auto-approve with defaults
+  requireCustomDealApproval Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("creator_fan_content_settings")
+}
+
+// Tier3Deal (Custom Revenue Negotiation)
+model Tier3Deal {
+  id String @id @default(cuid())
+
+  workId String
+  work   Work   @relation("Tier3Deals", fields: [workId], references: [id], onDelete: Cascade)
+
+  creatorId String
+  creator   Author @relation("CreatorTier3Deals", fields: [creatorId], references: [id], onDelete: Cascade)
+
+  contributorId String // Fan translator or narrator
+  contributor   User   @relation("ContributorTier3Deals", fields: [contributorId], references: [id], onDelete: Cascade)
+
+  contentType  String  @default("TRANSLATION") // "TRANSLATION" | "AUDIOBOOK"
+  languageCode String? // "es", "ja", null if audiobook (applies to all languages)
+
+  // Deal terms
+  revenueSharePercent Float // e.g., 0.35 = 35% to contributor
+  exclusivityDuration Int? // null = non-exclusive, OR days (30, 60, 90, etc.)
+  externalLinkAllow   Boolean @default(true) // Can contributor link their work elsewhere?
+
+  status          String    @default("pending_creator") // "pending_creator" | "pending_contributor" | "active" | "expired" | "rejected"
+  rejectionReason String?
+
+  createdAt  DateTime  @default(now())
+  acceptedAt DateTime?
+  expiresAt  DateTime?
+
+  @@index([creatorId, status])
+  @@index([contributorId, status])
+  @@map("tier3_deals")
 }
