@@ -31,27 +31,35 @@ export default function LanguageSelectorMenu({
   const [translations, setTranslations] = useState<Translation[]>([])
   const [selectedLanguage, setSelectedLanguage] = useState('en')
   const [loading, setLoading] = useState(true)
+  const [isFetching, setIsFetching] = useState(false)
 
   useEffect(() => {
-    fetchTranslations()
-  }, [workId, chapterId, selectedLanguage])
-
-  const fetchTranslations = async () => {
-    try {
-      setLoading(true)
-      const response = await fetch(
-        `/api/works/${workId}/chapters/${chapterId}/translations?languageCode=${selectedLanguage}`
-      )
-      if (response.ok) {
-        const data = await response.json()
-        setTranslations(data.translations || [])
+    if (isFetching) return // Prevent concurrent fetches
+    
+    const fetchTranslations = async () => {
+      try {
+        setLoading(true)
+        setIsFetching(true)
+        const response = await fetch(
+          `/api/works/${workId}/chapters/${chapterId}/translations?languageCode=${selectedLanguage}`
+        )
+        if (response.ok) {
+          const data = await response.json()
+          setTranslations(data.translations || [])
+        } else {
+          setTranslations([])
+        }
+      } catch (error) {
+        console.error('Failed to fetch translations:', error)
+        setTranslations([])
+      } finally {
+        setLoading(false)
+        setIsFetching(false)
       }
-    } catch (error) {
-      console.error('Failed to fetch translations:', error)
-    } finally {
-      setLoading(false)
     }
-  }
+
+    fetchTranslations()
+  }, [workId, chapterId, selectedLanguage, isFetching])
 
   const getTierLabel = (tier: string) => {
     switch (tier) {

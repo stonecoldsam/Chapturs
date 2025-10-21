@@ -31,27 +31,35 @@ export default function AudiobookSelectorMenu({
 }: AudiobookSelectorMenuProps) {
   const [audiobooks, setAudiobooks] = useState<Audiobook[]>([])
   const [loading, setLoading] = useState(true)
+  const [isFetching, setIsFetching] = useState(false)
 
   useEffect(() => {
-    fetchAudiobooks()
-  }, [workId, chapterId])
-
-  const fetchAudiobooks = async () => {
-    try {
-      setLoading(true)
-      const response = await fetch(
-        `/api/works/${workId}/chapters/${chapterId}/audiobooks`
-      )
-      if (response.ok) {
-        const data = await response.json()
-        setAudiobooks(data.audiobooks || [])
+    if (isFetching) return // Prevent concurrent fetches
+    
+    const fetchAudiobooks = async () => {
+      try {
+        setLoading(true)
+        setIsFetching(true)
+        const response = await fetch(
+          `/api/works/${workId}/chapters/${chapterId}/audiobooks`
+        )
+        if (response.ok) {
+          const data = await response.json()
+          setAudiobooks(data.audiobooks || [])
+        } else {
+          setAudiobooks([])
+        }
+      } catch (error) {
+        console.error('Failed to fetch audiobooks:', error)
+        setAudiobooks([])
+      } finally {
+        setLoading(false)
+        setIsFetching(false)
       }
-    } catch (error) {
-      console.error('Failed to fetch audiobooks:', error)
-    } finally {
-      setLoading(false)
     }
-  }
+
+    fetchAudiobooks()
+  }, [workId, chapterId, isFetching])
 
   const formatDuration = (seconds: number) => {
     const hours = Math.floor(seconds / 3600)

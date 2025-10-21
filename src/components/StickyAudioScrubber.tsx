@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   PlayIcon,
   PauseIcon,
@@ -34,12 +34,54 @@ export default function StickyAudioScrubber({
   const [isMuted, setIsMuted] = useState(false)
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isFetching, setIsFetching] = useState(false)
 
   const audioRef = useRef<HTMLAudioElement>(null)
 
+  const togglePlayPause = useCallback(() => {
+    if (!audioRef.current) return
+
+    if (isPlaying) {
+      audioRef.current.pause()
+    } else {
+      audioRef.current.play()
+    }
+    setIsPlaying(!isPlaying)
+  }, [isPlaying])
+
+  const skip = useCallback((seconds: number) => {
+    if (!audioRef.current) return
+    audioRef.current.currentTime = Math.max(
+      0,
+      Math.min(duration, audioRef.current.currentTime + seconds)
+    )
+  }, [duration])
+
   useEffect(() => {
+    if (isFetching) return
+    
+    const fetchAudioUrl = async () => {
+      try {
+        setIsLoading(true)
+        setIsFetching(true)
+        const response = await fetch(
+          `/api/works/${workId}/chapters/${chapterId}/audiobooks/${audiobookId}/stream`
+        )
+        if (response.ok) {
+          const data = await response.json()
+          setAudioUrl(data.url)
+          setDuration(data.durationSeconds)
+        }
+      } catch (error) {
+        console.error('Failed to fetch audio URL:', error)
+      } finally {
+        setIsLoading(false)
+        setIsFetching(false)
+      }
+    }
+
     fetchAudioUrl()
-  }, [audiobookId, workId, chapterId])
+  }, [audiobookId, workId, chapterId, isFetching])
 
   useEffect(() => {
     // Keyboard shortcuts
@@ -85,7 +127,7 @@ export default function StickyAudioScrubber({
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isPlaying, currentTime])
+  }, [togglePlayPause, skip, onMinimize])
 
   const fetchAudioUrl = async () => {
     try {
@@ -103,25 +145,6 @@ export default function StickyAudioScrubber({
     } finally {
       setIsLoading(false)
     }
-  }
-
-  const togglePlayPause = () => {
-    if (!audioRef.current) return
-
-    if (isPlaying) {
-      audioRef.current.pause()
-    } else {
-      audioRef.current.play()
-    }
-    setIsPlaying(!isPlaying)
-  }
-
-  const skip = (seconds: number) => {
-    if (!audioRef.current) return
-    audioRef.current.currentTime = Math.max(
-      0,
-      Math.min(duration, audioRef.current.currentTime + seconds)
-    )
   }
 
   const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
