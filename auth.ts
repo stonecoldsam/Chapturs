@@ -118,39 +118,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (session.user && token.sub) {
         session.user.id = token.sub
         console.log('[Session Callback] Setting session.user.id from token.sub:', token.sub)
-        
-        // Fetch user role from database
-        try {
-          const dbUser = await prisma.user.findUnique({
-            where: { id: token.sub },
-            select: { role: true, email: true }
-          })
-          if (dbUser?.role) {
-            session.user.role = dbUser.role
-          }
-          console.log('[Session Callback] User found in DB:', dbUser ? `email=${dbUser.email}` : 'NOT FOUND')
-          
-          // Ensure author profile exists (non-blocking, fire and forget)
-          if (dbUser) {
-            try {
-              await prisma.author.upsert({
-                where: { userId: token.sub },
-                update: {}, // No updates needed for existing authors
-                create: {
-                  userId: token.sub,
-                  verified: false, // New authors start unverified
-                  socialLinks: '[]', // Empty social links array
-                },
-              })
-              console.log('[Session Callback] Author profile ensured for userId:', token.sub)
-            } catch (authorError) {
-              console.error('[Session Callback] Warning: Could not ensure author profile:', authorError)
-              // Don't fail the session if author profile creation fails - it's optional
-            }
-          }
-        } catch (error) {
-          console.error('Error fetching user role:', error)
-        }
       } else {
         console.log('[Session Callback] Missing session.user or token.sub')
       }
