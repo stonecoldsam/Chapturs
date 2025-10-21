@@ -158,8 +158,8 @@ export default function ChapterPage() {
 
   return (
     <AppLayout>
-      {/* Fan Content Top Bar - TEMPORARILY DISABLED FOR DEBUGGING */}
-      {/* <ChapterTopBar
+      {/* Fan Content Top Bar */}
+      <ChapterTopBar
         workId={storyId}
         chapterId={chapterId}
         isBookmarked={isBookmarked}
@@ -170,10 +170,10 @@ export default function ChapterPage() {
         onSubscribe={() => setIsSubscribed(!isSubscribed)}
         audioEnabled={audioEnabled}
         onAudioToggle={() => setAudioEnabled(!audioEnabled)}
-      /> */}
+      />
 
-      {/* Sticky Audio Scrubber (shown when audio is enabled) - TEMPORARILY DISABLED */}
-      {/* {audioEnabled && currentAudiobookId && (
+      {/* Sticky Audio Scrubber (shown when audio is enabled) */}
+      {audioEnabled && currentAudiobookId && (
         <StickyAudioScrubber
           audiobookId={currentAudiobookId}
           workId={storyId}
@@ -185,7 +185,7 @@ export default function ChapterPage() {
             // For now, just a placeholder
           }}
         />
-      )} */}
+      )}
 
       <div className="max-w-4xl mx-auto">
         {/* Chapter Header */}

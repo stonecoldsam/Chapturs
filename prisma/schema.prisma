@@ -1390,7 +1390,7 @@ model FanTranslation {
 
   votes FanContentVote[] @relation("FanTranslationVotes")
 
-  @@unique([chapterId, languageCode, tier, translatorId])
+  @@unique([chapterId, languageCode, tier])
   @@index([workId, languageCode, tier])
   @@index([qualityOverall, status])
   @@map("fan_translations")
@@ -1432,7 +1432,7 @@ model FanAudiobook {
 
   votes FanContentVote[] @relation("FanAudiobookVotes")
 
-  @@unique([chapterId, tier, narratorId])
+  @@unique([chapterId, tier])
   @@index([workId, tier])
   @@index([qualityOverall, status])
   @@map("fan_audiobooks")
