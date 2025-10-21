@@ -10,51 +10,56 @@ export async function GET(
     const { searchParams } = new URL(request.url)
     const languageCode = searchParams.get('languageCode') || 'en'
 
+    console.log('[TRANS_API] Fetching translations for:', { workId, chapterId, languageCode })
+
     // Fetch all translations for this chapter and language
-    const translations = await prisma.fanTranslation.findMany({
-      where: {
-        workId,
-        chapterId,
-        languageCode,
-        status: 'active',
-      },
-      include: {
-        translator: {
-          select: {
-            id: true,
-            username: true,
-            displayName: true,
-            avatar: true,
+    let translations: any[] = []
+    try {
+      translations = await prisma.fanTranslation.findMany({
+        where: {
+          workId,
+          chapterId,
+          languageCode,
+          status: 'active',
+        },
+        include: {
+          translator: {
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+              avatar: true,
+            },
           },
         },
-        _count: {
-          select: {
-            votes: true,
-          },
+        orderBy: {
+          qualityOverall: 'desc',
         },
-      },
-      orderBy: {
-        qualityOverall: 'desc',
-      },
-    })
+      })
+      console.log('[TRANS_API] Found', translations.length, 'translations')
+    } catch (dbError) {
+      console.error('[TRANS_API] Database error fetching translations:', dbError)
+      // Return empty array instead of error if DB query fails
+      translations = []
+    }
 
     // Determine current default
-    const section = await prisma.section.findUnique({
-      where: { id: chapterId },
-      select: { defaultTranslationIdByLanguage: true },
-    })
-
     let currentDefault = null
-    if (section?.defaultTranslationIdByLanguage) {
-      try {
+    try {
+      const section = await prisma.section.findUnique({
+        where: { id: chapterId },
+        select: { defaultTranslationIdByLanguage: true },
+      })
+
+      if (section?.defaultTranslationIdByLanguage) {
         const defaults =
           typeof section.defaultTranslationIdByLanguage === 'string'
             ? JSON.parse(section.defaultTranslationIdByLanguage)
             : section.defaultTranslationIdByLanguage
         currentDefault = defaults[languageCode] || null
-      } catch (e) {
-        console.error('Failed to parse default translations:', e)
       }
+    } catch (e) {
+      console.error('[TRANS_API] Failed to determine default translation:', e)
     }
 
     // Format response
@@ -66,11 +71,13 @@ export async function GET(
         t.tier === 'TIER_2_COMMUNITY'
           ? 'Community Edits'
           : t.translator?.displayName || t.translator?.username || 'Anonymous',
-      qualityOverall: t.qualityOverall,
-      ratingCount: t.ratingCount,
-      editCount: t.editCount,
+      qualityOverall: t.qualityOverall || 0,
+      ratingCount: t.ratingCount || 0,
+      editCount: t.editCount || 0,
       isDefault: t.id === currentDefault,
     }))
+
+    console.log('[TRANS_API] Returning response with', formattedTranslations.length, 'translations')
 
     return NextResponse.json({
       languageCode,
@@ -78,10 +85,12 @@ export async function GET(
       translations: formattedTranslations,
     })
   } catch (error) {
-    console.error('Failed to fetch translations:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch translations' },
-      { status: 500 }
-    )
+    console.error('[TRANS_API] Failed to fetch translations:', error)
+    // Return empty array instead of error
+    return NextResponse.json({
+      languageCode: 'en',
+      currentDefault: null,
+      translations: [],
+    })
   }
 }

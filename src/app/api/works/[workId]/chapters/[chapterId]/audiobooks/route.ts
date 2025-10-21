@@ -8,39 +8,48 @@ export async function GET(
   try {
     const { workId, chapterId } = await params
 
+    console.log('[AUDIO_API] Fetching audiobooks for:', { workId, chapterId })
+
     // Fetch all audiobooks for this chapter
-    const audiobooks = await prisma.fanAudiobook.findMany({
-      where: {
-        workId,
-        chapterId,
-        status: 'active',
-      },
-      include: {
-        narrator: {
-          select: {
-            id: true,
-            username: true,
-            displayName: true,
-            avatar: true,
+    let audiobooks: any[] = []
+    try {
+      audiobooks = await prisma.fanAudiobook.findMany({
+        where: {
+          workId,
+          chapterId,
+          status: 'active',
+        },
+        include: {
+          narrator: {
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+              avatar: true,
+            },
           },
         },
-        _count: {
-          select: {
-            votes: true,
-          },
-        },
-      },
-      orderBy: [
-        { tier: 'asc' }, // TIER_1_OFFICIAL comes first
-        { qualityOverall: 'desc' },
-      ],
-    })
+        orderBy: [
+          { tier: 'asc' }, // TIER_1_OFFICIAL comes first
+          { qualityOverall: 'desc' },
+        ],
+      })
+      console.log('[AUDIO_API] Found', audiobooks.length, 'audiobooks')
+    } catch (dbError) {
+      console.error('[AUDIO_API] Database error:', dbError)
+      audiobooks = []
+    }
 
     // Determine current default
-    const section = await prisma.section.findUnique({
-      where: { id: chapterId },
-      select: { defaultAudiobookId: true },
-    })
+    let section
+    try {
+      section = await prisma.section.findUnique({
+        where: { id: chapterId },
+        select: { defaultAudiobookId: true },
+      })
+    } catch (e) {
+      console.error('[AUDIO_API] Failed to fetch section:', e)
+    }
 
     const currentDefault = section?.defaultAudiobookId || audiobooks[0]?.id || null
 
@@ -53,22 +62,24 @@ export async function GET(
           ? 'Official AI Voice'
           : a.narrator?.displayName || a.narrator?.username || 'Anonymous',
       narratorId: a.narratorId,
-      durationSeconds: a.durationSeconds,
-      qualityOverall: a.qualityOverall,
-      ratingCount: a.ratingCount,
+      durationSeconds: a.durationSeconds || 0,
+      qualityOverall: a.qualityOverall || 0,
+      ratingCount: a.ratingCount || 0,
       isDefault: a.id === currentDefault,
-      isPlaying: false, // Will be set by client based on current state
+      isPlaying: false,
     }))
+
+    console.log('[AUDIO_API] Returning', formattedAudiobooks.length, 'audiobooks')
 
     return NextResponse.json({
       currentDefault,
       audiobooks: formattedAudiobooks,
     })
   } catch (error) {
-    console.error('Failed to fetch audiobooks:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch audiobooks' },
-      { status: 500 }
-    )
+    console.error('[AUDIO_API] Failed to fetch audiobooks:', error)
+    return NextResponse.json({
+      currentDefault: null,
+      audiobooks: [],
+    })
   }
 }
